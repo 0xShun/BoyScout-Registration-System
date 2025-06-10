@@ -1,0 +1,55 @@
+# ScoutConnect Project Checklist
+
+## 1. User Registration & Authentication
+- [ ] Design and implement secure registration portal for scouts
+- [ ] Design and implement secure registration portal for administrators
+- [ ] Implement login/logout functionality
+- [ ] Implement password reset and recovery
+- [ ] Role-based access control (scout/admin)
+
+## 2. Member Database (CRUD)
+- [ ] Design member database schema
+- [ ] Implement Create, Read, Update, Delete (CRUD) operations for member profiles
+- [ ] Admin interface for managing members
+- [ ] Member self-service profile editing
+
+## 3. Digital Payments & Receipts
+- [ ] Integrate digital payment simulation (manual upload of proof)
+- [ ] Payment tracking and history per member
+- [ ] Generate and download transaction receipts
+- [ ] Admin interface for payment verification
+
+## 4. Communication & Announcements
+- [ ] Implement announcement module (admin to all/selected members)
+- [ ] Integrate SMS notification (simulation or API)
+- [ ] Integrate email notification (simulation or API)
+- [ ] Notification history/log for members
+
+## 5. Analytics & Dashboards
+- [ ] Membership trends dashboard (growth, demographics)
+- [ ] Payments dashboard (totals, outstanding, trends)
+- [ ] Engagement dashboard (event/activity participation)
+- [ ] Export analytics reports (PDF/CSV)
+
+## 6. Mobile Responsiveness & Accessibility
+- [ ] Responsive UI for desktop and mobile
+- [ ] Accessibility checks (contrast, keyboard navigation, etc.)
+
+## 7. General & Admin Features
+- [ ] Admin dashboard (overview of system status)
+- [ ] Audit log for key actions (registration, payments, announcements)
+- [ ] Settings/configuration panel (roles, permissions, etc.)
+
+## 8. Documentation & Testing
+- [ ] User manual / help section
+- [ ] Admin manual / help section
+- [ ] Automated tests for critical features
+- [ ] Manual testing checklist
+
+---
+
+# Instructions
+- Check off each item as it is completed.
+- Add new tasks as needed during development.
+- Use this checklist to resume work after breaks. 
+- Use the documenation folder to put txt files of what you did everyday.
