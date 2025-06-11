@@ -9,3 +9,9 @@ class User(AbstractUser):
         ('admin', 'Administrator'),
     )
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='scout')
+
+    def is_admin(self):
+        return self.role == 'admin'
+
+    def is_scout(self):
+        return self.role == 'scout'

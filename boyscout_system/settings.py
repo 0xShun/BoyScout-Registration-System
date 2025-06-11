@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'accounts',
     'payments',
     'announcements',
+    'events',
 ]
 
 MIDDLEWARE = [
@@ -127,3 +128,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Custom user model
 AUTH_USER_MODEL = 'accounts.User'
+
+LOGIN_REDIRECT_URL = '/' # Redirect to home page after login
+LOGIN_URL = 'accounts/login/' # URL to redirect to for login

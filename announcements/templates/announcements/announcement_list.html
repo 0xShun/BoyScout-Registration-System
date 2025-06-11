@@ -1,23 +1,27 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h2>Announcements</h2>
+  <h2 class="mb-4">Announcements</h2>
   {% if user.is_admin %}
-    <a href="{% url 'announcement_create' %}">Create Announcement</a>
+    <a href="{% url 'announcements:announcement_create' %}" class="btn btn-primary mb-3">Create Announcement</a>
   {% endif %}
-  <ul>
+  <div class="list-group">
     {% for announcement in announcements %}
-      <li style="margin-bottom: 1em;">
-        <strong>{{ announcement.title }}</strong> <br>
-        <small>{{ announcement.date_posted|date:"Y-m-d H:i" }}</small><br>
-        {{ announcement.message }}<br>
-        {% if user in announcement.read_by.all %}
-          <span style="color: green;">Read</span>
-        {% else %}
-          <a href="{% url 'announcement_mark_read' announcement.pk %}">Mark as read</a>
-        {% endif %}
-      </li>
+      <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-2 shadow-sm">
+        <div>
+          <h5 class="mb-1">{{ announcement.title }}</h5>
+          <small class="text-muted">{{ announcement.date_posted|date:"Y-m-d H:i" }}</small>
+          <p class="mb-1">{{ announcement.message }}</p>
+        </div>
+        <div>
+          {% if user in announcement.read_by.all %}
+            <span class="badge bg-success">Read</span>
+          {% else %}
+            <a href="{% url 'announcements:announcement_mark_read' announcement.pk %}" class="btn btn-sm btn-outline-secondary">Mark as read</a>
+          {% endif %}
+        </div>
+      </div>
     {% empty %}
-      <li>No announcements yet.</li>
+      <div class="alert alert-info text-center" role="alert">No announcements yet.</div>
     {% endfor %}
-  </ul>
+  </div>
 {% endblock %} 

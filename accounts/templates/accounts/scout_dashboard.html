@@ -1,11 +1,39 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h2>Scout Dashboard</h2>
-  <p>Welcome, {{ user.username }} (Scout)!</p>
-  <ul>
-    <li><a href="{% url 'profile_edit' %}">My Profile</a></li>
-    <li><a href="{% url 'payments:payment_list' %}">My Payments</a></li>
-    <li><a href="{% url 'announcements:announcement_list' %}">Announcements</a></li>
-    <li><a href="#">Events & Activities</a></li>
-  </ul>
+  <div class="row mb-4">
+    <div class="col-12">
+      {% if is_active_member %}
+        <div class="alert alert-success d-flex align-items-center" role="alert">
+          <h5 class="mb-0 me-3">Active Member Status 🥳</h5>
+          <div>You are an active member of the Boy Scouts of the Philippines!</div>
+        </div>
+      {% else %}
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+          <h5 class="mb-0 me-3">Membership Inactive 😟</h5>
+          <div>Your membership is currently inactive. Please submit a payment to become an active member.</div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <h2 class="mb-3">Scout Dashboard</h2>
+  <p class="lead mb-4">Welcome, {{ user.username }} (Scout)!</p>
+  <div class="list-group">
+    <a href="{% url 'profile_edit' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      My Profile
+      <span class="badge bg-primary rounded-pill"></span>
+    </a>
+    <a href="{% url 'payments:payment_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      My Payments
+      <span class="badge bg-primary rounded-pill"></span>
+    </a>
+    <a href="{% url 'announcements:announcement_list' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      Announcements
+      <span class="badge bg-primary rounded-pill"></span>
+    </a>
+    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+      Events & Activities
+      <span class="badge bg-primary rounded-pill"></span>
+    </a>
+  </div>
 {% endblock %} 

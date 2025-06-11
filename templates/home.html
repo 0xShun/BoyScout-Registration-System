@@ -1,5 +1,60 @@
 {% extends 'base.html' %}
 {% block content %}
-  <h2>Welcome to ScoutConnect!</h2>
-  <p>Please <a href="{% url 'login' %}">login</a> or <a href="{% url 'register' %}">register</a> to continue.</p>
+  <div class="container py-4">
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm">
+      <div class="container-fluid py-5">
+        <h1 class="display-5 fw-bold">Welcome to ScoutConnect!</h1>
+        <p class="col-md-8 fs-4">Your comprehensive platform for the Boy Scouts of the Philippines. Stay updated with announcements, activities, and manage your membership.</p>
+        {% if not user.is_authenticated %}
+          <p>
+            <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">Login</a>
+            <a class="btn btn-outline-primary btn-lg" href="{% url 'register' %}" role="button">Register</a>
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-md-6">
+        <h3 class="mb-3">Latest Announcements</h3>
+        {% if latest_announcements %}
+          <div class="list-group">
+            {% for announcement in latest_announcements %}
+              <div class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm rounded">
+                <div class="d-flex w-100 justify-content-between">
+                  <h5 class="mb-1">{{ announcement.title }}</h5>
+                  <small class="text-muted">{{ announcement.date_posted|date:"M d, Y" }}</small>
+                </div>
+                <p class="mb-1">{{ announcement.message|truncatechars:100 }}</p>
+                <small><a href="{% url 'announcements:announcement_list' %}" class="text-decoration-none">Read more</a></small>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="alert alert-info" role="alert">No recent announcements.</div>
+        {% endif %}
+      </div>
+
+      <div class="col-md-6">
+        <h3 class="mb-3">Upcoming Activities</h3>
+        {% if upcoming_events %}
+          <div class="list-group">
+            {% for event in upcoming_events %}
+              <div class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm rounded">
+                <div class="d-flex w-100 justify-content-between">
+                  <h5 class="mb-1">{{ event.title }}</h5>
+                  <small class="text-muted">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"P" }}{% endif %}</small>
+                </div>
+                <p class="mb-1">{{ event.description|truncatechars:100 }}</p>
+                <small class="text-muted">Location: {{ event.location }}</small><br/>
+                <small><a href="{% url 'events:event_list' %}" class="text-decoration-none">View details</a></small>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="alert alert-info" role="alert">No upcoming activities.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
 {% endblock %} 

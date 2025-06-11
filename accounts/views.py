@@ -7,6 +7,12 @@ from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models.functions import TruncMonth
+from payments.models import Payment
+from announcements.models import Announcement
+from events.models import Event
+from django.utils import timezone
+from django.contrib.auth.views import LoginView
+from django.conf import settings
 
 @login_required
 def admin_dashboard(request):
@@ -47,6 +53,8 @@ def admin_dashboard(request):
         .annotate(payment_count=models.Count('payments'))
         .order_by('-payment_count')[:5]
     )
+    # Check if the logged-in admin user has any verified payments
+    is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
     return render(request, 'accounts/admin_dashboard.html', {
         'member_count': member_count,
         'payment_total': payment_total,
@@ -56,19 +64,26 @@ def admin_dashboard(request):
         'payment_trends': list(payment_trends),
         'announcement_engagement': announcement_engagement,
         'active_scouts': active_scouts,
+        'is_active_member': is_active_member,
     })
 
 @login_required
 def scout_dashboard(request):
     if not request.user.is_scout():
         return redirect('admin_dashboard')
-    return render(request, 'accounts/scout_dashboard.html')
+
+    # Check if the scout has paid and is an active member
+    is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
+
+    return render(request, 'accounts/scout_dashboard.html', {'is_active_member': is_active_member})
 
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.role = 'scout'  # Automatically set role to Scout
+            user.save()
             messages.success(request, 'Registration successful. You can now log in.')
             return redirect('login')
     else:
@@ -134,4 +149,24 @@ def profile_edit(request):
 # Announcement views have been moved to announcements/views.py
 
 def home(request):
-    return render(request, 'home.html')
+    latest_announcements = Announcement.objects.order_by('-date_posted')[:3]
+    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:3]
+
+    return render(request, 'home.html', {
+        'latest_announcements': latest_announcements,
+        'upcoming_events': upcoming_events,
+    })
+
+class MyLoginView(LoginView):
+    template_name = 'accounts/login.html'
+    redirect_field_name = '' # Explicitly ignore 'next' parameter
+
+    def get_success_url(self):
+        user = self.request.user
+        if user.is_authenticated:
+            if user.is_admin():
+                return '/accounts/admin-dashboard/'
+            elif user.is_scout():
+                return '/accounts/scout-dashboard/'
+        # Fallback to general redirect URL if role is not identified or not authenticated
+        return settings.LOGIN_REDIRECT_URL

@@ -8,10 +8,12 @@ class Payment(models.Model):
         ('rejected', 'Rejected'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
+    payee_name = models.CharField(max_length=255, verbose_name="Payee Name")
+    payee_email = models.EmailField(verbose_name="Payee Email Address")
     amount = models.DecimalField(max_digits=8, decimal_places=2)
     date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    proof = models.FileField(upload_to='payment_proofs/', blank=True, null=True)
+    gcash_receipt_image = models.ImageField(upload_to='gcash_receipts/', blank=True, null=True, verbose_name="GCash Receipt Image")
 
     def __str__(self):
         return f"{self.user.username} - {self.amount} ({self.status})"

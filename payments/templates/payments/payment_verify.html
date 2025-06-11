@@ -1,1 +1,26 @@
- 
+{% extends 'base.html' %}
+{% block content %}
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h4 class="card-title mb-3">Verify Payment</h4>
+          <p><strong>User:</strong> {{ payment.user.username }}</p>
+          <p><strong>Amount:</strong> ₱{{ payment.amount }}</p>
+          <p><strong>Date:</strong> {{ payment.date }}</p>
+          <p><strong>Status:</strong> 
+            <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
+              {{ payment.get_status_display }}
+            </span>
+          </p>
+          <p><strong>Proof:</strong> {% if payment.proof %}<a href="{{ payment.proof.url }}" target="_blank" class="btn btn-sm btn-outline-info">View Proof</a>{% else %}-{% endif %}</p>
+          <form method="post" class="mt-4">
+            {% csrf_token %}
+            <button name="status" value="verified" type="submit" class="btn btn-success me-2">Mark as Verified</button>
+            <button name="status" value="rejected" type="submit" class="btn btn-danger">Mark as Rejected</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %} 

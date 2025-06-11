@@ -1,11 +1,59 @@
 {% extends 'base.html' %}
 {% block content %}
+  <div class="row mb-4">
+    <div class="col-12">
+      {% if is_active_member %}
+        <div class="card text-white bg-success">
+          <div class="card-body">
+            <h5 class="card-title">Active Member Status 🥳</h5>
+            <p class="card-text">You are an active member of the Boy Scouts of the Philippines!</p>
+          </div>
+        </div>
+      {% else %}
+        <div class="card text-white bg-danger">
+          <div class="card-body">
+            <h5 class="card-title">Membership Inactive 😟</h5>
+            <p class="card-text">Your membership is currently inactive. Please submit a payment to become an active member.</p>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
   <h2>Admin Dashboard</h2>
-  <div style="display: flex; gap: 2em; margin-bottom: 2em;">
-    <div><strong>Members:</strong><br>{{ member_count }}</div>
-    <div><strong>Payments (Verified):</strong><br>₱{{ payment_total }}</div>
-    <div><strong>Payments (Pending):</strong><br>{{ payment_pending }}</div>
-    <div><strong>Announcements:</strong><br>{{ announcement_count }}</div>
+  <div class="row mb-4">
+    <div class="col">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Members</h5>
+          <p class="display-6">{{ member_count }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Payments (Verified)</h5>
+          <p class="display-6">₱{{ payment_total }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Payments (Pending)</h5>
+          <p class="display-6">{{ payment_pending }}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <div class="card text-center shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Announcements</h5>
+          <p class="display-6">{{ announcement_count }}</p>
+        </div>
+      </div>
+    </div>
   </div>
   <ul>
     <li><a href="{% url 'member_list' %}">Manage Members</a></li>
@@ -14,28 +62,28 @@
     <li><a href="#">Analytics</a></li>
   </ul>
   <h3>Membership Growth (by Month)</h3>
-  <table style="margin-bottom:1em;">
+  <table class="table table-bordered table-sm mb-4">
     <tr><th>Month</th><th>New Members</th></tr>
     {% for row in member_growth %}
       <tr><td>{{ row.month|date:'Y-m' }}</td><td>{{ row.count }}</td></tr>
     {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
   </table>
   <h3>Payment Trends (by Month)</h3>
-  <table style="margin-bottom:1em;">
+  <table class="table table-bordered table-sm mb-4">
     <tr><th>Month</th><th>Total Payments</th></tr>
     {% for row in payment_trends %}
       <tr><td>{{ row.month|date:'Y-m' }}</td><td>₱{{ row.total }}</td></tr>
     {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
   </table>
   <h3>Announcement Engagement</h3>
-  <table style="margin-bottom:1em;">
+  <table class="table table-bordered table-sm mb-4">
     <tr><th>Announcement</th><th>Read</th><th>Total Recipients</th></tr>
     {% for a in announcement_engagement %}
       <tr><td>{{ a.title }}</td><td>{{ a.read }}</td><td>{{ a.total }}</td></tr>
     {% empty %}<tr><td colspan="3">No data</td></tr>{% endfor %}
   </table>
   <h3>Most Active Scouts (by Payments)</h3>
-  <table style="margin-bottom:1em;">
+  <table class="table table-bordered table-sm mb-4">
     <tr><th>Scout</th><th>Payments</th></tr>
     {% for scout in active_scouts %}
       <tr><td>{{ scout.username }}</td><td>{{ scout.payment_count }}</td></tr>
