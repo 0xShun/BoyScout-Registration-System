@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Scout Dashboard</h2>
+  <p>Welcome, {{ user.username }} (Scout)!</p>
+  <ul>
+    <li><a href="{% url 'profile_edit' %}">My Profile</a></li>
+    <li><a href="{% url 'payments:payment_list' %}">My Payments</a></li>
+    <li><a href="{% url 'announcements:announcement_list' %}">Announcements</a></li>
+    <li><a href="#">Events & Activities</a></li>
+  </ul>
+{% endblock %} 

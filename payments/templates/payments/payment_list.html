@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Payments</h2>
+  {% if user.is_scout %}
+    <a href="{% url 'payment_submit' %}">Submit Payment</a>
+  {% endif %}
+  <table>
+    <tr>
+      <th>User</th>
+      <th>Amount</th>
+      <th>Date</th>
+      <th>Status</th>
+      <th>Proof</th>
+      {% if user.is_admin %}<th>Actions</th>{% endif %}
+    </tr>
+    {% for payment in payments %}
+    <tr>
+      <td>{{ payment.user.username }}</td>
+      <td>{{ payment.amount }}</td>
+      <td>{{ payment.date }}</td>
+      <td>{{ payment.get_status_display }}</td>
+      <td>
+        {% if payment.proof %}
+          <a href="{{ payment.proof.url }}" target="_blank">View</a>
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      {% if user.is_admin %}
+        <td><a href="{% url 'payment_verify' payment.pk %}">Verify</a></td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %} 

@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>All Members</h2>
+  <form method="get" style="margin-bottom: 1em;">
+    <input type="text" name="q" placeholder="Search by username or email" value="{{ query }}" style="padding: 0.5em; width: 250px;">
+    <button type="submit">Search</button>
+  </form>
+  <table style="width:100%; border-collapse:collapse; background:#fff;">
+    <tr style="background:#f1f1f1;">
+      <th style="padding:8px; border:1px solid #ddd;">Username</th>
+      <th style="padding:8px; border:1px solid #ddd;">Email</th>
+      <th style="padding:8px; border:1px solid #ddd;">Role</th>
+      <th style="padding:8px; border:1px solid #ddd;">Actions</th>
+    </tr>
+    {% for member in members %}
+    <tr>
+      <td style="padding:8px; border:1px solid #ddd;"><a href="{% url 'member_detail' member.pk %}">{{ member.username }}</a></td>
+      <td style="padding:8px; border:1px solid #ddd;">{{ member.email }}</td>
+      <td style="padding:8px; border:1px solid #ddd;">{{ member.get_role_display }}</td>
+      <td style="padding:8px; border:1px solid #ddd;">
+        <a href="{% url 'member_edit' member.pk %}">Edit</a> |
+        <a href="{% url 'member_delete' member.pk %}">Delete</a>
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="4" style="text-align:center;">No members found.</td></tr>
+    {% endfor %}
+  </table>
+  <div style="margin-top:1em;">
+    {% if members.has_other_pages %}
+      <span>Page {{ members.number }} of {{ members.paginator.num_pages }}</span>
+      {% if members.has_previous %}
+        <a href="?q={{ query }}&page={{ members.previous_page_number }}">Previous</a>
+      {% endif %}
+      {% if members.has_next %}
+        <a href="?q={{ query }}&page={{ members.next_page_number }}">Next</a>
+      {% endif %}
+    {% endif %}
+  </div>
+{% endblock %} 

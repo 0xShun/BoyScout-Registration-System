@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+  <h2>Announcements</h2>
+  {% if user.is_admin %}
+    <a href="{% url 'announcement_create' %}">Create Announcement</a>
+  {% endif %}
+  <ul>
+    {% for announcement in announcements %}
+      <li style="margin-bottom: 1em;">
+        <strong>{{ announcement.title }}</strong> <br>
+        <small>{{ announcement.date_posted|date:"Y-m-d H:i" }}</small><br>
+        {{ announcement.message }}<br>
+        {% if user in announcement.read_by.all %}
+          <span style="color: green;">Read</span>
+        {% else %}
+          <a href="{% url 'announcement_mark_read' announcement.pk %}">Mark as read</a>
+        {% endif %}
+      </li>
+    {% empty %}
+      <li>No announcements yet.</li>
+    {% endfor %}
+  </ul>
+{% endblock %} 
