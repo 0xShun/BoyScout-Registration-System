@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Analytics Dashboard</h1>
+<form method="get" style="margin-bottom: 2em;">
+    <label>Start Date: <input type="date" name="start_date" value="{{ filter_start_date }}"></label>
+    <label>End Date: <input type="date" name="end_date" value="{{ filter_end_date }}"></label>
+    <label>Event Type:
+        <select name="event_type">
+            <option value="">All</option>
+            {% for t in types %}
+                <option value="{{ t }}" {% if filter_event_type == t %}selected{% endif %}>{{ t }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Filter</button>
+</form>
+<div>
+    <h2>Summary</h2>
+    <ul>
+        <li><strong>Total Events:</strong> {{ total_events }}</li>
+        <li><strong>Unique Users:</strong> {{ unique_users }}</li>
+    </ul>
+    <h3>Events by Type</h3>
+    <canvas id="eventsByTypeChart" width="400" height="200"></canvas>
+    <canvas id="eventsByTypePie" width="400" height="200"></canvas>
+    <ul>
+        {% for item in events_by_type %}
+            <li>{{ item.event_type }}: {{ item.count }}</li>
+        {% endfor %}
+    </ul>
+</div>
+<div>
+    <h2>Recent Events</h2>
+    <table border="1">
+        <tr>
+            <th>Timestamp</th>
+            <th>User</th>
+            <th>Type</th>
+            <th>Page URL</th>
+            <th>IP Address</th>
+            <th>Metadata</th>
+        </tr>
+        {% for event in recent_events %}
+        <tr>
+            <td>{{ event.timestamp }}</td>
+            <td>{% if event.user %}{{ event.user }}{% else %}Anonymous{% endif %}</td>
+            <td>{{ event.event_type }}</td>
+            <td>{{ event.page_url }}</td>
+            <td>{{ event.ip_address }}</td>
+            <td>{{ event.metadata }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const eventsByTypeData = {
+    labels: [{% for item in events_by_type %}'{{ item.event_type }}',{% endfor %}],
+    datasets: [{
+        data: [{% for item in events_by_type %}{{ item.count }},{% endfor %}],
+        backgroundColor: 'rgba(54, 162, 235, 0.5)'
+    }]
+};
+
+new Chart(document.getElementById('eventsByTypeChart').getContext('2d'), {
+    type: 'bar',
+    data: eventsByTypeData
+});
+
+new Chart(document.getElementById('eventsByTypePie').getContext('2d'), {
+    type: 'pie',
+    data: {
+        labels: [{% for item in pie_data %}'{{ item.event_type }}',{% endfor %}],
+        datasets: [{
+            data: [{% for item in pie_data %}{{ item.count }},{% endfor %}],
+            backgroundColor: [
+                'rgba(255, 99, 132, 0.5)',
+                'rgba(54, 162, 235, 0.5)',
+                'rgba(255, 206, 86, 0.5)',
+                'rgba(75, 192, 192, 0.5)',
+                'rgba(153, 102, 255, 0.5)'
+            ]
+        }]
+    }
+});
+</script>
+{% endblock %} 

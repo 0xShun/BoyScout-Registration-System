@@ -4,6 +4,10 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import PaymentForm
 from .models import Payment
 from accounts.models import User
+from django.utils import timezone
+from datetime import timedelta
+from django.core.mail import send_mail
+from django.conf import settings
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -21,9 +25,33 @@ def payment_submit(request):
     if request.method == 'POST':
         form = PaymentForm(request.POST, request.FILES)
         if form.is_valid():
+            # Check if user has any pending payments
+            pending_payments = Payment.objects.filter(
+                user=request.user,
+                status='pending',
+                date__gte=timezone.now() - timedelta(days=7)
+            )
+            if pending_payments.exists():
+                messages.warning(request, 'You already have a pending payment. Please wait for verification.')
+                return redirect('payment_list')
+
             payment = form.save(commit=False)
             payment.user = request.user
+            payment.expiry_date = timezone.now() + timedelta(days=7)  # Payment expires in 7 days
             payment.save()
+            
+            # Notify admins about new payment
+            admins = User.objects.filter(role='admin')
+            admin_emails = [admin.email for admin in admins]
+            if admin_emails:
+                send_mail(
+                    'New Payment Submission',
+                    f'A new payment has been submitted by {request.user.get_full_name()}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    admin_emails,
+                    fail_silently=True,
+                )
+            
             messages.success(request, 'Payment submitted. Awaiting verification.')
             return redirect('payment_list')
     else:
@@ -33,10 +61,34 @@ def payment_submit(request):
 @admin_required
 def payment_verify(request, pk):
     payment = Payment.objects.get(pk=pk)
+    
+    # Check if payment has expired
+    if payment.expiry_date and payment.expiry_date < timezone.now():
+        payment.status = 'expired'
+        payment.save()
+        messages.warning(request, 'This payment has expired.')
+        return redirect('payment_list')
+    
     if request.method == 'POST':
         status = request.POST.get('status')
+        if status not in ['verified', 'rejected']:
+            messages.error(request, 'Invalid status.')
+            return redirect('payment_list')
+            
         payment.status = status
+        payment.verified_by = request.user
+        payment.verification_date = timezone.now()
         payment.save()
+        
+        # Notify user about payment status
+        send_mail(
+            f'Payment {status.capitalize()}',
+            f'Your payment has been {status}.',
+            settings.DEFAULT_FROM_EMAIL,
+            [payment.user.email],
+            fail_silently=True,
+        )
+        
         messages.success(request, f'Payment marked as {status}.')
         return redirect('payment_list')
     return render(request, 'payments/payment_verify.html', {'payment': payment})

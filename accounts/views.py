@@ -11,13 +11,22 @@ from payments.models import Payment
 from announcements.models import Announcement
 from events.models import Event
 from django.utils import timezone
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, LogoutView
 from django.conf import settings
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+import random
+import string
 
 @login_required
 def admin_dashboard(request):
     if not request.user.is_admin():
-        return redirect('scout_dashboard')
+        return redirect('accounts:scout_dashboard')
     # Analytics
     member_count = User.objects.count()
     payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
@@ -70,25 +79,54 @@ def admin_dashboard(request):
 @login_required
 def scout_dashboard(request):
     if not request.user.is_scout():
-        return redirect('admin_dashboard')
+        return redirect('accounts:admin_dashboard')
 
     # Check if the scout has paid and is an active member
     is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
 
     return render(request, 'accounts/scout_dashboard.html', {'is_active_member': is_active_member})
 
+def generate_verification_code():
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
 def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST)
         if form.is_valid():
             user = form.save(commit=False)
-            user.role = 'scout'  # Automatically set role to Scout
+            user.role = 'scout'
+            user.is_active = False  # User is inactive until email is verified
+            verification_code = generate_verification_code()
+            user.verification_code = verification_code
             user.save()
-            messages.success(request, 'Registration successful. You can now log in.')
-            return redirect('login')
+            
+            # Send verification email
+            subject = 'Verify your ScoutConnect account'
+            message = f'Your verification code is: {verification_code}'
+            from_email = settings.DEFAULT_FROM_EMAIL
+            to_email = user.email
+            send_mail(subject, message, from_email, [to_email])
+            
+            messages.success(request, 'Registration successful. Please check your email for verification code.')
+            return redirect('accounts:verify_email')
     else:
         form = UserRegisterForm()
     return render(request, 'accounts/register.html', {'form': form})
+
+def verify_email(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        code = request.POST.get('verification_code')
+        try:
+            user = User.objects.get(email=email, verification_code=code)
+            user.is_active = True
+            user.verification_code = None
+            user.save()
+            messages.success(request, 'Email verified successfully. You can now log in.')
+            return redirect('accounts:login')
+        except User.DoesNotExist:
+            messages.error(request, 'Invalid verification code.')
+    return render(request, 'accounts/verify_email.html')
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -96,13 +134,21 @@ def admin_required(view_func):
 @admin_required
 def member_list(request):
     query = request.GET.get('q', '')
+    filter_rank = request.GET.get('rank', '')
     members = User.objects.all()
     if query:
-        members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query))
+        members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
+    if filter_rank:
+        members = members.filter(rank=filter_rank)
     paginator = Paginator(members, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'accounts/member_list.html', {'members': members})
+    return render(request, 'accounts/member_list.html', {
+        'members': members,
+        'query': query,
+        'filter_rank': filter_rank,
+        'rank_choices': User.RANK_CHOICES,
+    })
 
 @login_required
 def member_detail(request, pk):
@@ -119,7 +165,7 @@ def member_edit(request, pk):
         if form.is_valid():
             form.save()
             messages.success(request, 'Member updated successfully.')
-            return redirect('member_list')
+            return redirect('accounts:member_list')
     else:
         form = UserEditForm(instance=user)
     return render(request, 'accounts/member_edit.html', {'form': form, 'member': user})
@@ -130,7 +176,7 @@ def member_delete(request, pk):
     if request.method == 'POST':
         user.delete()
         messages.success(request, 'Member deleted successfully.')
-        return redirect('member_list')
+        return redirect('accounts:member_list')
     return render(request, 'accounts/member_delete_confirm.html', {'member': user})
 
 @login_required
@@ -141,10 +187,16 @@ def profile_edit(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully.')
-            return redirect('scout_dashboard' if user.is_scout() else 'admin_dashboard')
+            return redirect('accounts:scout_dashboard' if user.is_scout() else 'accounts:admin_dashboard')
     else:
         form = UserEditForm(instance=user)
     return render(request, 'accounts/profile_edit.html', {'form': form})
+
+@login_required
+def profile_view(request):
+    return render(request, 'accounts/profile.html', {
+        'user': request.user
+    })
 
 # Announcement views have been moved to announcements/views.py
 
@@ -162,11 +214,14 @@ class MyLoginView(LoginView):
     redirect_field_name = '' # Explicitly ignore 'next' parameter
 
     def get_success_url(self):
-        user = self.request.user
-        if user.is_authenticated:
-            if user.is_admin():
-                return '/accounts/admin-dashboard/'
-            elif user.is_scout():
-                return '/accounts/scout-dashboard/'
-        # Fallback to general redirect URL if role is not identified or not authenticated
-        return settings.LOGIN_REDIRECT_URL
+        # Redirect based on user role after successful login
+        if self.request.user.is_admin():
+            return reverse_lazy('accounts:admin_dashboard')
+        elif self.request.user.is_scout():
+            return reverse_lazy('accounts:scout_dashboard')
+        else:
+            # Default redirect for other roles or if role is not explicitly handled
+            return reverse_lazy('home')
+
+class MyLogoutView(LogoutView):
+    next_page = reverse_lazy('home') # Redirect to home after logout

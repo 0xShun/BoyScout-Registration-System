@@ -10,11 +10,9 @@
           </div>
         </div>
       {% else %}
-        <div class="card text-white bg-danger">
-          <div class="card-body">
-            <h5 class="card-title">Membership Inactive 😟</h5>
-            <p class="card-text">Your membership is currently inactive. Please submit a payment to become an active member.</p>
-          </div>
+        <div class="alert alert-danger d-flex align-items-center" role="alert">
+          <h5 class="mb-0 me-3">Membership Inactive 😟</h5>
+          <div>Your membership is currently inactive. Please submit a payment to become an active member.</div>
         </div>
       {% endif %}
     </div>
@@ -22,7 +20,7 @@
 
   <h2>Admin Dashboard</h2>
   <div class="row mb-4">
-    <div class="col">
+    <div class="col"> 
       <div class="card text-center shadow-sm">
         <div class="card-body">
           <h5 class="card-title">Members</h5>
@@ -55,38 +53,90 @@
       </div>
     </div>
   </div>
-  <ul>
-    <li><a href="{% url 'member_list' %}">Manage Members</a></li>
-    <li><a href="{% url 'payments:payment_list' %}">Payments</a></li>
-    <li><a href="{% url 'announcements:announcement_list' %}">Announcements</a></li>
-    <li><a href="#">Analytics</a></li>
-  </ul>
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <a href="{% url 'accounts:member_list' %}" class="card text-center shadow-sm h-100 d-flex flex-column justify-content-center text-decoration-none text-dark">
+        <div class="card-body">
+          <i class="fas fa-users fa-3x mb-2 text-primary"></i> {# Example icon: Font Awesome users #}
+          <h5 class="card-title">Manage Members</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{% url 'payments:payment_list' %}" class="card text-center shadow-sm h-100 d-flex flex-column justify-content-center text-decoration-none text-dark">
+        <div class="card-body">
+          <i class="fas fa-money-bill-wave fa-3x mb-2 text-success"></i> {# Example icon: Font Awesome money bill #}
+          <h5 class="card-title">Payments</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="{% url 'announcements:announcement_list' %}" class="card text-center shadow-sm h-100 d-flex flex-column justify-content-center text-decoration-none text-dark">
+        <div class="card-body">
+          <i class="fas fa-bullhorn fa-3x mb-2 text-info"></i> {# Example icon: Font Awesome bullhorn #}
+          <h5 class="card-title">Announcements</h5>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3">
+      <a href="#" class="card text-center shadow-sm h-100 d-flex flex-column justify-content-center text-decoration-none text-dark">
+        <div class="card-body">
+          <i class="fas fa-chart-bar fa-3x mb-2 text-danger"></i> {# Example icon: Font Awesome chart bar #}
+          <h5 class="card-title">Analytics</h5>
+        </div>
+      </a>
+    </div>
+  </div>
   <h3>Membership Growth (by Month)</h3>
-  <table class="table table-bordered table-sm mb-4">
-    <tr><th>Month</th><th>New Members</th></tr>
-    {% for row in member_growth %}
-      <tr><td>{{ row.month|date:'Y-m' }}</td><td>{{ row.count }}</td></tr>
-    {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
-  </table>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped table-hover align-middle bg-white shadow-sm rounded">
+      <thead class="table-light">
+        <tr><th>Month</th><th>New Members</th></tr>
+      </thead>
+      <tbody>
+        {% for row in member_growth %}
+          <tr><td>{{ row.month|date:'Y-m' }}</td><td>{{ row.count }}</td></tr>
+        {% empty %}<tr><td colspan="2" class="text-center">No data</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
   <h3>Payment Trends (by Month)</h3>
-  <table class="table table-bordered table-sm mb-4">
-    <tr><th>Month</th><th>Total Payments</th></tr>
-    {% for row in payment_trends %}
-      <tr><td>{{ row.month|date:'Y-m' }}</td><td>₱{{ row.total }}</td></tr>
-    {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
-  </table>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped table-hover align-middle bg-white shadow-sm rounded">
+      <thead class="table-light">
+        <tr><th>Month</th><th>Total Payments</th></tr>
+      </thead>
+      <tbody>
+        {% for row in payment_trends %}
+          <tr><td>{{ row.month|date:'Y-m' }}</td><td>₱{{ row.total }}</td></tr>
+        {% empty %}<tr><td colspan="2" class="text-center">No data</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
   <h3>Announcement Engagement</h3>
-  <table class="table table-bordered table-sm mb-4">
-    <tr><th>Announcement</th><th>Read</th><th>Total Recipients</th></tr>
-    {% for a in announcement_engagement %}
-      <tr><td>{{ a.title }}</td><td>{{ a.read }}</td><td>{{ a.total }}</td></tr>
-    {% empty %}<tr><td colspan="3">No data</td></tr>{% endfor %}
-  </table>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped table-hover align-middle bg-white shadow-sm rounded">
+      <thead class="table-light">
+        <tr><th>Announcement</th><th>Read</th><th>Total Recipients</th></tr>
+      </thead>
+      <tbody>
+        {% for a in announcement_engagement %}
+          <tr><td>{{ a.title }}</td><td>{{ a.read }}</td><td>{{ a.total }}</td></tr>
+        {% empty %}<tr><td colspan="3" class="text-center">No data</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
   <h3>Most Active Scouts (by Payments)</h3>
-  <table class="table table-bordered table-sm mb-4">
-    <tr><th>Scout</th><th>Payments</th></tr>
-    {% for scout in active_scouts %}
-      <tr><td>{{ scout.username }}</td><td>{{ scout.payment_count }}</td></tr>
-    {% empty %}<tr><td colspan="2">No data</td></tr>{% endfor %}
-  </table>
+  <div class="table-responsive mb-4">
+    <table class="table table-striped table-hover align-middle bg-white shadow-sm rounded">
+      <thead class="table-light">
+        <tr><th>Scout</th><th>Payments</th></tr>
+      </thead>
+      <tbody>
+        {% for scout in active_scouts %}
+          <tr><td>{{ scout.username }}</td><td>{{ scout.payment_count }}</td></tr>
+        {% empty %}<tr><td colspan="2" class="text-center">No data</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
 {% endblock %} 

@@ -19,7 +19,7 @@
   <h2 class="mb-3">Scout Dashboard</h2>
   <p class="lead mb-4">Welcome, {{ user.username }} (Scout)!</p>
   <div class="list-group">
-    <a href="{% url 'profile_edit' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    <a href="{% url 'accounts:profile_edit' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
       My Profile
       <span class="badge bg-primary rounded-pill"></span>
     </a>

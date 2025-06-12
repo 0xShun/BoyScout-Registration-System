@@ -1,0 +1,276 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Photo - {{ event.title }} - ScoutConnect{% endblock %}
+
+{% block extra_css %}
+<style>
+    .upload-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .preview-container {
+        margin-top: 1rem;
+        text-align: center;
+    }
+
+    .preview-image {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: 5px;
+        display: none;
+    }
+
+    .upload-progress {
+        display: none;
+        margin-top: 1rem;
+    }
+
+    .upload-progress.active {
+        display: block;
+    }
+
+    .drag-drop-area {
+        border: 2px dashed var(--primary-color);
+        border-radius: 10px;
+        padding: 2rem;
+        text-align: center;
+        margin-bottom: 1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+
+    .drag-drop-area:hover {
+        background-color: var(--light-bg);
+    }
+
+    .drag-drop-area.dragover {
+        background-color: var(--light-bg);
+        border-color: var(--secondary-color);
+    }
+
+    .error-message {
+        color: var(--accent-color);
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        display: none;
+    }
+
+    .error-message.show {
+        display: block;
+    }
+
+    .file-info {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    @media (max-width: 768px) {
+        .upload-container {
+            margin: 1rem;
+            padding: 1rem;
+        }
+
+        .drag-drop-area {
+            padding: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="upload-container">
+        <h2>Upload Photo for {{ event.title }}</h2>
+        
+        <form action="{% url 'events:photo_upload' event.pk %}" method="post" enctype="multipart/form-data" id="upload-form">
+            {% csrf_token %}
+            
+            <div class="drag-drop-area" id="drag-drop-area">
+                <i class="fas fa-cloud-upload-alt fa-3x mb-3"></i>
+                <p>Drag and drop your photo here or click to browse</p>
+                <p class="file-info">Supported formats: JPG, PNG, GIF (max 5MB)</p>
+                <input type="file" name="image" id="id_image" class="d-none" accept="image/jpeg,image/png,image/gif" required>
+            </div>
+
+            <div class="error-message" id="error-message"></div>
+
+            <div class="preview-container">
+                <img id="preview-image" class="preview-image" alt="Preview">
+            </div>
+
+            <div class="mb-3">
+                <label for="id_caption" class="form-label">Caption</label>
+                <input type="text" name="caption" id="id_caption" class="form-control" placeholder="Enter a caption for the photo">
+            </div>
+
+            <div class="upload-progress" id="upload-progress">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+                <p class="text-center mt-2">Uploading...</p>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary" id="upload-button">Upload Photo</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dragDropArea = document.getElementById('drag-drop-area');
+    const fileInput = document.getElementById('id_image');
+    const previewImage = document.getElementById('preview-image');
+    const uploadForm = document.getElementById('upload-form');
+    const uploadProgress = document.getElementById('upload-progress');
+    const progressBar = uploadProgress.querySelector('.progress-bar');
+    const uploadButton = document.getElementById('upload-button');
+    const errorMessage = document.getElementById('error-message');
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif'];
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add('show');
+        setTimeout(() => {
+            errorMessage.classList.remove('show');
+        }, 5000);
+    }
+
+    function validateFile(file) {
+        if (!file) {
+            showError('Please select a file.');
+            return false;
+        }
+
+        if (!ALLOWED_TYPES.includes(file.type)) {
+            showError('Invalid file type. Please upload JPG, PNG, or GIF.');
+            return false;
+        }
+
+        if (file.size > MAX_FILE_SIZE) {
+            showError('File size must be less than 5MB.');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Handle drag and drop
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dragDropArea.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dragDropArea.addEventListener(eventName, highlight, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dragDropArea.addEventListener(eventName, unhighlight, false);
+    });
+
+    function highlight(e) {
+        dragDropArea.classList.add('dragover');
+    }
+
+    function unhighlight(e) {
+        dragDropArea.classList.remove('dragover');
+    }
+
+    dragDropArea.addEventListener('drop', handleDrop, false);
+
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+            handleFiles(files);
+        }
+    }
+
+    // Handle file selection
+    dragDropArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const file = files[0];
+            if (validateFile(file)) {
+                // Preview image
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewImage.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                fileInput.value = '';
+                previewImage.style.display = 'none';
+            }
+        }
+    }
+
+    // Handle form submission
+    uploadForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const file = fileInput.files[0];
+        if (!validateFile(file)) {
+            return;
+        }
+
+        const formData = new FormData(this);
+        const xhr = new XMLHttpRequest();
+
+        xhr.upload.addEventListener('progress', function(e) {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                progressBar.style.width = percentComplete + '%';
+            }
+        });
+
+        xhr.addEventListener('load', function() {
+            if (xhr.status === 200) {
+                window.location.href = "{% url 'events:event_detail' event.pk %}";
+            } else {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    showError(response.error || 'Upload failed. Please try again.');
+                } catch (e) {
+                    showError('Upload failed. Please try again.');
+                }
+                uploadProgress.classList.remove('active');
+                uploadButton.disabled = false;
+            }
+        });
+
+        xhr.addEventListener('error', function() {
+            showError('Upload failed. Please try again.');
+            uploadProgress.classList.remove('active');
+            uploadButton.disabled = false;
+        });
+
+        uploadProgress.classList.add('active');
+        uploadButton.disabled = true;
+        xhr.open('POST', this.action, true);
+        xhr.send(formData);
+    });
+});
+</script>
+{% endblock %} 

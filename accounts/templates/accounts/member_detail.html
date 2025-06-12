@@ -1,15 +1,75 @@
 {% extends 'base.html' %}
 {% block content %}
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
       <div class="card shadow-sm">
         <div class="card-body">
-          <h4 class="card-title">Member Profile</h4>
-          <p><strong>Username:</strong> {{ member.username }}</p>
-          <p><strong>Email:</strong> {{ member.email }}</p>
-          <p><strong>Role:</strong> {{ member.get_role_display }}</p>
+          <h4 class="card-title mb-4">Member Profile</h4>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Name:</strong></div>
+            <div class="col-md-8">{{ member.get_full_name }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Email:</strong></div>
+            <div class="col-md-8">{{ member.email }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Role:</strong></div>
+            <div class="col-md-8">{{ member.get_role_display }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Rank:</strong></div>
+            <div class="col-md-8">{{ member.get_rank_display }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Date of Birth:</strong></div>
+            <div class="col-md-8">{{ member.date_of_birth|date:"F d, Y"|default:"Not provided" }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Phone Number:</strong></div>
+            <div class="col-md-8">{{ member.phone_number|default:"Not provided" }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Address:</strong></div>
+            <div class="col-md-8">{{ member.address|default:"Not provided"|linebreaks }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Emergency Contact:</strong></div>
+            <div class="col-md-8">{{ member.emergency_contact|default:"Not provided" }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Emergency Phone:</strong></div>
+            <div class="col-md-8">{{ member.emergency_phone|default:"Not provided" }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Medical Conditions:</strong></div>
+            <div class="col-md-8">{{ member.medical_conditions|default:"None"|linebreaks }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Allergies:</strong></div>
+            <div class="col-md-8">{{ member.allergies|default:"None"|linebreaks }}</div>
+          </div>
+          
+          <div class="row mb-3">
+            <div class="col-md-4"><strong>Join Date:</strong></div>
+            <div class="col-md-8">{{ member.join_date|date:"F d, Y" }}</div>
+          </div>
+          
           {% if user.is_admin or user.pk == member.pk %}
-            <a href="{% url 'member_edit' member.pk %}" class="btn btn-outline-primary">Edit</a>
+            <div class="mt-4">
+              <a href="{% url 'member_edit' member.pk %}" class="btn btn-outline-primary">Edit Profile</a>
+            </div>
           {% endif %}
         </div>
       </div>

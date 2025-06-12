@@ -5,7 +5,7 @@ from .models import User
 class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['username', 'email']
+        fields = ['username', 'email', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 'address']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,12 +27,22 @@ class UserRegisterForm(UserCreationForm):
 class UserEditForm(forms.ModelForm):
     class Meta:
         model = User
-        fields = ['username', 'email', 'role']
+        fields = [
+            'username', 'email', 'first_name', 'last_name', 'role', 'rank',
+            'date_of_birth', 'phone_number', 'address', 'emergency_contact',
+            'emergency_phone', 'medical_conditions', 'allergies'
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'medical_conditions': forms.Textarea(attrs={'rows': 3}),
+            'allergies': forms.Textarea(attrs={'rows': 3}),
+            'address': forms.Textarea(attrs={'rows': 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            if field_name == 'role':
+            if field_name in ['role', 'rank']:
                 field.widget.attrs.update({'class': 'form-select'})
             else:
                 field.widget.attrs.update({'class': 'form-control'}) 

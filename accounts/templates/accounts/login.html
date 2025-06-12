@@ -22,12 +22,11 @@
             </div>
           {% endfor %}
           <div class="text-end mb-3">
-            <a href="{% url 'password_reset' %}" class="text-decoration-none">Forgot password?</a>
           </div>
           <button type="submit" class="btn btn-dark w-100 py-2">Login</button>
         </form>
         <div class="text-center mt-3">
-          <a href="{% url 'register' %}" class="text-decoration-none">Don't have an account? Sign up</a>
+          <a href="{% url 'accounts:register' %}" class="text-decoration-none">Don't have an account? Sign up</a>
         </div>
         <div class="text-center mt-5">
           <small class="text-muted">© ScoutConnect 2024</small>
