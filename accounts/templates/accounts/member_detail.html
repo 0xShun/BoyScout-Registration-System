@@ -68,7 +68,7 @@
           
           {% if user.is_admin or user.pk == member.pk %}
             <div class="mt-4">
-              <a href="{% url 'member_edit' member.pk %}" class="btn btn-outline-primary">Edit Profile</a>
+              <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-outline-primary">Edit Profile</a>
             </div>
           {% endif %}
         </div>

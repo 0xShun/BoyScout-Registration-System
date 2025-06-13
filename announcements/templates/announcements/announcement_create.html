@@ -1,13 +1,115 @@
 {% extends 'base.html' %}
+{% load widget_tweaks %}
 {% block content %}
   <div class="row justify-content-center">
-    <div class="col-md-6">
+    <div class="col-md-8">
       <h2 class="mb-4">Create Announcement</h2>
-      <form method="post" class="card card-body shadow-sm">
+      <form method="post" class="card p-4 shadow-sm">
         {% csrf_token %}
-        {{ form.as_p|safe }}
-        <button type="submit" class="btn btn-primary w-100 mt-2">Create</button>
+
+        <div class="mb-3">
+          <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
+          {{ form.title|attr:"class:form-control" }}
+          {% if form.title.errors %}
+            <div class="text-danger mt-1">{% for error in form.title.errors %}{{ error }}{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label for="{{ form.message.id_for_label }}" class="form-label">Message</label>
+          {{ form.message|attr:"class:form-control" }}
+          {% if form.message.errors %}
+            <div class="text-danger mt-1">{% for error in form.message.errors %}{{ error }}{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Recipients</label>
+          <div class="input-group mb-3">
+            <input type="text" class="form-control" id="recipientSearch" placeholder="Search recipients...">
+          </div>
+          <div class="border p-3 rounded" style="max-height: 250px; overflow-y: auto;">
+            {% for checkbox in form.recipients %}
+              <div class="form-check">
+                {{ checkbox.tag }}
+                <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                  {{ checkbox.choice_label }}
+                </label>
+              </div>
+            {% endfor %}
+          </div>
+          {% if form.recipients.help_text %}
+            <div class="form-text">{{ form.recipients.help_text }}</div>
+          {% endif %}
+          {% if form.recipients.errors %}
+            <div class="text-danger mt-1">{% for error in form.recipients.errors %}{{ error }}{% endfor %}</div>
+          {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 mt-3">Create Announcement</button>
       </form>
     </div>
   </div>
+
+  <style>
+    /* Basic styling for form fields to match Bootstrap look */
+    .form-control {
+      display: block;
+      width: 100%;
+      padding: .375rem .75rem;
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: #212529;
+      background-color: #fff;
+      background-clip: padding-box;
+      border: 1px solid #ced4da;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      appearance: none;
+      border-radius: .25rem;
+      transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+    }
+
+    .form-control:focus {
+      color: #212529;
+      background-color: #fff;
+      border-color: #86b7fe;
+      outline: 0;
+      box-shadow: 0 0 0 .25rem rgba(13,110,253,.25);
+    }
+
+    textarea.form-control {
+      min-height: 100px;
+    }
+
+    /* Custom styling for the search input border to match the design */
+    #recipientSearch {
+        border-bottom: 1px solid #0d6efd; /* Blue border to match the image */
+        border-radius: 0.25rem 0.25rem 0 0; /* Rounded top corners, sharp bottom */
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const searchInput = document.getElementById('recipientSearch');
+      const recipientList = document.querySelector('.border.p-3.rounded');
+      const checkboxes = recipientList.querySelectorAll('.form-check');
+
+      searchInput.addEventListener('keyup', function() {
+        const searchTerm = searchInput.value.toLowerCase();
+
+        checkboxes.forEach(function(checkboxDiv) {
+          const label = checkboxDiv.querySelector('label');
+          const choiceLabel = label.textContent.toLowerCase();
+
+          if (choiceLabel.includes(searchTerm)) {
+            checkboxDiv.style.display = 'block';
+          } else {
+            checkboxDiv.style.display = 'none';
+          }
+        });
+      });
+    });
+  </script>
 {% endblock %} 

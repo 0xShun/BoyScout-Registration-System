@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'events',
     'analytics',
     'notifications',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -140,16 +141,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 LOGIN_REDIRECT_URL = '/'
-LOGIN_URL = 'login'
+LOGIN_URL = 'accounts:login'
 
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = ''  # Add your email
-EMAIL_HOST_PASSWORD = ''  # Add your email password
-DEFAULT_FROM_EMAIL = 'ScoutConnect <noreply@scoutconnect.com>'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # This will print emails to console instead of sending them
 
 # Twilio Configuration for SMS
 TWILIO_ACCOUNT_SID = ''  # Add your Twilio Account SID

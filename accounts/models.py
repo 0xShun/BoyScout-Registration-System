@@ -1,18 +1,19 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
 
 # Create your models here.
 
 class User(AbstractUser):
-    ROLE_CHOICES = (
-        ('scout', 'Scout'),
-        ('admin', 'Administrator'),
-        ('troop_leader', 'Troop Leader'),
-        ('assistant_leader', 'Assistant Leader'),
-        ('committee_member', 'Committee Member'),
-        ('parent', 'Parent/Guardian'),
-    )
+    # Override the username field from AbstractUser to make it not unique and nullable
+    username = models.CharField(_("username"), max_length=150, unique=False, null=True, blank=True)
+
+    # Set email as unique and the USERNAME_FIELD
+    email = models.EmailField(_("email address"), unique=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['first_name', 'last_name'] # Fields prompted for when creating a superuser
 
     RANK_CHOICES = (
         ('none', 'No Rank'),
@@ -27,7 +28,6 @@ class User(AbstractUser):
         ('eagle', 'Eagle'),
     )
 
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='scout')
     rank = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout')
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -41,22 +41,10 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
 
     def is_admin(self):
-        return self.role == 'admin'
+        return self.rank == 'admin'
 
     def is_scout(self):
-        return self.role == 'scout'
-
-    def is_troop_leader(self):
-        return self.role == 'troop_leader'
-
-    def is_assistant_leader(self):
-        return self.role == 'assistant_leader'
-
-    def is_committee_member(self):
-        return self.role == 'committee_member'
-
-    def is_parent(self):
-        return self.role == 'parent'
+        return self.rank == 'scout'
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.username
@@ -65,16 +53,19 @@ class User(AbstractUser):
     def join_date(self):
         return self.date_joined
 
-    def has_role(self, *roles):
-        return self.role in roles
-
     def save(self, *args, **kwargs):
-        if self.is_superuser and self.role != 'admin':
-            self.role = 'admin'
+        if not self.username:
+            base_username = slugify(self.email.split('@')[0])
+            unique_username = base_username
+            num = 1
+            while User.objects.filter(username=unique_username).exists():
+                unique_username = f"{base_username}{num}"
+                num += 1
+            self.username = unique_username
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.get_full_name()} ({self.get_role_display()})"
+        return f"{self.get_full_name()} ({self.get_rank_display()})"
 
     class Meta:
         verbose_name = _('user')

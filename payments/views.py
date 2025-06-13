@@ -23,7 +23,7 @@ def payment_list(request):
 @login_required
 def payment_submit(request):
     if request.method == 'POST':
-        form = PaymentForm(request.POST, request.FILES)
+        form = PaymentForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             # Check if user has any pending payments
             pending_payments = Payment.objects.filter(
@@ -55,7 +55,7 @@ def payment_submit(request):
             messages.success(request, 'Payment submitted. Awaiting verification.')
             return redirect('payment_list')
     else:
-        form = PaymentForm()
+        form = PaymentForm(user=request.user)
     return render(request, 'payments/payment_submit.html', {'form': form})
 
 @admin_required

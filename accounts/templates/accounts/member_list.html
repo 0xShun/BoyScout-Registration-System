@@ -27,15 +27,15 @@
       <tbody>
         {% for member in members %}
         <tr>
-          <td><a href="{% url 'member_detail' member.pk %}">{{ member.get_full_name }}</a></td>
+          <td><a href="{% url 'accounts:member_detail' member.pk %}">{{ member.get_full_name }}</a></td>
           <td>{{ member.email }}</td>
           <td>{{ member.get_role_display }}</td>
           <td>{{ member.get_rank_display }}</td>
           <td>{{ member.phone_number|default:"-" }}</td>
           <td>{{ member.join_date|date:"M d, Y" }}</td>
           <td>
-            <a href="{% url 'member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
-            <a href="{% url 'member_delete' member.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+            <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+            <a href="{% url 'accounts:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
           </td>
         </tr>
         {% empty %}
