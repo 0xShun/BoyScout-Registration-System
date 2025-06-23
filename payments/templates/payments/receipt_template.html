@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Payment Receipt</title>
+    <style>
+        body {
+            font-family: "Helvetica", sans-serif;
+            line-height: 1.6;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .details {
+            margin-bottom: 30px;
+        }
+        .details th, .details td {
+            text-align: left;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Payment Receipt</h1>
+            <p>ScoutConnect</p>
+        </div>
+        <table class="details">
+            <tr>
+                <th>Transaction ID:</th>
+                <td>{{ payment.pk }}</td>
+            </tr>
+            <tr>
+                <th>Member Name:</th>
+                <td>{{ payment.user.get_full_name }}</td>
+            </tr>
+            <tr>
+                <th>Payment Date:</th>
+                <td>{{ payment.date|date:"F j, Y" }}</td>
+            </tr>
+            <tr>
+                <th>Amount:</th>
+                <td>₱{{ payment.amount }}</td>
+            </tr>
+            <tr>
+                <th>Status:</th>
+                <td>{{ payment.get_status_display }}</td>
+            </tr>
+            {% if payment.verified_by %}
+            <tr>
+                <th>Verified By:</th>
+                <td>{{ payment.verified_by.get_full_name }}</td>
+            </tr>
+            <tr>
+                <th>Verification Date:</th>
+                <td>{{ payment.verification_date|date:"F j, Y" }}</td>
+            </tr>
+            {% endif %}
+        </table>
+        <div class="footer">
+            <p>This is an official receipt from ScoutConnect. Thank you for your payment.</p>
+        </div>
+    </div>
+</body>
+</html> 

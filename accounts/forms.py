@@ -45,7 +45,7 @@ class CustomLoginForm(AuthenticationForm):
 class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'date_of_birth', 'phone_number', 'address']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'rank']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -93,4 +93,8 @@ class UserEditForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         for field_name, field in self.fields.items():
-            field.widget.attrs.update({'class': 'form-control'}) 
+            field.widget.attrs.update({'class': 'form-control'})
+
+class RoleManagementForm(forms.Form):
+    user = forms.ModelChoiceField(queryset=User.objects.all(), label="Select User")
+    rank = forms.ChoiceField(choices=User.RANK_CHOICES, label="New Rank") 

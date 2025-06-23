@@ -1,0 +1,40 @@
+# ScoutConnect Manual Testing Checklist
+
+This checklist outlines the manual testing procedures for the ScoutConnect system.
+
+## 1. User Registration & Authentication
+- [ ] Test user registration with valid data.
+- [ ] Test user registration with invalid data (e.g., duplicate username, weak password).
+- [ ] Test user login with correct credentials.
+- [ ] Test user login with incorrect credentials.
+- [ ] Test password reset functionality.
+
+## 2. Member Management (Admin)
+- [ ] Test creating a new member.
+- [ ] Test viewing member details.
+- [ ] Test editing a member's profile.
+- [ ] Test deleting a member.
+
+## 3. Payments
+- [ ] Test submitting a payment with valid data.
+- [ ] Test submitting a payment with a pending payment already in progress.
+- [ ] Test downloading a receipt for a verified payment.
+- [ ] Test verifying a payment (Admin).
+- [ ] Test rejecting a payment (Admin).
+
+## 4. Announcements
+- [ ] Test creating an announcement for all users.
+- [ ] Test creating an announcement for specific users.
+- [ ] Test sending email/SMS notifications with an announcement.
+- [ ] Test marking an announcement as read.
+
+## 5. Analytics & Dashboards (Admin)
+- [ ] Test exporting analytics as CSV.
+- [ ] Test exporting analytics as JSON.
+- [ ] Test exporting analytics as PDF.
+- [ ] Test the financial dashboard.
+- [ ] Test the engagement dashboard.
+- [ ] Test the audit log.
+
+## 6. Settings (Admin)
+- [ ] Test changing a user's role. 

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import PaymentForm
@@ -8,6 +8,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
+from boyscout_system.utils import render_to_pdf
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -92,3 +93,33 @@ def payment_verify(request, pk):
         messages.success(request, f'Payment marked as {status}.')
         return redirect('payment_list')
     return render(request, 'payments/payment_verify.html', {'payment': payment})
+
+@login_required
+def payment_receipt(request, pk):
+    payment = get_object_or_404(Payment, pk=pk)
+    
+    # Check if the user has permission to view the receipt
+    if not (request.user.is_admin() or request.user == payment.user):
+        messages.error(request, "You do not have permission to view this receipt.")
+        return redirect('payments:payment_list')
+
+    # Only allow receipts for verified payments
+    if payment.status != 'verified':
+        messages.error(request, "Receipts are only available for verified payments.")
+        return redirect('payments:payment_list')
+
+    pdf = render_to_pdf(
+        'payments/receipt_template.html',
+        {
+            'payment': payment,
+        }
+    )
+    if pdf:
+        response = pdf
+        filename = f"receipt_{payment.pk}.pdf"
+        content = f"attachment; filename={filename}"
+        response['Content-Disposition'] = content
+        return response
+    
+    messages.error(request, "Could not generate PDF receipt.")
+    return redirect('payments:payment_list')

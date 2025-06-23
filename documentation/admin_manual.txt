@@ -1,0 +1,30 @@
+# ScoutConnect Admin Manual
+
+This manual provides instructions for administrators on how to manage the ScoutConnect system.
+
+## 1. Admin Dashboard
+- The admin dashboard provides an overview of the system, including member count, payment status, and analytics.
+
+## 2. Managing Members
+- To manage members, go to the "Members" section.
+- You can view, edit, and delete member profiles.
+
+## 3. Verifying Payments
+- To verify payments, go to the "Payments" section.
+- You can view submitted payments and mark them as verified or rejected.
+
+## 4. Creating Announcements
+- To create an announcement, go to the "Announcements" section.
+- You can create announcements for all members or select specific recipients.
+
+## 5. Viewing Analytics
+- To view analytics, go to the "Analytics" section.
+- You can view various dashboards and export data.
+
+## 6. Audit Log
+- The audit log tracks key actions in the system.
+- You can view the audit log from the admin dashboard.
+
+## 7. Settings
+- The settings page allows you to manage user roles and other system settings.
+- You can access the settings page from the admin dashboard. 

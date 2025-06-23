@@ -18,7 +18,15 @@
       <td>{{ payment.user.username }}</td>
       <td>{{ payment.amount }}</td>
       <td>{{ payment.date }}</td>
-      <td>{{ payment.get_status_display }}</td>
+      <td>
+        {% if payment.status == 'verified' %}
+          <a href="{% url 'payments:payment_receipt' payment.pk %}" class="btn btn-sm btn-success">Download Receipt</a>
+        {% elif payment.status == 'pending' and request.user.is_admin %}
+          <a href="{% url 'payments:payment_verify' payment.pk %}" class="btn btn-sm btn-warning">Verify</a>
+        {% else %}
+          <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+        {% endif %}
+      </td>
       <td>
         {% if payment.proof %}
           <a href="{{ payment.proof.url }}" target="_blank">View</a>

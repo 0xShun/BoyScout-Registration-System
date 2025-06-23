@@ -22,8 +22,8 @@
 ## 4. Communication & Announcements
 - [x] Implement announcement module (admin to all/selected members)
 - [x] Integrate SMS notification (simulation or API)
-- [x] Integrate email notification (simulation or API)
-- [x] Notification history/log for members
+- [x] Integrate email notification for announcements (simulation or API)
+- [x] Notification history/log for members (basic implementation via announcement list)
 
 ## 5. Analytics & Dashboards
 - [x] Membership trends dashboard (growth, demographics)
@@ -33,7 +33,7 @@
 
 ## 6. Mobile Responsiveness & Accessibility
 - [x] Responsive UI for desktop and mobile
-- [x] Accessibility checks (contrast, keyboard navigation, etc.)
+- [x] Accessibility checks (contrast, keyboard navigation, etc.) - *Basic checks in place*
 
 ## 7. General & Admin Features
 - [x] Admin dashboard (overview of system status)

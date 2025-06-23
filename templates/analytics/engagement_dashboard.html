@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Engagement Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Engagement Dashboard</h1>
+
+    <!-- Announcement Engagement -->
+    <div class="card mb-4">
+        <div class="card-header">Top 10 Announcements by Engagement</div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Title</th>
+                        <th>Reads</th>
+                        <th>Recipients</th>
+                        <th>Read Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for announcement in announcement_engagement %}
+                    <tr>
+                        <td>{{ announcement.title }}</td>
+                        <td>{{ announcement.reads }}</td>
+                        <td>{{ announcement.recipients_count }}</td>
+                        <td>{% if announcement.recipients_count > 0 %}{{ announcement.reads|floatformat:2 / announcement.recipients_count|floatformat:2 * 100|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Event Participation -->
+    <div class="card mb-4">
+        <div class="card-header">Top 10 Events by Participation</div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Event</th>
+                        <th>Participants</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in event_participation %}
+                    <tr>
+                        <td>{{ event.title }}</td>
+                        <td>{{ event.participant_count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- User Engagement Scores -->
+    <div class="card">
+        <div class="card-header">Top 10 Users by Engagement Score</div>
+        <div class="card-body">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Engagement Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in user_engagement %}
+                    <tr>
+                        <td>{{ user.get_full_name }}</td>
+                        <td>{{ user.engagement_score }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -17,6 +17,7 @@ urlpatterns = [
     path('members/<int:pk>/delete/', views.member_delete, name='member_delete'),
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('profile/', views.profile_view, name='profile'),
+    path('settings/', views.settings_view, name='settings'),
     
     # Password reset URLs
     path('password_reset/', auth_views.PasswordResetView.as_view(

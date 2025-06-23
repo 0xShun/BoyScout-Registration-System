@@ -139,4 +139,33 @@
       </tbody>
     </table>
   </div>
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Engagement Analytics</h5>
+          <p class="card-text">View user engagement metrics.</p>
+          <a href="{% url 'analytics:engagement_dashboard' %}" class="btn btn-info">View Engagement</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Audit Log</h5>
+          <p class="card-text">View system audit log.</p>
+          <a href="{% url 'analytics:audit_log' %}" class="btn btn-warning">View Audit Log</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card text-center">
+        <div class="card-body">
+          <h5 class="card-title">Settings</h5>
+          <p class="card-text">Manage system settings.</p>
+          <a href="{% url 'accounts:settings' %}" class="btn btn-secondary">Go to Settings</a>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %} 

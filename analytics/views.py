@@ -1,16 +1,20 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, Q, F
 from django.utils import timezone
 from datetime import timedelta
 import csv
 import json
 from datetime import datetime
-from .models import AnalyticsEvent
+from .models import AnalyticsEvent, AuditLog
 from django.db.models.functions import TruncDate, TruncMonth
 from payments.models import Payment
 from accounts.models import User
+from boyscout_system.utils import render_to_pdf
+from announcements.models import Announcement
+from events.models import Event
+from django.core.paginator import Paginator
 
 @login_required
 def export_analytics(request, format):
@@ -69,6 +73,22 @@ def export_analytics(request, format):
         response = HttpResponse(json.dumps(response_data, indent=2), content_type='application/json')
         response['Content-Disposition'] = f'attachment; filename="analytics_{datetime.now().strftime("%Y%m%d")}.json"'
     
+    elif format == 'pdf':
+        response = render_to_pdf(
+            'analytics/report_template.html',
+            {
+                'data': data,
+                'summary': summary
+            }
+        )
+        if response:
+            filename = f"analytics_{datetime.now().strftime('%Y%m%d')}.pdf"
+            content = f"attachment; filename={filename}"
+            response['Content-Disposition'] = content
+            return response
+        else:
+            return HttpResponse("Error generating PDF", status=500)
+
     else:
         return HttpResponse('Unsupported format', status=400)
     
@@ -236,4 +256,55 @@ def payment_report(request):
         'total_count': payments.count(),
     }
     
-    return render(request, 'analytics/payment_report.html', context) 
+    return render(request, 'analytics/payment_report.html', context)
+
+@admin_required
+def engagement_dashboard(request):
+    # Announcement engagement
+    announcement_engagement = (
+        Announcement.objects.annotate(
+            reads=Count('read_by'),
+            recipients_count=Count('recipients')
+        )
+        .order_by('-date_posted')[:10]
+    )
+
+    # Event participation
+    event_participation = (
+        Event.objects.annotate(
+            participant_count=Count('participants')
+        )
+        .order_by('-date')[:10]
+    )
+
+    # User engagement score (example metric)
+    user_engagement = (
+        User.objects.annotate(
+            payments_made=Count('payments', filter=models.Q(payments__status='verified')),
+            announcements_read=Count('read_announcements'),
+            events_attended=Count('attended_events')
+        )
+        .annotate(
+            engagement_score=(
+                models.F('payments_made') * 3 +
+                models.F('announcements_read') * 1 +
+                models.F('events_attended') * 2
+            )
+        )
+        .order_by('-engagement_score')[:10]
+    )
+
+    context = {
+        'announcement_engagement': announcement_engagement,
+        'event_participation': event_participation,
+        'user_engagement': user_engagement,
+    }
+    return render(request, 'analytics/engagement_dashboard.html', context)
+
+@admin_required
+def audit_log_view(request):
+    logs = AuditLog.objects.all()
+    paginator = Paginator(logs, 20)  # Show 20 logs per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    return render(request, 'analytics/audit_log.html', {'page_obj': page_obj}) 

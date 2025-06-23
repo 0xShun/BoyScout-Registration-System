@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Analytics Report</title>
+    <style>
+        body { font-family: "Helvetica", sans-serif; }
+        h1 { text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Analytics Report</h1>
+    <h2>Summary</h2>
+    <ul>
+        <li>Total Events: {{ summary.total_events }}</li>
+        <li>Unique Users: {{ summary.unique_users }}</li>
+    </ul>
+
+    <h2>Events by Type</h2>
+    <ul>
+        {% for event_type, count in summary.events_by_type.items %}
+        <li>{{ event_type }}: {{ count }}</li>
+        {% endfor %}
+    </ul>
+
+    <h2>All Events</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Event Type</th>
+                <th>User</th>
+                <th>Page URL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for event in data %}
+            <tr>
+                <td>{{ event.timestamp }}</td>
+                <td>{{ event.event_type }}</td>
+                <td>{{ event.user }}</td>
+                <td>{{ event.page_url }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html> 

@@ -1,0 +1,25 @@
+# ScoutConnect User Manual
+
+This manual provides instructions for scouts on how to use the ScoutConnect system.
+
+## 1. Registration
+- To register, click on the "Register" button on the home page.
+- Fill out the required information and submit the form.
+- You will receive a confirmation email.
+
+## 2. Logging In
+- To log in, click on the "Login" button on the home page.
+- Enter your username and password.
+
+## 3. Scout Dashboard
+- After logging in, you will be taken to your scout dashboard.
+- Here you can see your profile information, recent announcements, and upcoming events.
+
+## 4. Submitting Payments
+- To submit a payment, go to the "Payments" section.
+- Fill out the payment form and upload a proof of payment.
+- You will be notified when your payment is verified.
+
+## 5. Viewing Announcements
+- To view announcements, go to the "Announcements" section.
+- You can see a list of all announcements from the administrators. 

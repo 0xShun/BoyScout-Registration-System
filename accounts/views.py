@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
 from django.contrib import messages
-from .forms import UserRegisterForm, UserEditForm, CustomLoginForm
+from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm
 from .models import User
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
@@ -163,6 +163,22 @@ def profile_view(request):
     return render(request, 'accounts/profile.html', {
         'user': request.user
     })
+
+@admin_required
+def settings_view(request):
+    if request.method == 'POST':
+        form = RoleManagementForm(request.POST)
+        if form.is_valid():
+            user = form.cleaned_data['user']
+            rank = form.cleaned_data['rank']
+            user.rank = rank
+            user.save()
+            messages.success(request, f"Successfully updated {user.username}'s rank to {rank}.")
+            return redirect('accounts:settings')
+    else:
+        form = RoleManagementForm()
+    
+    return render(request, 'accounts/settings.html', {'form': form})
 
 # Announcement views have been moved to announcements/views.py
 

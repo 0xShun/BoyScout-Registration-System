@@ -1,87 +1,77 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
 {% block content %}
-<h1>Analytics Dashboard</h1>
-<form method="get" style="margin-bottom: 2em;">
-    <label>Start Date: <input type="date" name="start_date" value="{{ filter_start_date }}"></label>
-    <label>End Date: <input type="date" name="end_date" value="{{ filter_end_date }}"></label>
-    <label>Event Type:
-        <select name="event_type">
-            <option value="">All</option>
-            {% for t in types %}
-                <option value="{{ t }}" {% if filter_event_type == t %}selected{% endif %}>{{ t }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <button type="submit">Filter</button>
-</form>
-<div>
-    <h2>Summary</h2>
-    <ul>
-        <li><strong>Total Events:</strong> {{ total_events }}</li>
-        <li><strong>Unique Users:</strong> {{ unique_users }}</li>
-    </ul>
-    <h3>Events by Type</h3>
-    <canvas id="eventsByTypeChart" width="400" height="200"></canvas>
-    <canvas id="eventsByTypePie" width="400" height="200"></canvas>
-    <ul>
-        {% for item in events_by_type %}
-            <li>{{ item.event_type }}: {{ item.count }}</li>
-        {% endfor %}
-    </ul>
+<div class="container mt-4">
+    <h1>Analytics Dashboard</h1>
+
+    <!-- Filter Form -->
+    <form method="get" class="mb-4">
+        <input type="date" name="start_date" value="{{ filter_start_date }}">
+        <input type="date" name="end_date" value="{{ filter_end_date }}">
+        <input type="text" name="event_type" placeholder="Event Type" value="{{ filter_event_type }}">
+        <button type="submit" class="btn btn-info">Filter</button>
+    </form>
+
+    <!-- Export Buttons -->
+    <div class="card mb-4">
+        <div class="card-header">Export Analytics</div>
+        <div class="card-body">
+            <a href="{% url 'analytics:export_analytics' 'csv' %}" class="btn btn-primary">Export as CSV</a>
+            <a href="{% url 'analytics:export_analytics' 'json' %}" class="btn btn-secondary">Export as JSON</a>
+            <a href="{% url 'analytics:export_analytics' 'pdf' %}" class="btn btn-danger">Export as PDF</a>
+        </div>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="card mb-4">
+        <div class="card-header">Summary</div>
+        <div class="card-body">
+            <ul>
+                <li>Total Events: {{ total_events }}</li>
+                <li>Unique Users: {{ unique_users }}</li>
+                <li>Events by Type:
+                    <ul>
+                        {% for event in events_by_type %}
+                        <li>{{ event.event_type }}: {{ event.count }}</li>
+                        {% endfor %}
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Recent Events -->
+    <div class="card">
+        <div class="card-header">Recent Events</div>
+        <div class="card-body">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Event Type</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for event in recent_events %}
+                    <tr>
+                        <td>{{ event.timestamp }}</td>
+                        <td>{{ event.event_type }}</td>
+                        <td>{{ event.user.username|default:"Anonymous" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
-<div>
-    <h2>Recent Events</h2>
-    <table border="1">
-        <tr>
-            <th>Timestamp</th>
-            <th>User</th>
-            <th>Type</th>
-            <th>Page URL</th>
-            <th>IP Address</th>
-            <th>Metadata</th>
-        </tr>
-        {% for event in recent_events %}
-        <tr>
-            <td>{{ event.timestamp }}</td>
-            <td>{% if event.user %}{{ event.user }}{% else %}Anonymous{% endif %}</td>
-            <td>{{ event.event_type }}</td>
-            <td>{{ event.page_url }}</td>
-            <td>{{ event.ip_address }}</td>
-            <td>{{ event.metadata }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
+{% endblock %}
+
+{% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const eventsByTypeData = {
-    labels: [{% for item in events_by_type %}'{{ item.event_type }}',{% endfor %}],
-    datasets: [{
-        data: [{% for item in events_by_type %}{{ item.count }},{% endfor %}],
-        backgroundColor: 'rgba(54, 162, 235, 0.5)'
-    }]
-};
-
-new Chart(document.getElementById('eventsByTypeChart').getContext('2d'), {
-    type: 'bar',
-    data: eventsByTypeData
-});
-
-new Chart(document.getElementById('eventsByTypePie').getContext('2d'), {
-    type: 'pie',
-    data: {
-        labels: [{% for item in pie_data %}'{{ item.event_type }}',{% endfor %}],
-        datasets: [{
-            data: [{% for item in pie_data %}{{ item.count }},{% endfor %}],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.5)',
-                'rgba(54, 162, 235, 0.5)',
-                'rgba(255, 206, 86, 0.5)',
-                'rgba(75, 192, 192, 0.5)',
-                'rgba(153, 102, 255, 0.5)'
-            ]
-        }]
-    }
-});
+    // Your chart.js logic can go here
 </script>
 {% endblock %} 

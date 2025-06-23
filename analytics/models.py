@@ -1,5 +1,8 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.gis.geoip2 import GeoIP2
+from ipware import get_client_ip
+import json
 
 class AnalyticsEvent(models.Model):
     EVENT_TYPES = [
@@ -29,4 +32,17 @@ class AnalyticsEvent(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.event_type} - {self.timestamp}" 
+        return f"{self.event_type} at {self.timestamp}"
+
+class AuditLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    action = models.CharField(max_length=255)
+    details = models.TextField(blank=True, null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f'{self.timestamp} - {self.action} by {self.user}'
+
+    class Meta:
+        ordering = ['-timestamp'] 
