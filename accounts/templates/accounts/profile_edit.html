@@ -1,13 +1,54 @@
-{% extends 'base.html' %}
+{% extends 'base_sidebar.html' %}
+{% load static %}
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <h2 class="mb-4">Edit Profile</h2>
-      <form method="post" class="card card-body shadow-sm">
-        {% csrf_token %}
-        {{ form.as_p|safe }}
-        <button type="submit" class="btn btn-primary w-100 mt-2">Save</button>
-      </form>
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-6">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h2 class="mb-4 text-center">Edit Profile</h2>
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="mb-4 text-center">
+                <img id="profile-preview" src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'img/placeholder-avatar.png' %}{% endif %}" alt="Profile Picture" class="rounded-circle mb-2" style="width: 90px; height: 90px; object-fit: cover; border: 3px solid var(--primary);">
+                <div class="mt-2">
+                  {{ form.profile_image }}
+                </div>
+              </div>
+              {% for field in form %}
+                {% if field.name != 'profile_image' %}
+                  <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                      <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                      <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              {% endfor %}
+              <button type="submit" class="btn btn-primary w-100 mt-2">Save</button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
+  <script>
+    // JS for live preview of selected profile image
+    document.addEventListener('DOMContentLoaded', function() {
+      const input = document.getElementById('id_profile_image');
+      const preview = document.getElementById('profile-preview');
+      if (input) {
+        input.addEventListener('change', function(e) {
+          const [file] = input.files;
+          if (file) {
+            preview.src = URL.createObjectURL(file);
+          }
+        });
+      }
+    });
+  </script>
 {% endblock %} 

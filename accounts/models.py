@@ -13,7 +13,7 @@ class User(AbstractUser):
     email = models.EmailField(_("email address"), unique=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['first_name', 'last_name'] # Fields prompted for when creating a superuser
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name'] # Fields prompted for when creating a superuser
 
     RANK_CHOICES = (
         ('none', 'No Rank'),

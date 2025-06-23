@@ -1,43 +1,52 @@
-{% extends 'base.html' %}
+{% extends 'base_sidebar.html' %}
 {% block content %}
-  <h2>Payments</h2>
-  {% if user.is_scout %}
-    <a href="{% url 'payments:payment_submit' %}">Submit Payment</a>
-  {% endif %}
-  <table>
-    <tr>
-      <th>User</th>
-      <th>Amount</th>
-      <th>Date</th>
-      <th>Status</th>
-      <th>Proof</th>
-      {% if user.is_admin %}<th>Actions</th>{% endif %}
-    </tr>
-    {% for payment in payments %}
-    <tr>
-      <td>{{ payment.user.username }}</td>
-      <td>{{ payment.amount }}</td>
-      <td>{{ payment.date }}</td>
-      <td>
-        {% if payment.status == 'verified' %}
-          <a href="{% url 'payments:payment_receipt' payment.pk %}" class="btn btn-sm btn-success">Download Receipt</a>
-        {% elif payment.status == 'pending' and request.user.is_admin %}
-          <a href="{% url 'payments:payment_verify' payment.pk %}" class="btn btn-sm btn-warning">Verify</a>
+  <div class="container-fluid py-4">
+    <h2 class="mb-4">My Payments</h2>
+    <div class="card shadow-sm">
+      <div class="card-body">
+        {% if payments %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Receipt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for payment in payments %}
+                  <tr>
+                    <td>{{ payment.date|date:"M d, Y" }}</td>
+                    <td>₱{{ payment.amount }}</td>
+                    <td>
+                      {% if payment.status == 'verified' %}
+                        <span class="badge bg-success">Verified</span>
+                      {% elif payment.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                      {% elif payment.status == 'rejected' %}
+                        <span class="badge bg-danger">Rejected</span>
+                      {% else %}
+                        <span class="badge bg-secondary">{{ payment.status|capfirst }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if payment.status == 'verified' %}
+                        <a href="{% url 'payments:payment_receipt' payment.pk %}" class="btn btn-sm btn-outline-primary">Download</a>
+                      {% else %}
+                        <span class="text-muted">-</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         {% else %}
-          <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+          <div class="alert alert-info">No payment history found.</div>
         {% endif %}
-      </td>
-      <td>
-        {% if payment.proof %}
-          <a href="{{ payment.proof.url }}" target="_blank">View</a>
-        {% else %}
-          -
-        {% endif %}
-      </td>
-      {% if user.is_admin %}
-        <td><a href="{% url 'payment_verify' payment.pk %}">Verify</a></td>
-      {% endif %}
-    </tr>
-    {% endfor %}
-  </table>
+      </div>
+    </div>
+  </div>
 {% endblock %} 

@@ -45,7 +45,7 @@ class CustomLoginForm(AuthenticationForm):
 class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'rank']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'rank', 'date_of_birth', 'address']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -74,10 +74,11 @@ class UserRegisterForm(UserCreationForm):
 
 
 class UserEditForm(forms.ModelForm):
+    profile_image = forms.ImageField(required=False, label="Profile Picture")
     class Meta:
         model = User
         fields = [
-            'username', 'email', 'first_name', 'last_name', 'rank',
+            'profile_image', 'username', 'email', 'first_name', 'last_name', 'rank',
             'date_of_birth', 'phone_number', 'address', 'emergency_contact',
             'emergency_phone', 'medical_conditions', 'allergies'
         ]

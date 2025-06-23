@@ -1,21 +1,29 @@
-{% extends "base.html" %}
+{% extends 'base_sidebar.html' %}
 
 {% block title %}Settings{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1>Settings</h1>
-    
-    <div class="card">
-        <div class="card-header">
-            Manage User Roles
-        </div>
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn btn-primary">Update Role</button>
-            </form>
+<div class="container-fluid py-4">
+    <h2 class="mb-4">Settings</h2>
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header fw-bold">Manage User Roles</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_user" class="form-label">Select User:</label>
+                            {{ form.user }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="id_rank" class="form-label">New Rank:</label>
+                            {{ form.rank }}
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Update Role</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
