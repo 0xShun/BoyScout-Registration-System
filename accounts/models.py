@@ -7,7 +7,7 @@ from django.utils.text import slugify
 
 class User(AbstractUser):
     # Override the username field from AbstractUser to make it not unique and nullable
-    username = models.CharField(_("username"), max_length=150, unique=False, null=True, blank=True)
+    username = models.CharField(_("username"), max_length=150, unique=True, null=True, blank=True)
 
     # Set email as unique and the USERNAME_FIELD
     email = models.EmailField(_("email address"), unique=True)

@@ -1,0 +1,28 @@
+# Manual Feature Testing Checklist for ScoutConnect
+
+## User Features
+- [ ] Register a new account (scout)
+- [ ] Log in and log out
+- [ ] View dashboard and see profile update reminder if info is missing
+- [ ] Edit and complete profile (phone, address, emergency contact, etc.)
+- [ ] View announcements and mark as read
+- [ ] Receive email/SMS notifications for announcements (if enabled)
+- [ ] View and RSVP to events (if implemented)
+- [ ] Submit a payment and upload proof
+- [ ] View payment history and balance
+- [ ] Receive email/SMS notification when payment is verified/rejected
+- [ ] View notification log/history
+- [ ] Use the site on a mobile device (check layout and usability)
+
+## Admin Features
+- [ ] Register/login as admin
+- [ ] Access admin dashboard and analytics
+- [ ] View all members and their balances
+- [ ] Edit member profiles and assign rank
+- [ ] Create, edit, and delete announcements (with email/SMS options)
+- [ ] Create, edit, and delete events (if implemented)
+- [ ] View and export analytics reports (CSV, PDF)
+- [ ] View and export payment reports (CSV, PDF)
+- [ ] View audit log of key actions
+- [ ] Ensure all admin/member actions are protected by login and role checks
+- [ ] Test all pages for mobile responsiveness 

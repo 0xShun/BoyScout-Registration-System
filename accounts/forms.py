@@ -45,7 +45,7 @@ class CustomLoginForm(AuthenticationForm):
 class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'rank', 'date_of_birth', 'address']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -72,6 +72,27 @@ class UserRegisterForm(UserCreationForm):
         self.fields['password1'].help_text = "Must be at least 8 characters."
         self.fields['password2'].help_text = None
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username and User.objects.filter(username=username).exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username
+
+    def clean(self):
+        cleaned_data = super().clean()
+        first_name = cleaned_data.get('first_name')
+        last_name = cleaned_data.get('last_name')
+        date_of_birth = cleaned_data.get('date_of_birth')
+        if first_name and last_name and date_of_birth:
+            if User.objects.filter(first_name__iexact=first_name.strip(), last_name__iexact=last_name.strip(), date_of_birth=date_of_birth).exists():
+                raise forms.ValidationError('A member with the same name and date of birth already exists. If this is you, please log in or reset your password.')
+        return cleaned_data
 
 class UserEditForm(forms.ModelForm):
     profile_image = forms.ImageField(required=False, label="Profile Picture")
@@ -95,6 +116,19 @@ class UserEditForm(forms.ModelForm):
 
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        first_name = cleaned_data.get('first_name')
+        last_name = cleaned_data.get('last_name')
+        date_of_birth = cleaned_data.get('date_of_birth')
+        if first_name and last_name and date_of_birth:
+            qs = User.objects.filter(first_name__iexact=first_name.strip(), last_name__iexact=last_name.strip(), date_of_birth=date_of_birth)
+            if self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError('Another member with the same name and date of birth already exists. Please check your information or contact admin.')
+        return cleaned_data
 
 class RoleManagementForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="Select User")

@@ -307,4 +307,33 @@ def audit_log_view(request):
     paginator = Paginator(logs, 20)  # Show 20 logs per page
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'analytics/audit_log.html', {'page_obj': page_obj}) 
+    return render(request, 'analytics/audit_log.html', {'page_obj': page_obj})
+
+@admin_required
+def export_payment_report(request, format):
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    payments = Payment.objects.all()
+    if start_date:
+        payments = payments.filter(date__gte=start_date)
+    if end_date:
+        payments = payments.filter(date__lte=end_date)
+    data = list(payments.values('id', 'user__username', 'amount', 'status', 'date', 'verification_date'))
+    if format == 'csv':
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f"attachment; filename=payment_report_{datetime.now().strftime('%Y%m%d')}.csv"
+        writer = csv.DictWriter(response, fieldnames=['id', 'user__username', 'amount', 'status', 'date', 'verification_date'])
+        writer.writeheader()
+        writer.writerows(data)
+        return response
+    elif format == 'pdf':
+        context = {'payments': data}
+        response = render_to_pdf('analytics/payment_report_template.html', context)
+        if response:
+            filename = f"payment_report_{datetime.now().strftime('%Y%m%d')}.pdf"
+            response['Content-Disposition'] = f'attachment; filename={filename}'
+            return response
+        else:
+            return HttpResponse("Error generating PDF", status=500)
+    else:
+        return HttpResponse('Unsupported format', status=400) 

@@ -1,7 +1,16 @@
 from django.core.mail import send_mail
 from django.conf import settings
-from twilio.rest import Client
-from twilio.base.exceptions import TwilioRestException
+from django.utils import timezone
+from django.db import models
+
+# Add a model for logging simulated SMS
+class SimulatedSMSLog(models.Model):
+    to_number = models.CharField(max_length=20)
+    message = models.TextField()
+    sent_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"SMS to {self.to_number} at {self.sent_at}"
 
 class NotificationService:
     @staticmethod
@@ -21,18 +30,26 @@ class NotificationService:
 
     @staticmethod
     def send_sms(to_number, message):
-        if not all([settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN, settings.TWILIO_PHONE_NUMBER]):
-            print("Twilio credentials not configured")
-            return False
-
+        from django.conf import settings
+        # Simulate SMS if Twilio is not configured
+        if not all([
+            getattr(settings, 'TWILIO_ACCOUNT_SID', None),
+            getattr(settings, 'TWILIO_AUTH_TOKEN', None),
+            getattr(settings, 'TWILIO_PHONE_NUMBER', None)
+        ]):
+            print(f"[SIMULATED SMS] To: {to_number} | Message: {message}")
+            SimulatedSMSLog.objects.create(to_number=to_number, message=message)
+            return True
         try:
+            from twilio.rest import Client
+            from twilio.base.exceptions import TwilioRestException
             client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-            message = client.messages.create(
+            client.messages.create(
                 body=message,
                 from_=settings.TWILIO_PHONE_NUMBER,
                 to=to_number
             )
             return True
-        except TwilioRestException as e:
+        except Exception as e:
             print(f"SMS sending failed: {str(e)}")
             return False 

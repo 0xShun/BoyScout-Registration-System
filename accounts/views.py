@@ -1,5 +1,5 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm
 from .models import User
@@ -15,6 +15,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from datetime import date
 
 @login_required
 def admin_dashboard(request):
@@ -73,11 +74,24 @@ def admin_dashboard(request):
 def scout_dashboard(request):
     if not request.user.is_scout():
         return redirect('accounts:admin_dashboard')
-
-    # Check if the scout has paid and is an active member
     is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
-
-    return render(request, 'accounts/scout_dashboard.html', {'is_active_member': is_active_member})
+    # Profile completeness check
+    user = request.user
+    incomplete_fields = []
+    if not user.phone_number:
+        incomplete_fields.append('Phone Number')
+    if not user.address:
+        incomplete_fields.append('Address')
+    if not user.emergency_contact:
+        incomplete_fields.append('Emergency Contact')
+    if not user.emergency_phone:
+        incomplete_fields.append('Emergency Phone')
+    profile_incomplete = bool(incomplete_fields)
+    return render(request, 'accounts/scout_dashboard.html', {
+        'is_active_member': is_active_member,
+        'profile_incomplete': profile_incomplete,
+        'incomplete_fields': incomplete_fields,
+    })
 
 def register(request):
     if request.method == 'POST':
@@ -106,11 +120,27 @@ def member_list(request):
         members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
     if filter_rank:
         members = members.filter(rank=filter_rank)
+    member_balances = {}
+    monthly_due = 100
+    for member in members:
+        payments = member.payments.filter(status='verified')
+        total_paid = payments.aggregate(total=models.Sum('amount'))['total'] or 0
+        join_date = member.date_joined.date() if member.date_joined else date.today()
+        today = date.today()
+        months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
+        total_dues = months * monthly_due
+        balance = total_paid - total_dues
+        member_balances[member.pk] = {
+            'total_paid': total_paid,
+            'total_dues': total_dues,
+            'balance': balance,
+        }
     paginator = Paginator(members, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     return render(request, 'accounts/member_list.html', {
         'members': members,
+        'member_balances': member_balances,
         'query': query,
         'filter_rank': filter_rank,
         'rank_choices': User.RANK_CHOICES,
@@ -121,7 +151,20 @@ def member_detail(request, pk):
     user = User.objects.get(pk=pk)
     if not (request.user.is_admin() or request.user.pk == user.pk):
         return HttpResponseForbidden()
-    return render(request, 'accounts/member_detail.html', {'member': user})
+    monthly_due = 100
+    payments = user.payments.filter(status='verified')
+    total_paid = payments.aggregate(total=models.Sum('amount'))['total'] or 0
+    join_date = user.date_joined.date() if user.date_joined else date.today()
+    today = date.today()
+    months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
+    total_dues = months * monthly_due
+    balance = total_paid - total_dues
+    return render(request, 'accounts/member_detail.html', {
+        'member': user,
+        'total_paid': total_paid,
+        'total_dues': total_dues,
+        'balance': balance,
+    })
 
 @admin_required
 def member_edit(request, pk):
@@ -160,8 +203,21 @@ def profile_edit(request):
 
 @login_required
 def profile_view(request):
+    user = request.user
+    incomplete_fields = []
+    if not user.phone_number:
+        incomplete_fields.append('Phone Number')
+    if not user.address:
+        incomplete_fields.append('Address')
+    if not user.emergency_contact:
+        incomplete_fields.append('Emergency Contact')
+    if not user.emergency_phone:
+        incomplete_fields.append('Emergency Phone')
+    profile_incomplete = bool(incomplete_fields)
     return render(request, 'accounts/profile.html', {
-        'user': request.user
+        'user': user,
+        'profile_incomplete': profile_incomplete,
+        'incomplete_fields': incomplete_fields,
     })
 
 @admin_required

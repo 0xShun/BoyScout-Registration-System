@@ -24,6 +24,7 @@
                 <th>Rank</th>
                 <th>Phone</th>
                 <th>Join Date</th>
+                <th>Balance</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -36,6 +37,15 @@
                 <td>{{ member.get_rank_display }}</td>
                 <td>{{ member.phone_number|default:"-" }}</td>
                 <td>{{ member.join_date|date:"M d, Y" }}</td>
+                <td>
+                  {% with bal=member_balances|dict_get:member.pk %}
+                    {% if bal %}
+                      <span class="fw-bold {% if bal.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ bal.balance }}</span>
+                    {% else %}
+                      <span class="text-muted">-</span>
+                    {% endif %}
+                  {% endwith %}
+                </td>
                 <td>
                   <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
                   <a href="{% url 'accounts:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>

@@ -9,6 +9,8 @@ from datetime import timedelta
 from django.core.mail import send_mail
 from django.conf import settings
 from boyscout_system.utils import render_to_pdf
+from django.db import models
+from notifications.services import NotificationService
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -17,9 +19,27 @@ def admin_required(view_func):
 def payment_list(request):
     if request.user.is_admin():
         payments = Payment.objects.all()
+        total_paid = None
+        total_dues = None
+        balance = None
     else:
         payments = request.user.payments.all()
-    return render(request, 'payments/payment_list.html', {'payments': payments})
+        # Calculate total paid (sum of verified payments)
+        total_paid = payments.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
+        # Calculate total dues (months since join date × 100)
+        from datetime import date
+        join_date = request.user.date_joined.date() if request.user.date_joined else date.today()
+        today = date.today()
+        months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
+        monthly_due = 100
+        total_dues = months * monthly_due
+        balance = total_paid - total_dues
+    return render(request, 'payments/payment_list.html', {
+        'payments': payments,
+        'total_paid': total_paid,
+        'total_dues': total_dues,
+        'balance': balance,
+    })
 
 @login_required
 def payment_submit(request):
@@ -82,14 +102,14 @@ def payment_verify(request, pk):
         payment.save()
         
         # Notify user about payment status
-        send_mail(
+        NotificationService.send_email(
             f'Payment {status.capitalize()}',
             f'Your payment has been {status}.',
-            settings.DEFAULT_FROM_EMAIL,
             [payment.user.email],
-            fail_silently=True,
         )
-        
+        if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
+            NotificationService.send_sms(payment.user.phone_number, f'Your payment has been {status}.')
+            messages.info(request, f'Simulated SMS sent to {payment.user.username}.')
         messages.success(request, f'Payment marked as {status}.')
         return redirect('payment_list')
     return render(request, 'payments/payment_verify.html', {'payment': payment})

@@ -53,3 +53,40 @@
 - Add new tasks as needed during development.
 - Use this checklist to resume work after breaks. 
 - Use the documentation folder to put txt files of what you did everyday.
+
+# ScoutConnect Capstone Project: Remaining To-Do Items (from Proposal Gap Analysis)
+
+## Membership & Registration
+- [x] Enforce unique constraints and validation for registration (email, username) to prevent duplicate accounts. Ensure error messages are clear and user-friendly. (Tested: duplicate email/username now blocked with clear errors)
+- [x] Remove rank selection from registration. Only admins can assign or change rank via the admin interface or settings page.
+- [x] Add validation to prevent duplicate member records and ensure data integrity during registration and profile updates. (Registration and profile update now block duplicate name and date of birth combinations.)
+
+## Payments & Receipts
+- [x] Show member balances (total paid vs. dues) for both users and admins in the payments section. Display outstanding balances and payment history clearly.
+- [x] Ensure payment records are easily accessible and filterable for both users and admins.
+
+## Communication (Announcements, SMS, Email)
+- [x] Add a simulated SMS notification system for announcements and payment updates. Log all sent SMS for admin review.
+- [x] Ensure email notifications are sent for registration, payment submission, and new announcements. Use Django's email backend and log all sent emails for testing.
+- [x] Show users a notification log/history of all announcements and notifications received, with read/unread status.
+
+## Analytics & Dashboards
+- [x] Add charts/graphs for membership trends, payment trends, and engagement (event participation, announcement reads) in analytics dashboards. Use Chart.js or similar.
+- [x] Allow admins to export analytics and payment reports as CSV and PDF files from the dashboard.
+
+## Events & Activities
+- [x] Allow users to RSVP/mark attendance for events and show their participation history in their profile or dashboard.
+- [x] Allow admins to create, edit, and delete events from the events management interface. Ensure event CRUD is secure and user-friendly.
+
+## Mobile Responsiveness & UX
+- [x] Test all pages on mobile devices and fix any layout or usability issues for full mobile responsiveness. Ensure sidebar, forms, and tables are easy to use on all screen sizes.
+
+## Security & Access Control
+- [x] Double-check all admin/member actions and pages are protected by login and role checks for security. Review all sensitive actions for proper authorization.
+
+## Data Validation & Profile Management
+- [x] Prompt users to update outdated profile information (e.g., if contact info is missing or old). Add reminders or banners as needed.
+
+## Optional/Enhancements
+- [x] (Optional) Add modules for badge progress or activity logs if in scope. Allow users and admins to track badge/achievement progress.
+- [x] Track key admin actions in an audit log (if not already fully implemented). Ensure audit log is accessible to admins and records all critical actions.

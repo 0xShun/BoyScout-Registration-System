@@ -7,6 +7,7 @@ from accounts.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 import logging
+from notifications.services import NotificationService
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -25,33 +26,22 @@ def announcement_create(request):
         form = AnnouncementForm(request.POST)
         if form.is_valid():
             announcement = form.save()
-            
-            # Handle notifications
             send_email = form.cleaned_data.get('send_email')
             send_sms = form.cleaned_data.get('send_sms')
-
             if send_email or send_sms:
                 recipients = announcement.recipients.all()
                 if not recipients:
-                    recipients = User.objects.all() # Or some other logic for all users
-
+                    recipients = User.objects.all()
                 for user in recipients:
                     if send_email and user.email:
-                        # In a real app, this would be an asynchronous task
-                        send_mail(
+                        NotificationService.send_email(
                             announcement.title,
                             announcement.message,
-                            settings.DEFAULT_FROM_EMAIL,
                             [user.email],
-                            fail_silently=False,
                         )
-                        logger.info(f"Email sent to {user.email} for announcement: {announcement.title}")
-
                     if send_sms and hasattr(user, 'phone_number') and user.phone_number:
-                        # SMS sending logic (simulation)
-                        logger.info(f"SMS sent to {user.phone_number} for announcement: {announcement.title}")
+                        NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
                         messages.info(request, f"Simulated SMS sent to {user.username}.")
-
             messages.success(request, 'Announcement created.')
             return redirect('announcements:announcement_list')
     else:

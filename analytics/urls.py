@@ -9,4 +9,5 @@ urlpatterns = [
     path('financial-dashboard/', views.financial_dashboard, name='financial_dashboard'),
     path('engagement-dashboard/', views.engagement_dashboard, name='engagement_dashboard'),
     path('audit-log/', views.audit_log_view, name='audit_log'),
+    path('payment_report/export/<str:format>/', views.export_payment_report, name='export_payment_report'),
 ] 

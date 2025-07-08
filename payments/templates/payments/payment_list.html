@@ -2,6 +2,34 @@
 {% block content %}
   <div class="container-fluid py-4">
     <h2 class="mb-4">My Payments</h2>
+    {% if total_paid is not None and total_dues is not None and balance is not None %}
+      <div class="row mb-4 g-3">
+        <div class="col-md-4">
+          <div class="card text-center shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="card-title">Total Paid</h6>
+              <p class="display-6 fw-bold text-success">₱{{ total_paid }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="card-title">Total Dues</h6>
+              <p class="display-6 fw-bold text-primary">₱{{ total_dues }}</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center shadow-sm h-100">
+            <div class="card-body">
+              <h6 class="card-title">Balance</h6>
+              <p class="display-6 fw-bold {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ balance }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
     <div class="card shadow-sm">
       <div class="card-body">
         {% if payments %}

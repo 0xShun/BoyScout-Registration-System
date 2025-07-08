@@ -1,6 +1,13 @@
 {% extends 'base_sidebar.html' %}
 {% block content %}
   <div class="container-fluid py-4">
+    {% if profile_incomplete %}
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+      <strong>Complete your profile!</strong> Please update the following missing info: {{ incomplete_fields|join:', ' }}.
+      <a href="{% url 'accounts:profile_edit' %}" class="alert-link">Update now</a>.
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
     <h2 class="mb-4">Dashboard</h2>
     <div class="row g-4">
       <div class="col-lg-6">

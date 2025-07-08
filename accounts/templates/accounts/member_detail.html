@@ -1,5 +1,30 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm text-center">
+          <div class="card-body">
+            <h5 class="card-title">Payment Summary</h5>
+            <div class="row g-2">
+              <div class="col-4">
+                <div class="fw-bold text-success">₱{{ total_paid }}</div>
+                <div class="small">Total Paid</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold text-primary">₱{{ total_dues }}</div>
+                <div class="small">Total Dues</div>
+              </div>
+              <div class="col-4">
+                <div class="fw-bold {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ balance }}</div>
+                <div class="small">Balance</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   <div class="row justify-content-center">
     <div class="col-md-8">
       <div class="card shadow-sm">
