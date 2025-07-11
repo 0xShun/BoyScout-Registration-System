@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'analytics',
     'notifications',
     'widget_tweaks',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -174,3 +175,11 @@ DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_UPLOAD_SIZE
 FILE_UPLOAD_PERMISSIONS = 0o644
 FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
+# Channels
+ASGI_APPLICATION = 'boyscout_system.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}

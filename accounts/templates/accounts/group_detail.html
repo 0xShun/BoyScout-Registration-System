@@ -1,0 +1,34 @@
+{% extends 'base_sidebar.html' %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Manage Group: {{ group.name }}</h2>
+    <div class="mb-3">
+        <a href="{% url 'accounts:group_edit' group.pk %}" class="btn btn-warning">Edit Group</a>
+        <a href="{% url 'accounts:group_delete' group.pk %}" class="btn btn-danger ms-2">Delete Group</a>
+    </div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="scouts" class="form-label">Assign Scouts to this Group:</label>
+                    <select name="scouts" id="scouts" class="form-select" multiple size="10">
+                        {% for scout in scouts %}
+                        <option value="{{ scout.id }}" {% if scout.id in selected_ids %}selected{% endif %}>{{ scout.get_full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-success">Save Group Members</button>
+                <a href="{% url 'accounts:group_list' %}" class="btn btn-secondary ms-2">Back to Groups</a>
+            </form>
+            <hr>
+            <h5>Current Members</h5>
+            <ul>
+                {% for member in group.members.all %}
+                <li>{{ member.get_full_name }}</li>
+                {% empty %}<li><em>No members assigned yet.</em></li>{% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %} 

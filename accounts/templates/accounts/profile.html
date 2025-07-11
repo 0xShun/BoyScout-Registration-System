@@ -17,6 +17,14 @@
             <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'img/placeholder-avatar.png' %}{% endif %}" alt="Profile Picture" class="rounded-circle mb-3" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid var(--primary);">
             <h4 class="fw-bold">{{ user.get_full_name }}</h4>
             <div class="text-muted mb-3">{{ user.get_rank_display }}</div>
+            {% if user.groups_membership.all %}
+            <div class="mb-2">
+              <strong>Groups:</strong>
+              {% for group in user.groups_membership.all %}
+                <span class="badge bg-info text-dark me-1">{{ group.name }}</span>
+              {% empty %}<span class="text-muted">None</span>{% endfor %}
+            </div>
+            {% endif %}
             <div class="row text-start justify-content-center">
               <div class="col-md-6">
                 <p><strong>Email:</strong> {{ user.email }}</p>
@@ -32,6 +40,90 @@
               </div>
             </div>
             <a href="{% url 'accounts:profile_edit' %}" class="btn btn-primary mt-3"><i class="fas fa-edit me-1"></i> Edit Profile</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row justify-content-center mt-4">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h4 class="mb-3"><i class="fas fa-medal me-2"></i>Badge Progress</h4>
+            {% if user_badges %}
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped align-middle">
+                <thead>
+                  <tr>
+                    <th>Badge</th>
+                    <th>Progress</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ub in user_badges %}
+                  <tr>
+                    <td>{{ ub.badge.name }}</td>
+                    <td>
+                      <div class="progress" style="height: 20px;">
+                        <div class="progress-bar{% if ub.awarded %} bg-success{% endif %}" role="progressbar" style="width: {{ ub.percent_complete }}%;" aria-valuenow="{{ ub.percent_complete }}" aria-valuemin="0" aria-valuemax="100">{{ ub.percent_complete }}%</div>
+                      </div>
+                    </td>
+                    <td>
+                      {% if ub.awarded %}
+                        <span class="badge bg-success">Awarded</span>
+                      {% else %}
+                        <span class="badge bg-secondary">In Progress</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">No badges assigned yet.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row justify-content-center mt-5">
+      <div class="col-lg-8">
+        <div class="card shadow-sm">
+          <div class="card-body">
+            <h4 class="mb-3"><i class="fas fa-calendar-check me-2"></i>Attendance History</h4>
+            {% if attendance_history %}
+            <div class="table-responsive">
+              <table class="table table-bordered table-striped">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for att in attendance_history %}
+                  <tr>
+                    <td>{{ att.event.title }}</td>
+                    <td>{{ att.event.date|date:'M d, Y' }}</td>
+                    <td>
+                      {% if att.status == 'present' %}
+                        <span class="badge bg-success">Present</span>
+                      {% else %}
+                        <span class="badge bg-danger">Absent</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">No attendance records found.</div>
+            {% endif %}
           </div>
         </div>
       </div>

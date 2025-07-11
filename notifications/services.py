@@ -2,6 +2,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django.db import models
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .models import Notification
 
 # Add a model for logging simulated SMS
 class SimulatedSMSLog(models.Model):
@@ -52,4 +55,17 @@ class NotificationService:
             return True
         except Exception as e:
             print(f"SMS sending failed: {str(e)}")
-            return False 
+            return False
+
+def send_realtime_notification(user_id, message, type='info'):
+    # Create a Notification record
+    Notification.objects.create(user_id=user_id, message=message, type=type)
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f'user_{user_id}',
+        {
+            'type': 'send_notification',
+            'message': message,
+            'type': type,
+        }
+    ) 

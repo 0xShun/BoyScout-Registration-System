@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Event, EventPhoto
-from .forms import EventForm, EventPhotoForm
+from .models import Event, EventPhoto, Attendance, EventRegistration
+from .forms import EventForm, EventPhotoForm, EventRegistrationForm
 from accounts.views import admin_required # Reusing the admin_required decorator
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -13,6 +13,9 @@ import os
 from PIL import Image
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
+from accounts.models import User
+from django.utils import timezone
+from notifications.services import send_realtime_notification, NotificationService
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -43,9 +46,52 @@ def event_create(request):
 def event_detail(request, pk):
     event = get_object_or_404(Event, pk=pk)
     photos = event.photos.all().order_by('-is_featured', '-uploaded_at')
+    # Attendance summary
+    attendance_qs = event.attendances.select_related('user')
+    present_list = [a.user for a in attendance_qs if a.status == 'present']
+    absent_list = [a.user for a in attendance_qs if a.status == 'absent']
+    present_count = len(present_list)
+    absent_count = len(absent_list)
+    total_scouts = present_count + absent_count
+
+    # Registration logic
+    registration = None
+    registration_form = None
+    if request.user.is_authenticated:
+        registration = EventRegistration.objects.filter(event=event, user=request.user).first()
+        if request.method == 'POST' and 'register_event' in request.POST:
+            if registration:
+                registration_form = EventRegistrationForm(request.POST, request.FILES, instance=registration)
+            else:
+                registration_form = EventRegistrationForm(request.POST, request.FILES)
+            if registration_form.is_valid():
+                reg = registration_form.save(commit=False)
+                reg.event = event
+                reg.user = request.user
+                reg.save()
+                messages.success(request, 'Event registration submitted!')
+                return redirect('events:event_detail', pk=event.pk)
+            else:
+                messages.error(request, 'There was an error with your registration. Please check the form.')
+        else:
+            registration_form = EventRegistrationForm(instance=registration)
+
+    # Admin: see all registrations
+    registrations = None
+    if request.user.is_authenticated and request.user.is_admin():
+        registrations = EventRegistration.objects.filter(event=event).select_related('user')
+
     return render(request, 'events/event_detail.html', {
         'event': event,
-        'photos': photos
+        'photos': photos,
+        'present_list': present_list,
+        'absent_list': absent_list,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'total_scouts': total_scouts,
+        'registration': registration,
+        'registration_form': registration_form,
+        'registrations': registrations,
     })
 
 @admin_required
@@ -167,3 +213,66 @@ def photo_toggle_featured(request, photo_pk):
             messages.error(request, f'Error updating photo: {str(e)}')
     
     return redirect('events:event_detail', pk=photo.event.pk)
+
+@admin_required
+def event_attendance(request, pk):
+    event = get_object_or_404(Event, pk=pk)
+    scouts = User.objects.filter(rank='scout').order_by('last_name', 'first_name')
+    existing_attendance = {a.user_id: a for a in Attendance.objects.filter(event=event)}
+
+    if request.method == 'POST':
+        for scout in scouts:
+            status = request.POST.get(f'attendance_{scout.id}', 'absent')
+            att, created = Attendance.objects.get_or_create(event=event, user=scout, defaults={
+                'status': status,
+                'marked_by': request.user
+            })
+            if not created:
+                att.status = status
+                att.marked_by = request.user
+                att.save()
+        messages.success(request, 'Attendance has been updated.')
+        return redirect('events:event_attendance', pk=event.pk)
+
+    # Prepare attendance status for display
+    attendance_status = {scout.id: existing_attendance.get(scout.id).status if scout.id in existing_attendance else '' for scout in scouts}
+    return render(request, 'events/event_attendance.html', {
+        'event': event,
+        'scouts': scouts,
+        'attendance_status': attendance_status,
+    })
+
+@admin_required
+def verify_event_registration(request, event_pk, reg_pk):
+    registration = get_object_or_404(EventRegistration, pk=reg_pk, event_id=event_pk)
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
+        if action == 'verify':
+            registration.verified = True
+            registration.verified_by = request.user
+            registration.verification_date = timezone.now()
+            registration.save()
+            # Email and notification
+            subject = f"Event Registration Payment Verified: {registration.event.title}"
+            message = f"Your payment for event '{registration.event.title}' has been verified."
+            if notes:
+                message += f"\n\nAdmin notes: {notes}"
+            NotificationService.send_email(subject, message, [registration.user.email])
+            send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been verified.", type='event')
+            messages.success(request, 'Registration payment verified.')
+        elif action == 'reject':
+            registration.verified = False
+            registration.verified_by = request.user
+            registration.verification_date = timezone.now()
+            registration.save()
+            # Email and notification
+            subject = f"Event Registration Payment Rejected: {registration.event.title}"
+            message = f"Your payment for event '{registration.event.title}' has been rejected."
+            if notes:
+                message += f"\n\nAdmin notes: {notes}"
+            NotificationService.send_email(subject, message, [registration.user.email])
+            send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been rejected.", type='event')
+            messages.warning(request, 'Registration payment rejected.')
+        return redirect('events:event_detail', pk=event_pk)
+    return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})

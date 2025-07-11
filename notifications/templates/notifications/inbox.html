@@ -1,0 +1,42 @@
+{% extends 'base_sidebar.html' %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">My Notifications</h2>
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if notifications %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Type</th>
+                            <th>Message</th>
+                            <th>Date</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for n in notifications %}
+                        <tr {% if not n.is_read %}class="table-info"{% endif %}>
+                            <td>{% if n.is_read %}<span class="badge bg-secondary">Read</span>{% else %}<span class="badge bg-primary">Unread</span>{% endif %}</td>
+                            <td>{{ n.get_type_display }}</td>
+                            <td>{{ n.message }}</td>
+                            <td>{{ n.created_at|date:'M d, Y H:i' }}</td>
+                            <td>
+                                {% if not n.is_read %}
+                                <a href="{% url 'notifications:mark_read' n.pk %}" class="btn btn-sm btn-success">Mark as Read</a>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">You have no notifications.</div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

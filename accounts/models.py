@@ -5,6 +5,14 @@ from django.utils.text import slugify
 
 # Create your models here.
 
+class Group(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 class User(AbstractUser):
     # Override the username field from AbstractUser to make it not unique and nullable
     username = models.CharField(_("username"), max_length=150, unique=True, null=True, blank=True)
@@ -16,7 +24,7 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name'] # Fields prompted for when creating a superuser
 
     RANK_CHOICES = (
-        ('none', 'No Rank'),
+        ('admin', 'Administrator'),
         ('scout', 'Scout'),
         ('senior_scout', 'Senior Scout'),
         ('patrol_leader', 'Patrol Leader'),
@@ -39,6 +47,7 @@ class User(AbstractUser):
     allergies = models.TextField(blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
+    groups_membership = models.ManyToManyField(Group, related_name='members', blank=True)
 
     def is_admin(self):
         return self.rank == 'admin'
@@ -76,3 +85,26 @@ class User(AbstractUser):
             ("can_manage_committee", "Can manage committee members"),
             ("can_manage_parents", "Can manage parents/guardians"),
         ]
+
+class Badge(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    description = models.TextField(blank=True)
+    requirements = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class UserBadge(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='user_badges')
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='user_badges')
+    date_awarded = models.DateField(null=True, blank=True)
+    percent_complete = models.PositiveIntegerField(default=0)
+    notes = models.TextField(blank=True)
+    awarded = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'badge')
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - {self.badge.name}"

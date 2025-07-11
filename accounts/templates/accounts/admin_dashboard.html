@@ -116,6 +116,107 @@
         </div>
       </div>
     </div>
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="card-title">Attendance Rate per Event</h5>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle bg-white rounded">
+                <thead class="table-light">
+                  <tr><th>Event</th><th>Date</th><th>Present</th><th>Total</th><th>Rate (%)</th></tr>
+                </thead>
+                <tbody>
+                  {% for row in attendance_rates %}
+                    <tr>
+                      <td>{{ row.event.title }}</td>
+                      <td>{{ row.event.date|date:'M d, Y' }}</td>
+                      <td>{{ row.present }}</td>
+                      <td>{{ row.total }}</td>
+                      <td>{{ row.rate|floatformat:1 }}</td>
+                    </tr>
+                  {% empty %}<tr><td colspan="5" class="text-center">No data</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="card-title">Most Active Scouts (by Attendance)</h5>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle bg-white rounded">
+                <thead class="table-light">
+                  <tr><th>Scout</th><th>Present</th><th>Absent</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for scout in most_active_scouts %}
+                    <tr>
+                      <td>{{ scout.get_full_name }}</td>
+                      <td>{{ scout.present_count }}</td>
+                      <td>{{ scout.absent_count }}</td>
+                      <td>{{ scout.total_attendance }}</td>
+                    </tr>
+                  {% empty %}<tr><td colspan="4" class="text-center">No data</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="card-title">Least Active Scouts (by Attendance)</h5>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle bg-white rounded">
+                <thead class="table-light">
+                  <tr><th>Scout</th><th>Present</th><th>Absent</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for scout in least_active_scouts %}
+                    <tr>
+                      <td>{{ scout.get_full_name }}</td>
+                      <td>{{ scout.present_count }}</td>
+                      <td>{{ scout.absent_count }}</td>
+                      <td>{{ scout.total_attendance }}</td>
+                    </tr>
+                  {% empty %}<tr><td colspan="4" class="text-center">No data</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card shadow-sm h-100">
+          <div class="card-body">
+            <h5 class="card-title">Repeated Absentees (3+ Absences)</h5>
+            <div class="table-responsive">
+              <table class="table table-striped table-hover align-middle bg-white rounded">
+                <thead class="table-light">
+                  <tr><th>Scout</th><th>Absent</th><th>Present</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                  {% for scout in repeated_absentees %}
+                    <tr>
+                      <td>{{ scout.get_full_name }}</td>
+                      <td>{{ scout.absent_count }}</td>
+                      <td>{{ scout.present_count }}</td>
+                      <td>{{ scout.total_attendance }}</td>
+                    </tr>
+                  {% empty %}<tr><td colspan="4" class="text-center">No data</td></tr>{% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div class="row g-4">
       <div class="col-md-4">
         <div class="card text-center h-100">

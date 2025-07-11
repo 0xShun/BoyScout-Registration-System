@@ -1,0 +1,24 @@
+{% extends 'base_sidebar.html' %}
+{% block content %}
+<div class="container py-4">
+    <h2>Verify Event Registration Payment</h2>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <p><strong>Scout:</strong> {{ registration.user.get_full_name }}</p>
+            <p><strong>RSVP:</strong> {{ registration.get_rsvp_display }}</p>
+            <p><strong>Registered At:</strong> {{ registration.registered_at|date:'M d, Y H:i' }}</p>
+            <p><strong>Receipt:</strong> {% if registration.receipt_image %}<a href="{{ registration.receipt_image.url }}" target="_blank">View Uploaded Receipt</a>{% else %}<span class="text-danger">No receipt uploaded</span>{% endif %}</p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Admin Notes (optional):</label>
+                    <textarea name="notes" id="notes" class="form-control" rows="2"></textarea>
+                </div>
+                <button type="submit" name="action" value="verify" class="btn btn-success">Verify Payment</button>
+                <button type="submit" name="action" value="reject" class="btn btn-danger ms-2">Reject Payment</button>
+                <a href="{% url 'events:event_detail' event_pk %}" class="btn btn-secondary ms-2">Back to Event</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

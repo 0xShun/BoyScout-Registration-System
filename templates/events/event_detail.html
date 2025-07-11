@@ -190,10 +190,105 @@
 
 <div class="container">
     <div class="event-content">
+        {% if user.is_authenticated %}
+        <div class="mb-4">
+            <h4>Event Registration</h4>
+            {% if registration %}
+                <div class="alert alert-success">You have registered for this event. RSVP: <strong>{{ registration.get_rsvp_display }}</strong>
+                    {% if registration.receipt_image %}<br>Receipt: <a href="{{ registration.receipt_image.url }}" target="_blank">View Uploaded Receipt</a>{% endif %}
+                    {% if registration.verified %}<br><span class="badge bg-success">Payment Verified</span>{% endif %}
+                </div>
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ registration_form.as_p }}
+                    <button type="submit" name="register_event" class="btn btn-primary">Update Registration</button>
+                </form>
+            {% else %}
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ registration_form.as_p }}
+                    <button type="submit" name="register_event" class="btn btn-primary">Register for Event</button>
+                </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated and user.is_admin and registrations %}
+        <div class="mb-4">
+            <h4>Event Registrations</h4>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped align-middle">
+                    <thead>
+                        <tr>
+                            <th>Scout</th>
+                            <th>RSVP</th>
+                            <th>Receipt</th>
+                            <th>Registered At</th>
+                            <th>Verified</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for reg in registrations %}
+                        <tr>
+                            <td>{{ reg.user.get_full_name }}</td>
+                            <td>{{ reg.get_rsvp_display }}</td>
+                            <td>{% if reg.receipt_image %}<a href="{{ reg.receipt_image.url }}" target="_blank">View</a>{% else %}-{% endif %}</td>
+                            <td>{{ reg.registered_at|date:'M d, Y H:i' }}</td>
+                            <td>{% if reg.verified %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                            <td>
+                                {% if not reg.verified %}
+                                <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-warning">Verify</a>
+                                {% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated and user.is_admin %}
+        <div class="mb-3">
+            <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-success">
+                <i class="fas fa-user-check"></i> Mark Attendance
+            </a>
+        </div>
+        {% endif %}
+
+        {% if user.is_authenticated and (user.is_admin or user.is_staff) %}
+        <div class="mb-4">
+            <h4>Attendance Summary</h4>
+            <p>
+                <span class="badge bg-success">Present: {{ present_count }}</span>
+                <span class="badge bg-danger ms-2">Absent: {{ absent_count }}</span>
+                <span class="badge bg-secondary ms-2">Total Marked: {{ total_scouts }}</span>
+            </p>
+            <div class="row">
+                <div class="col-md-6">
+                    <strong>Present:</strong>
+                    <ul>
+                        {% for scout in present_list %}
+                        <li>{{ scout.get_full_name }}</li>
+                        {% empty %}<li><em>No one marked present yet.</em></li>{% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <strong>Absent:</strong>
+                    <ul>
+                        {% for scout in absent_list %}
+                        <li>{{ scout.get_full_name }}</li>
+                        {% empty %}<li><em>No one marked absent yet.</em></li>{% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="event-description">
             {{ event.description|linebreaks }}
         </div>
-
         {% if user.is_authenticated %}
         <div class="photo-gallery">
             <div class="d-flex justify-content-between align-items-center">
@@ -202,7 +297,6 @@
                     <i class="fas fa-camera"></i> Upload Photo
                 </a>
             </div>
-
             {% if event.photos.exists %}
             <div class="gallery-grid">
                 {% for photo in event.photos.all %}

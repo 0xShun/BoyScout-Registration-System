@@ -18,6 +18,13 @@ urlpatterns = [
     path('profile/edit/', views.profile_edit, name='profile_edit'),
     path('profile/', views.profile_view, name='profile'),
     path('settings/', views.settings_view, name='settings'),
+    path('groups/', views.group_list, name='group_list'),
+    path('groups/<int:pk>/', views.group_detail, name='group_detail'),
+    path('groups/create/', views.group_create, name='group_create'),
+    path('groups/<int:pk>/edit/', views.group_edit, name='group_edit'),
+    path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
+    path('badges/', views.badge_list, name='badge_list'),
+    path('badges/<int:pk>/manage/', views.badge_manage, name='badge_manage'),
     
     # Password reset URLs
     path('password_reset/', auth_views.PasswordResetView.as_view(

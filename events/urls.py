@@ -12,4 +12,6 @@ urlpatterns = [
     path('<int:event_pk>/photo/upload/', views.photo_upload, name='photo_upload'),
     path('photo/<int:photo_pk>/delete/', views.photo_delete, name='photo_delete'),
     path('photo/<int:photo_pk>/toggle-featured/', views.photo_toggle_featured, name='photo_toggle_featured'),
+    path('<int:pk>/attendance/', views.event_attendance, name='event_attendance'),
+    path('<int:event_pk>/registration/<int:reg_pk>/verify/', views.verify_event_registration, name='verify_event_registration'),
 ] 

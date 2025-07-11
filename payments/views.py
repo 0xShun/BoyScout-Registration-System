@@ -1,16 +1,15 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required, user_passes_test
-from .forms import PaymentForm
+from django.core.paginator import Paginator
+from django.db.models import Sum, Q
+from django.http import HttpResponseForbidden
 from .models import Payment
+from .forms import PaymentForm
 from accounts.models import User
+from notifications.services import NotificationService, send_realtime_notification
 from django.utils import timezone
 from datetime import timedelta
-from django.core.mail import send_mail
-from django.conf import settings
-from boyscout_system.utils import render_to_pdf
-from django.db import models
-from notifications.services import NotificationService
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -18,128 +17,104 @@ def admin_required(view_func):
 @login_required
 def payment_list(request):
     if request.user.is_admin():
-        payments = Payment.objects.all()
-        total_paid = None
-        total_dues = None
-        balance = None
+        # Admin sees all payments
+        payments = Payment.objects.all().order_by('-date')
+        # Filter options
+        status_filter = request.GET.get('status', '')
+        if status_filter:
+            payments = payments.filter(status=status_filter)
     else:
-        payments = request.user.payments.all()
-        # Calculate total paid (sum of verified payments)
-        total_paid = payments.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
-        # Calculate total dues (months since join date × 100)
-        from datetime import date
-        join_date = request.user.date_joined.date() if request.user.date_joined else date.today()
-        today = date.today()
-        months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
-        monthly_due = 100
-        total_dues = months * monthly_due
-        balance = total_paid - total_dues
+        # Regular users see only their payments
+        payments = Payment.objects.filter(user=request.user).order_by('-date')
+    
+    paginator = Paginator(payments, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
     return render(request, 'payments/payment_list.html', {
-        'payments': payments,
-        'total_paid': total_paid,
-        'total_dues': total_dues,
-        'balance': balance,
+        'page_obj': page_obj,
+        'status_choices': Payment.STATUS_CHOICES,
+        'current_filter': request.GET.get('status', ''),
     })
 
 @login_required
 def payment_submit(request):
     if request.method == 'POST':
-        form = PaymentForm(request.POST, request.FILES, user=request.user)
+        form = PaymentForm(request.POST, request.FILES)
         if form.is_valid():
-            # Check if user has any pending payments
-            pending_payments = Payment.objects.filter(
-                user=request.user,
-                status='pending',
-                date__gte=timezone.now() - timedelta(days=7)
-            )
-            if pending_payments.exists():
-                messages.warning(request, 'You already have a pending payment. Please wait for verification.')
-                return redirect('payment_list')
-
             payment = form.save(commit=False)
             payment.user = request.user
-            payment.expiry_date = timezone.now() + timedelta(days=7)  # Payment expires in 7 days
+            payment.payee_name = f"{request.user.first_name} {request.user.last_name}"
+            payment.payee_email = request.user.email
+            payment.expiry_date = timezone.now() + timedelta(days=7)  # 7 days expiry
             payment.save()
             
             # Notify admins about new payment
-            admins = User.objects.filter(role='admin')
+            admins = User.objects.filter(rank='admin')
             admin_emails = [admin.email for admin in admins]
             if admin_emails:
-                send_mail(
-                    'New Payment Submission',
-                    f'A new payment has been submitted by {request.user.get_full_name()}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    admin_emails,
-                    fail_silently=True,
+                NotificationService.send_email(
+                    subject=f"New Payment Submission - {payment.user.get_full_name()}",
+                    message=f"A new payment of ₱{payment.amount} has been submitted and is pending verification.",
+                    recipient_list=admin_emails,
                 )
             
-            messages.success(request, 'Payment submitted. Awaiting verification.')
-            return redirect('payment_list')
+            messages.success(request, 'Payment submitted successfully. It will be reviewed by an administrator.')
+            return redirect('payments:payment_list')
     else:
-        form = PaymentForm(user=request.user)
+        form = PaymentForm()
+    
     return render(request, 'payments/payment_submit.html', {'form': form})
 
-@admin_required
-def payment_verify(request, pk):
-    payment = Payment.objects.get(pk=pk)
+@login_required
+def payment_verify(request, payment_id):
+    payment = get_object_or_404(Payment, id=payment_id)
     
-    # Check if payment has expired
-    if payment.expiry_date and payment.expiry_date < timezone.now():
-        payment.status = 'expired'
-        payment.save()
-        messages.warning(request, 'This payment has expired.')
-        return redirect('payment_list')
+    if not (request.user.is_admin() or request.user == payment.user):
+        return HttpResponseForbidden()
     
     if request.method == 'POST':
-        status = request.POST.get('status')
-        if status not in ['verified', 'rejected']:
-            messages.error(request, 'Invalid status.')
-            return redirect('payment_list')
-            
-        payment.status = status
-        payment.verified_by = request.user
-        payment.verification_date = timezone.now()
-        payment.save()
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
         
-        # Notify user about payment status
-        NotificationService.send_email(
-            f'Payment {status.capitalize()}',
-            f'Your payment has been {status}.',
-            [payment.user.email],
-        )
-        if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
-            NotificationService.send_sms(payment.user.phone_number, f'Your payment has been {status}.')
-            messages.info(request, f'Simulated SMS sent to {payment.user.username}.')
-        messages.success(request, f'Payment marked as {status}.')
-        return redirect('payment_list')
+        if action == 'verify':
+            payment.status = 'verified'
+            payment.verified_by = request.user
+            payment.verification_date = timezone.now()
+            payment.notes = notes
+            payment.save()
+            
+            # Notify user about verification
+            NotificationService.send_email(
+                subject="Payment Verified",
+                message=f"Your payment of ₱{payment.amount} has been verified. Thank you!",
+                recipient_list=[payment.user.email],
+            )
+            if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
+                NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been verified. Thank you!")
+            # Real-time notification
+            send_realtime_notification(payment.user.id, f"Your payment of ₱{payment.amount} has been verified.", type='payment')
+            messages.success(request, 'Payment verified successfully.')
+            
+        elif action == 'reject':
+            payment.status = 'rejected'
+            payment.verified_by = request.user
+            payment.verification_date = timezone.now()
+            payment.notes = notes
+            payment.save()
+            
+            # Notify user about rejection
+            NotificationService.send_email(
+                subject="Payment Rejected",
+                message=f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}",
+                recipient_list=[payment.user.email],
+            )
+            if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
+                NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}")
+            # Real-time notification
+            send_realtime_notification(payment.user.id, f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}", type='payment')
+            messages.warning(request, 'Payment rejected.')
+        
+        return redirect('payments:payment_list')
+    
     return render(request, 'payments/payment_verify.html', {'payment': payment})
-
-@login_required
-def payment_receipt(request, pk):
-    payment = get_object_or_404(Payment, pk=pk)
-    
-    # Check if the user has permission to view the receipt
-    if not (request.user.is_admin() or request.user == payment.user):
-        messages.error(request, "You do not have permission to view this receipt.")
-        return redirect('payments:payment_list')
-
-    # Only allow receipts for verified payments
-    if payment.status != 'verified':
-        messages.error(request, "Receipts are only available for verified payments.")
-        return redirect('payments:payment_list')
-
-    pdf = render_to_pdf(
-        'payments/receipt_template.html',
-        {
-            'payment': payment,
-        }
-    )
-    if pdf:
-        response = pdf
-        filename = f"receipt_{payment.pk}.pdf"
-        content = f"attachment; filename={filename}"
-        response['Content-Disposition'] = content
-        return response
-    
-    messages.error(request, "Could not generate PDF receipt.")
-    return redirect('payments:payment_list')

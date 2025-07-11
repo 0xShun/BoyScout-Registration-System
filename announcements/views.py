@@ -7,7 +7,7 @@ from accounts.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 import logging
-from notifications.services import NotificationService
+from notifications.services import NotificationService, send_realtime_notification
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -25,24 +25,24 @@ def announcement_create(request):
     if request.method == 'POST':
         form = AnnouncementForm(request.POST)
         if form.is_valid():
-            announcement = form.save()
-            send_email = form.cleaned_data.get('send_email')
-            send_sms = form.cleaned_data.get('send_sms')
-            if send_email or send_sms:
+            announcement = form.save(commit=False)
+            announcement.save()
+            form.save_m2m()
+            # Determine recipients
+            selected_groups = form.cleaned_data.get('groups')
+            if selected_groups and selected_groups.exists():
+                recipients = User.objects.filter(groups_membership__in=selected_groups).distinct()
+            else:
                 recipients = announcement.recipients.all()
                 if not recipients:
                     recipients = User.objects.all()
-                for user in recipients:
-                    if send_email and user.email:
-                        NotificationService.send_email(
-                            announcement.title,
-                            announcement.message,
-                            [user.email],
-                        )
-                    if send_sms and hasattr(user, 'phone_number') and user.phone_number:
-                        NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
-                        messages.info(request, f"Simulated SMS sent to {user.username}.")
-            messages.success(request, 'Announcement created.')
+            announcement.recipients.set(recipients)
+            # Send notifications
+            for user in recipients:
+                if hasattr(user, 'phone_number') and user.phone_number:
+                    NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
+                send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
+            messages.success(request, 'Announcement created and sent to selected recipients.')
             return redirect('announcements:announcement_list')
     else:
         form = AnnouncementForm()

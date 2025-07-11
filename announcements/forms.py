@@ -1,13 +1,23 @@
 from django import forms
 from .models import Announcement
+from accounts.models import Group, User
 
 class AnnouncementForm(forms.ModelForm):
-    send_email = forms.BooleanField(required=False, label="Send Email Notification")
-    send_sms = forms.BooleanField(required=False, label="Send SMS Notification (Simulation)")
-
+    groups = forms.ModelMultipleChoiceField(
+        queryset=Group.objects.all(),
+        required=False,
+        widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+        label='Target Groups (optional)'
+    )
     class Meta:
         model = Announcement
-        fields = ['title', 'message', 'recipients', 'send_email', 'send_sms']
+        fields = ['title', 'message', 'recipients']
         widgets = {
-            'recipients': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
-        } 
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'message': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'recipients': forms.SelectMultiple(attrs={'class': 'form-select'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['recipients'].required = False 

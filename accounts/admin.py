@@ -1,6 +1,6 @@
 from django.contrib import admin
+from .models import User, Group, Badge
 from django.contrib.auth.admin import UserAdmin
-from .models import User
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -24,3 +24,13 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'email', 'first_name', 'last_name', 'rank', 'password1', 'password2'),
         }),
     )
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'created_at')
+    search_fields = ('name',)
+
+@admin.register(Badge)
+class BadgeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'created_at')
+    search_fields = ('name',)

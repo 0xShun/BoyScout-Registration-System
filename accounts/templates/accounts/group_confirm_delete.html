@@ -1,0 +1,12 @@
+{% extends 'base_sidebar.html' %}
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Delete Group</h2>
+    <div class="alert alert-danger">Are you sure you want to delete the group <strong>{{ group.name }}</strong>? This cannot be undone.</div>
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Delete</button>
+        <a href="{% url 'accounts:group_list' %}" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+</div>
+{% endblock %} 

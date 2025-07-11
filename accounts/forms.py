@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
-from .models import User
+from .models import User, Group
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -133,3 +133,12 @@ class UserEditForm(forms.ModelForm):
 class RoleManagementForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="Select User")
     rank = forms.ChoiceField(choices=User.RANK_CHOICES, label="New Rank") 
+
+class GroupForm(forms.ModelForm):
+    class Meta:
+        model = Group
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+        } 
