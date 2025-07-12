@@ -11,6 +11,7 @@ class Event(models.Model):
     date = models.DateField()
     time = models.TimeField(default=get_current_time)
     location = models.CharField(max_length=200)
+    banner = models.ImageField(upload_to='event_banners/', null=True, blank=True)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

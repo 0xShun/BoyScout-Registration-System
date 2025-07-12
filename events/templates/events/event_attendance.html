@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load get_item %}
 {% block content %}
 <div class="container mt-4">
     <h2>Mark Attendance for {{ event.title }}</h2>
@@ -16,12 +17,14 @@
                 <tr>
                     <td>{{ scout.get_full_name }}</td>
                     <td>
+                        {% with status=attendance_status|get_item:scout.id %}
                         <label>
-                            <input type="radio" name="attendance_{{ scout.id }}" value="present" {% if attendance_status[scout.id] == 'present' %}checked{% endif %}> Present
+                            <input type="radio" name="attendance_{{ scout.id }}" value="present" {% if status == 'present' %}checked{% endif %}> Present
                         </label>
                         <label class="ms-3">
-                            <input type="radio" name="attendance_{{ scout.id }}" value="absent" {% if attendance_status[scout.id] == 'absent' %}checked{% endif %}> Absent
+                            <input type="radio" name="attendance_{{ scout.id }}" value="absent" {% if status == 'absent' %}checked{% endif %}> Absent
                         </label>
+                        {% endwith %}
                     </td>
                 </tr>
                 {% endfor %}

@@ -1,0 +1,12 @@
+Django>=5.1.2
+channels
+asgiref
+pytz
+sqlparse
+django-widget-tweaks
+Pillow
+xhtml2pdf
+reportlab
+PyPDF2
+django-ipware
+twilio

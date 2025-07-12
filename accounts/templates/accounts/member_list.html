@@ -38,13 +38,11 @@
                 <td>{{ member.phone_number|default:"-" }}</td>
                 <td>{{ member.join_date|date:"M d, Y" }}</td>
                 <td>
-                  {% with bal=member_balances|dict_get:member.pk %}
-                    {% if bal %}
-                      <span class="fw-bold {% if bal.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ bal.balance }}</span>
-                    {% else %}
-                      <span class="text-muted">-</span>
-                    {% endif %}
-                  {% endwith %}
+                  {% if member.balance_info %}
+                    <span class="fw-bold {% if member.balance_info.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ member.balance_info.balance }}</span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
                 </td>
                 <td>
                   <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>

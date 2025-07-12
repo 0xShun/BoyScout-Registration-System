@@ -149,7 +149,6 @@ def member_list(request):
         members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
     if filter_rank:
         members = members.filter(rank=filter_rank)
-    member_balances = {}
     monthly_due = 100
     for member in members:
         payments = member.payments.filter(status='verified')
@@ -159,7 +158,7 @@ def member_list(request):
         months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
         total_dues = months * monthly_due
         balance = total_paid - total_dues
-        member_balances[member.pk] = {
+        member.balance_info = {
             'total_paid': total_paid,
             'total_dues': total_dues,
             'balance': balance,
@@ -169,7 +168,6 @@ def member_list(request):
     page_obj = paginator.get_page(page_number)
     return render(request, 'accounts/member_list.html', {
         'members': members,
-        'member_balances': member_balances,
         'query': query,
         'filter_rank': filter_rank,
         'rank_choices': User.RANK_CHOICES,

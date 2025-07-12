@@ -213,77 +213,84 @@
         </div>
         {% endif %}
 
-        {% if user.is_authenticated and user.is_admin and registrations %}
-        <div class="mb-4">
-            <h4>Event Registrations</h4>
-            <div class="table-responsive">
+        {# Fix: Split or nest the following ifs #}
+        {% if user.is_authenticated %}
+          {% if user.is_admin and registrations %}
+            <div class="mb-4">
+              <h4>Event Registrations</h4>
+              <div class="table-responsive">
                 <table class="table table-bordered table-striped align-middle">
-                    <thead>
-                        <tr>
-                            <th>Scout</th>
-                            <th>RSVP</th>
-                            <th>Receipt</th>
-                            <th>Registered At</th>
-                            <th>Verified</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for reg in registrations %}
-                        <tr>
-                            <td>{{ reg.user.get_full_name }}</td>
-                            <td>{{ reg.get_rsvp_display }}</td>
-                            <td>{% if reg.receipt_image %}<a href="{{ reg.receipt_image.url }}" target="_blank">View</a>{% else %}-{% endif %}</td>
-                            <td>{{ reg.registered_at|date:'M d, Y H:i' }}</td>
-                            <td>{% if reg.verified %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
-                            <td>
-                                {% if not reg.verified %}
-                                <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-warning">Verify</a>
-                                {% else %}-{% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                  <thead>
+                    <tr>
+                      <th>Scout</th>
+                      <th>RSVP</th>
+                      <th>Receipt</th>
+                      <th>Registered At</th>
+                      <th>Verified</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for reg in registrations %}
+                    <tr>
+                      <td>{{ reg.user.get_full_name }}</td>
+                      <td>{{ reg.get_rsvp_display }}</td>
+                      <td>{% if reg.receipt_image %}<a href="{{ reg.receipt_image.url }}" target="_blank">View</a>{% else %}-{% endif %}</td>
+                      <td>{{ reg.registered_at|date:'M d, Y H:i' }}</td>
+                      <td>{% if reg.verified %}<span class="badge bg-success">Yes</span>{% else %}<span class="badge bg-secondary">No</span>{% endif %}</td>
+                      <td>
+                        {% if not reg.verified %}
+                        <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-warning">Verify</a>
+                        {% else %}-{% endif %}
+                      </td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
                 </table>
+              </div>
             </div>
-        </div>
+          {% endif %}
         {% endif %}
 
-        {% if user.is_authenticated and user.is_admin %}
-        <div class="mb-3">
-            <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-success">
+        {% if user.is_authenticated %}
+          {% if user.is_admin %}
+            <div class="mb-3">
+              <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-success">
                 <i class="fas fa-user-check"></i> Mark Attendance
-            </a>
-        </div>
+              </a>
+            </div>
+          {% endif %}
         {% endif %}
 
-        {% if user.is_authenticated and (user.is_admin or user.is_staff) %}
-        <div class="mb-4">
-            <h4>Attendance Summary</h4>
-            <p>
+        {% if user.is_authenticated %}
+          {% if user.is_admin or user.is_staff %}
+            <div class="mb-4">
+              <h4>Attendance Summary</h4>
+              <p>
                 <span class="badge bg-success">Present: {{ present_count }}</span>
                 <span class="badge bg-danger ms-2">Absent: {{ absent_count }}</span>
                 <span class="badge bg-secondary ms-2">Total Marked: {{ total_scouts }}</span>
-            </p>
-            <div class="row">
+              </p>
+              <div class="row">
                 <div class="col-md-6">
-                    <strong>Present:</strong>
-                    <ul>
-                        {% for scout in present_list %}
-                        <li>{{ scout.get_full_name }}</li>
-                        {% empty %}<li><em>No one marked present yet.</em></li>{% endfor %}
-                    </ul>
+                  <strong>Present:</strong>
+                  <ul>
+                    {% for scout in present_list %}
+                    <li>{{ scout.get_full_name }}</li>
+                    {% empty %}<li><em>No one marked present yet.</em></li>{% endfor %}
+                  </ul>
                 </div>
                 <div class="col-md-6">
-                    <strong>Absent:</strong>
-                    <ul>
-                        {% for scout in absent_list %}
-                        <li>{{ scout.get_full_name }}</li>
-                        {% empty %}<li><em>No one marked absent yet.</em></li>{% endfor %}
-                    </ul>
+                  <strong>Absent:</strong>
+                  <ul>
+                    {% for scout in absent_list %}
+                    <li>{{ scout.get_full_name }}</li>
+                    {% empty %}<li><em>No one marked absent yet.</em></li>{% endfor %}
+                  </ul>
                 </div>
+              </div>
             </div>
-        </div>
+          {% endif %}
         {% endif %}
 
         <div class="event-description">

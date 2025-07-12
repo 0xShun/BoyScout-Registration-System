@@ -31,7 +31,7 @@ def event_list(request):
 @admin_required
 def event_create(request):
     if request.method == 'POST':
-        form = EventForm(request.POST)
+        form = EventForm(request.POST, request.FILES)
         if form.is_valid():
             event = form.save(commit=False)
             event.created_by = request.user
@@ -98,7 +98,7 @@ def event_detail(request, pk):
 def event_edit(request, pk):
     event = get_object_or_404(Event, pk=pk)
     if request.method == 'POST':
-        form = EventForm(request.POST, instance=event)
+        form = EventForm(request.POST, request.FILES, instance=event)
         if form.is_valid():
             form.save()
             messages.success(request, 'Event updated successfully.')

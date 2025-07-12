@@ -4,7 +4,7 @@ from .models import Event, EventPhoto, EventRegistration
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'date', 'time', 'location']
+        fields = ['title', 'description', 'date', 'time', 'location', 'banner']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
