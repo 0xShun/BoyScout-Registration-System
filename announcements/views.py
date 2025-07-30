@@ -52,4 +52,4 @@ def announcement_create(request):
 def announcement_mark_read(request, pk):
     announcement = Announcement.objects.get(pk=pk)
     announcement.read_by.add(request.user)
-    return redirect('announcement_list')
+    return redirect('announcements:announcement_list')

@@ -7,10 +7,12 @@ app_name = 'accounts'
 
 urlpatterns = [
     path('register/', views.register, name='register'),
+    path('registration-payment/<int:user_id>/', views.registration_payment, name='registration_payment'),
     path('login/', views.MyLoginView.as_view(), name='login'),
     path('logout/', views.MyLogoutView.as_view(), name='logout'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('scout-dashboard/', views.scout_dashboard, name='scout_dashboard'),
+    path('quick-announcement/', views.quick_announcement, name='quick_announcement'),
     path('members/', views.member_list, name='member_list'),
     path('members/<int:pk>/', views.member_detail, name='member_detail'),
     path('members/<int:pk>/edit/', views.member_edit, name='member_edit'),
@@ -25,6 +27,10 @@ urlpatterns = [
     path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
     path('badges/', views.badge_list, name='badge_list'),
     path('badges/<int:pk>/manage/', views.badge_manage, name='badge_manage'),
+    
+    # Registration payment management
+    path('pending-registrations/', views.pending_registrations, name='pending_registrations'),
+    path('verify-registration/<int:user_id>/', views.verify_registration_payment, name='verify_registration_payment'),
     
     # Password reset URLs
     path('password_reset/', auth_views.PasswordResetView.as_view(

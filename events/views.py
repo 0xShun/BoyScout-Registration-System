@@ -61,20 +61,42 @@ def event_detail(request, pk):
         registration = EventRegistration.objects.filter(event=event, user=request.user).first()
         if request.method == 'POST' and 'register_event' in request.POST:
             if registration:
-                registration_form = EventRegistrationForm(request.POST, request.FILES, instance=registration)
+                registration_form = EventRegistrationForm(request.POST, request.FILES, instance=registration, event=event)
             else:
-                registration_form = EventRegistrationForm(request.POST, request.FILES)
+                registration_form = EventRegistrationForm(request.POST, request.FILES, event=event)
             if registration_form.is_valid():
                 reg = registration_form.save(commit=False)
                 reg.event = event
                 reg.user = request.user
+                
+                # Handle payment status
+                if event.has_payment_required and reg.receipt_image:
+                    reg.payment_status = 'pending'
+                    reg.verified = False
+                elif not event.has_payment_required:
+                    reg.payment_status = 'not_required'
+                    reg.verified = True
+                
                 reg.save()
-                messages.success(request, 'Event registration submitted!')
+                
+                # Send notification to admin if payment is pending
+                if reg.payment_status == 'pending':
+                    admins = User.objects.filter(rank='admin')
+                    for admin in admins:
+                        send_realtime_notification(
+                            admin.id, 
+                            f"New event registration with payment pending: {reg.user.get_full_name()} for {event.title}",
+                            type='event'
+                        )
+                
+                messages.success(request, 'Event registration submitted successfully!')
+                if reg.payment_status == 'pending':
+                    messages.info(request, 'Your payment receipt is pending verification by an administrator.')
                 return redirect('events:event_detail', pk=event.pk)
             else:
                 messages.error(request, 'There was an error with your registration. Please check the form.')
         else:
-            registration_form = EventRegistrationForm(instance=registration)
+            registration_form = EventRegistrationForm(instance=registration, event=event)
 
     # Admin: see all registrations
     registrations = None
@@ -248,11 +270,15 @@ def verify_event_registration(request, event_pk, reg_pk):
     if request.method == 'POST':
         action = request.POST.get('action')
         notes = request.POST.get('notes', '')
+        
         if action == 'verify':
             registration.verified = True
+            registration.payment_status = 'paid'
             registration.verified_by = request.user
             registration.verification_date = timezone.now()
+            registration.payment_notes = notes
             registration.save()
+            
             # Email and notification
             subject = f"Event Registration Payment Verified: {registration.event.title}"
             message = f"Your payment for event '{registration.event.title}' has been verified."
@@ -261,11 +287,15 @@ def verify_event_registration(request, event_pk, reg_pk):
             NotificationService.send_email(subject, message, [registration.user.email])
             send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been verified.", type='event')
             messages.success(request, 'Registration payment verified.')
+            
         elif action == 'reject':
             registration.verified = False
+            registration.payment_status = 'rejected'
             registration.verified_by = request.user
             registration.verification_date = timezone.now()
+            registration.payment_notes = notes
             registration.save()
+            
             # Email and notification
             subject = f"Event Registration Payment Rejected: {registration.event.title}"
             message = f"Your payment for event '{registration.event.title}' has been rejected."
@@ -274,5 +304,18 @@ def verify_event_registration(request, event_pk, reg_pk):
             NotificationService.send_email(subject, message, [registration.user.email])
             send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been rejected.", type='event')
             messages.warning(request, 'Registration payment rejected.')
+            
         return redirect('events:event_detail', pk=event_pk)
+    
     return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})
+
+@admin_required
+def pending_payments(request):
+    """View for admins to see all pending payment registrations"""
+    pending_registrations = EventRegistration.objects.filter(
+        payment_status='pending'
+    ).select_related('user', 'event').order_by('-registered_at')
+    
+    return render(request, 'events/pending_payments.html', {
+        'pending_registrations': pending_registrations,
+    })

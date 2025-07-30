@@ -261,38 +261,61 @@ def payment_report(request):
 @admin_required
 def engagement_dashboard(request):
     # Announcement engagement
-    announcement_engagement = (
+    announcement_engagement_qs = (
         Announcement.objects.annotate(
-            reads=Count('read_by'),
-            recipients_count=Count('recipients')
+            reads=Count('read_by', distinct=True),
+            recipients_count=Count('recipients', distinct=True)
         )
         .order_by('-date_posted')[:10]
     )
+    announcement_engagement = []
+    for a in announcement_engagement_qs:
+        read_rate = (a.reads / a.recipients_count * 100) if a.recipients_count > 0 else None
+        announcement_engagement.append({
+            'title': a.title,
+            'reads': a.reads,
+            'recipients_count': a.recipients_count,
+            'read_rate': read_rate,
+        })
 
     # Event participation
-    event_participation = (
+    event_participation_qs = (
         Event.objects.annotate(
-            participant_count=Count('participants')
+            participant_count=Count('attendances__user', distinct=True)
         )
         .order_by('-date')[:10]
     )
+    event_participation = [
+        {
+            'title': e.title,
+            'participant_count': e.participant_count,
+        }
+        for e in event_participation_qs
+    ]
 
     # User engagement score (example metric)
-    user_engagement = (
+    user_engagement_qs = (
         User.objects.annotate(
-            payments_made=Count('payments', filter=models.Q(payments__status='verified')),
-            announcements_read=Count('read_announcements'),
-            events_attended=Count('attended_events')
+            payments_made=Count('payments', filter=Q(payments__status='verified')),
+            announcements_read=Count('read_announcements', distinct=True),
+            events_attended=Count('attendances', filter=Q(attendances__status='present'), distinct=True)
         )
         .annotate(
             engagement_score=(
-                models.F('payments_made') * 3 +
-                models.F('announcements_read') * 1 +
-                models.F('events_attended') * 2
+                F('payments_made') * 3 +
+                F('announcements_read') * 1 +
+                F('events_attended') * 2
             )
         )
         .order_by('-engagement_score')[:10]
     )
+    user_engagement = [
+        {
+            'full_name': u.get_full_name(),
+            'engagement_score': u.engagement_score,
+        }
+        for u in user_engagement_qs
+    ]
 
     context = {
         'announcement_engagement': announcement_engagement,

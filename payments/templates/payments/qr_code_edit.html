@@ -1,0 +1,108 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Edit QR Code</h2>
+    <a href="{% url 'payments:qr_code_manage' %}" class="btn btn-secondary">Back to QR Code Management</a>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Edit QR Code: {{ qr_code.title }}</h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="mb-3">
+              <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
+              {{ form.title }}
+              {% if form.title.errors %}
+                <div class="text-danger">{{ form.title.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}</label>
+              {{ form.description }}
+              {% if form.description.errors %}
+                <div class="text-danger">{{ form.description.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <label for="{{ form.qr_code.id_for_label }}" class="form-label">{{ form.qr_code.label }}</label>
+              {{ form.qr_code }}
+              {% if form.qr_code.help_text %}
+                <div class="form-text">{{ form.qr_code.help_text }}</div>
+              {% endif %}
+              {% if form.qr_code.errors %}
+                <div class="text-danger">{{ form.qr_code.errors }}</div>
+              {% endif %}
+            </div>
+
+            <div class="mb-3">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  {{ form.is_active.label }}
+                </label>
+                {% if form.is_active.help_text %}
+                  <div class="form-text">{{ form.is_active.help_text }}</div>
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update QR Code
+              </button>
+              <a href="{% url 'payments:qr_code_manage' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <!-- Current QR Code Preview -->
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Current QR Code</h5>
+        </div>
+        <div class="card-body text-center">
+          {% if qr_code.qr_code %}
+            <img src="{{ qr_code.qr_code.url }}" alt="{{ qr_code.title }}" class="img-fluid" style="max-width: 200px;">
+          {% else %}
+            <div class="text-muted">
+              <i class="fas fa-qrcode" style="font-size: 3rem;"></i>
+              <p>No QR code image</p>
+            </div>
+          {% endif %}
+          
+          <h6 class="mt-3">{{ qr_code.title }}</h6>
+          {% if qr_code.description %}
+            <p class="text-muted">{{ qr_code.description }}</p>
+          {% endif %}
+          
+          <div class="mt-3">
+            <span class="badge {% if qr_code.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if qr_code.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+          
+          <div class="mt-3">
+            <small class="text-muted">
+              Created: {{ qr_code.created_at|date:"M d, Y" }}<br>
+              by {{ qr_code.created_by.get_full_name }}
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

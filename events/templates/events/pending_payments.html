@@ -1,0 +1,81 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Pending Payment Verifications</h2>
+    <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Back to Events</a>
+  </div>
+
+  {% if pending_registrations %}
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h5 class="mb-0">Registrations Awaiting Payment Verification</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Event</th>
+                <th>Event Fee</th>
+                <th>RSVP</th>
+                <th>Registered</th>
+                <th>Receipt</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for registration in pending_registrations %}
+                <tr>
+                  <td>
+                    <strong>{{ registration.user.get_full_name }}</strong><br>
+                    <small class="text-muted">{{ registration.user.email }}</small>
+                  </td>
+                  <td>
+                    <strong>{{ registration.event.title }}</strong><br>
+                    <small class="text-muted">{{ registration.event.date|date:"M d, Y" }}</small>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">₱{{ registration.event.payment_amount }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {% if registration.rsvp == 'yes' %}bg-success{% elif registration.rsvp == 'no' %}bg-danger{% else %}bg-warning{% endif %}">
+                      {{ registration.get_rsvp_display }}
+                    </span>
+                  </td>
+                  <td>{{ registration.registered_at|date:"M d, Y g:i A" }}</td>
+                  <td>
+                    {% if registration.receipt_image %}
+                      <a href="{{ registration.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">
+                        <i class="fas fa-eye"></i> View Receipt
+                      </a>
+                    {% else %}
+                      <span class="badge bg-warning">No Receipt</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary">
+                      <i class="fas fa-check"></i> Verify Payment
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="card shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+        <h4 class="mt-3">No Pending Payments</h4>
+        <p class="text-muted">All event registrations have been processed.</p>
+        <a href="{% url 'events:event_list' %}" class="btn btn-primary">View All Events</a>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %} 

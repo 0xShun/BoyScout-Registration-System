@@ -1,0 +1,122 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Verify Registration Payment</h2>
+    <a href="{% url 'accounts:pending_registrations' %}" class="btn btn-secondary">Back to Pending Registrations</a>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">User Information</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>Name:</strong> {{ user.get_full_name }}</p>
+              <p><strong>Username:</strong> @{{ user.username }}</p>
+              <p><strong>Email:</strong> {{ user.email }}</p>
+              <p><strong>Phone:</strong> {{ user.phone_number|default:"Not provided" }}</p>
+            </div>
+            <div class="col-md-6">
+              <p><strong>Registration Fee:</strong> ₱{{ user.registration_payment_amount }}</p>
+              <p><strong>Registration Date:</strong> {{ user.date_joined|date:"M d, Y g:i A" }}</p>
+              <p><strong>Current Status:</strong> 
+                <span class="badge {% if user.registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
+                  {{ user.get_registration_status_display }}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Receipt -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Payment Receipt</h5>
+        </div>
+        <div class="card-body">
+          {% if user.registration_receipt %}
+            <div class="text-center mb-3">
+              <img src="{{ user.registration_receipt.url }}" alt="Payment Receipt" class="img-fluid" style="max-width: 100%; max-height: 400px;">
+            </div>
+            <div class="text-center">
+              <a href="{{ user.registration_receipt.url }}" target="_blank" class="btn btn-info">
+                <i class="fas fa-external-link-alt"></i> Open Full Size
+              </a>
+            </div>
+          {% else %}
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle"></i> No receipt uploaded
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Verification Form -->
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Payment Verification</h5>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="notes" class="form-label">Administrator Notes (optional):</label>
+              <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Add any notes about the payment verification...">{{ user.registration_notes }}</textarea>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="submit" name="action" value="verify" class="btn btn-success">
+                <i class="fas fa-check"></i> Verify Payment & Activate Account
+              </button>
+              <button type="submit" name="action" value="reject" class="btn btn-danger">
+                <i class="fas fa-times"></i> Reject Payment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Payment Information -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Payment Details</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Expected Amount:</strong> ₱{{ user.registration_payment_amount }}</p>
+          <p><strong>Payment Methods:</strong></p>
+          <ul class="list-unstyled">
+            <li>• GCash: 0912-345-6789</li>
+            <li>• Bank: 1234-5678-9012-3456</li>
+            <li>• Cash: Tacloban City Council</li>
+          </ul>
+          <p><strong>Reference:</strong> REG-{{ user.id }}</p>
+        </div>
+      </div>
+
+      <!-- Verification History -->
+      {% if user.registration_verified_by %}
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">Verification History</h5>
+          </div>
+          <div class="card-body">
+            <p><strong>Verified by:</strong> {{ user.registration_verified_by.get_full_name }}</p>
+            <p><strong>Date:</strong> {{ user.registration_verification_date|date:"M d, Y g:i A" }}</p>
+            {% if user.registration_notes %}
+              <p><strong>Notes:</strong> {{ user.registration_notes }}</p>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

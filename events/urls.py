@@ -14,4 +14,5 @@ urlpatterns = [
     path('photo/<int:photo_pk>/toggle-featured/', views.photo_toggle_featured, name='photo_toggle_featured'),
     path('<int:pk>/attendance/', views.event_attendance, name='event_attendance'),
     path('<int:event_pk>/registration/<int:reg_pk>/verify/', views.verify_event_registration, name='verify_event_registration'),
+    path('pending-payments/', views.pending_payments, name='pending_payments'),
 ] 

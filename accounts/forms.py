@@ -45,10 +45,11 @@ class CustomLoginForm(AuthenticationForm):
 class UserRegisterForm(UserCreationForm):
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'registration_receipt']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'registration_receipt': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -69,6 +70,10 @@ class UserRegisterForm(UserCreationForm):
         self.fields['address'].label = "Address"
         self.fields['address'].widget.attrs.update({'placeholder': 'Enter your address'})
 
+        self.fields['registration_receipt'].label = "Registration Payment Receipt"
+        self.fields['registration_receipt'].widget.attrs.update({'placeholder': 'Upload payment receipt (₱500.00)'})
+        self.fields['registration_receipt'].help_text = "Upload a screenshot of your registration payment receipt. Registration fee: ₱500.00"
+
         self.fields['password1'].help_text = "Must be at least 8 characters."
         self.fields['password2'].help_text = None
 
@@ -86,12 +91,7 @@ class UserRegisterForm(UserCreationForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        first_name = cleaned_data.get('first_name')
-        last_name = cleaned_data.get('last_name')
-        date_of_birth = cleaned_data.get('date_of_birth')
-        if first_name and last_name and date_of_birth:
-            if User.objects.filter(first_name__iexact=first_name.strip(), last_name__iexact=last_name.strip(), date_of_birth=date_of_birth).exists():
-                raise forms.ValidationError('A member with the same name and date of birth already exists. If this is you, please log in or reset your password.')
+        # Add any additional validation here
         return cleaned_data
 
 class UserEditForm(forms.ModelForm):

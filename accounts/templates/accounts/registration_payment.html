@@ -1,0 +1,124 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h3 class="mb-0">Complete Your Registration</h3>
+        </div>
+        <div class="card-body">
+          
+          <!-- Registration Status -->
+          <div class="alert {% if user.registration_status == 'payment_submitted' %}alert-info{% else %}alert-warning{% endif %} mb-4">
+            <h5 class="alert-heading">
+              {% if user.registration_status == 'payment_submitted' %}
+                <i class="fas fa-clock"></i> Payment Submitted - Pending Verification
+              {% else %}
+                <i class="fas fa-exclamation-triangle"></i> Registration Payment Required
+              {% endif %}
+            </h5>
+            <p class="mb-0">
+              {% if user.registration_status == 'payment_submitted' %}
+                Your registration payment has been submitted and is being reviewed by an administrator. 
+                You will receive a notification once your account is activated.
+              {% else %}
+                To complete your registration, please submit a payment receipt for the registration fee.
+              {% endif %}
+            </p>
+          </div>
+
+          <!-- Payment Information -->
+          <div class="card mb-4">
+            <div class="card-header">
+              <h5 class="mb-0">Payment Information</h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <p><strong>Registration Fee:</strong> ₱{{ registration_fee }}</p>
+                  <p><strong>Payment Method:</strong> GCash, Bank Transfer, or Cash</p>
+                  <p><strong>Account Name:</strong> Tacloban City Council</p>
+                </div>
+                <div class="col-md-6">
+                  <p><strong>GCash Number:</strong> 0912-345-6789</p>
+                  <p><strong>Bank Account:</strong> 1234-5678-9012-3456</p>
+                  <p><strong>Reference:</strong> REG-{{ user.id }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current Receipt Status -->
+          {% if user.registration_receipt %}
+            <div class="card mb-4">
+              <div class="card-header">
+                <h5 class="mb-0">Submitted Receipt</h5>
+              </div>
+              <div class="card-body">
+                <div class="text-center">
+                  <img src="{{ user.registration_receipt.url }}" alt="Payment Receipt" class="img-fluid" style="max-width: 300px;">
+                </div>
+                <div class="text-center mt-3">
+                  <a href="{{ user.registration_receipt.url }}" target="_blank" class="btn btn-info">
+                    <i class="fas fa-external-link-alt"></i> View Full Size
+                  </a>
+                </div>
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Upload New Receipt Form -->
+          {% if user.registration_status == 'pending_payment' or user.registration_status == 'payment_submitted' %}
+            <div class="card">
+              <div class="card-header">
+                <h5 class="mb-0">
+                  {% if user.registration_receipt %}
+                    Update Payment Receipt
+                  {% else %}
+                    Upload Payment Receipt
+                  {% endif %}
+                </h5>
+              </div>
+              <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <div class="mb-3">
+                    <label for="receipt" class="form-label">Payment Receipt Screenshot</label>
+                    <input type="file" class="form-control" id="receipt" name="receipt" accept="image/*" required>
+                    <div class="form-text">
+                      Please upload a clear screenshot of your payment receipt. 
+                      Make sure the amount (₱{{ registration_fee }}) and reference number are visible.
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-primary">
+                    {% if user.registration_receipt %}
+                      <i class="fas fa-upload"></i> Update Receipt
+                    {% else %}
+                      <i class="fas fa-upload"></i> Submit Receipt
+                    {% endif %}
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endif %}
+
+          <!-- Admin Notes -->
+          {% if user.registration_notes %}
+            <div class="card mt-4">
+              <div class="card-header">
+                <h5 class="mb-0">Administrator Notes</h5>
+              </div>
+              <div class="card-body">
+                <p class="mb-0">{{ user.registration_notes }}</p>
+              </div>
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,234 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <!-- Event Information -->
+    <div class="col-lg-8">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h2 class="card-title">{{ event.title }}</h2>
+          
+          {% if event.banner %}
+            <img src="{{ event.banner.url }}" alt="Event Banner" class="img-fluid mb-3" style="max-width: 100%;">
+          {% endif %}
+          
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <strong>Date:</strong> {{ event.date|date:"F d, Y" }}<br>
+              <strong>Time:</strong> {{ event.time|time:"g:i A" }}<br>
+              <strong>Location:</strong> {{ event.location }}
+            </div>
+            <div class="col-md-6">
+              <strong>Created by:</strong> {{ event.created_by.get_full_name }}<br>
+              <strong>Created:</strong> {{ event.created_at|date:"F d, Y" }}
+            </div>
+          </div>
+          
+          <div class="mb-3">
+            <strong>Description:</strong><br>
+            {{ event.description|linebreaks }}
+          </div>
+
+          <!-- Payment Information -->
+          {% if event.has_payment_required %}
+            <div class="alert alert-info">
+              <h5>Payment Required</h5>
+              <p><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
+              {% if event.qr_code %}
+                <p><strong>Payment QR Code:</strong></p>
+                <img src="{{ event.qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
+                <p class="mt-2"><small>Scan this QR code to pay the event fee</small></p>
+              {% endif %}
+            </div>
+          {% else %}
+            <div class="alert alert-success">
+              <h5>Free Event</h5>
+              <p>No payment required for this event.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Registration Section -->
+      {% if user.is_authenticated %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Event Registration</h5>
+          </div>
+          <div class="card-body">
+            {% if registration %}
+              <div class="alert alert-info">
+                <h6>Your Registration Status</h6>
+                <p><strong>RSVP:</strong> {{ registration.get_rsvp_display }}</p>
+                <p><strong>Payment Status:</strong> 
+                  <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    {{ registration.get_payment_status_display }}
+                  </span>
+                </p>
+                {% if registration.payment_notes %}
+                  <p><strong>Admin Notes:</strong> {{ registration.payment_notes }}</p>
+                {% endif %}
+                {% if registration.verified_by %}
+                  <p><strong>Verified by:</strong> {{ registration.verified_by.get_full_name }} on {{ registration.verification_date|date:"F d, Y" }}</p>
+                {% endif %}
+              </div>
+              
+              <!-- Update Registration Form -->
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="register_event" value="1">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="{{ registration_form.rsvp.id_for_label }}" class="form-label">RSVP</label>
+                      {{ registration_form.rsvp }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="{{ registration_form.receipt_image.id_for_label }}" class="form-label">Payment Receipt</label>
+                      {{ registration_form.receipt_image }}
+                      {% if registration_form.receipt_image.help_text %}
+                        <div class="form-text">{{ registration_form.receipt_image.help_text }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Registration</button>
+              </form>
+            {% else %}
+              <!-- New Registration Form -->
+              <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="register_event" value="1">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="{{ registration_form.rsvp.id_for_label }}" class="form-label">RSVP</label>
+                      {{ registration_form.rsvp }}
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3">
+                      <label for="{{ registration_form.receipt_image.id_for_label }}" class="form-label">Payment Receipt</label>
+                      {{ registration_form.receipt_image }}
+                      {% if registration_form.receipt_image.help_text %}
+                        <div class="form-text">{{ registration_form.receipt_image.help_text }}</div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                <button type="submit" class="btn btn-success">Register for Event</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Admin Section -->
+      {% if user.is_admin %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Admin Controls</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <a href="{% url 'events:event_edit' event.pk %}" class="btn btn-warning mb-2">Edit Event</a>
+                <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info mb-2">Manage Attendance</a>
+              </div>
+              <div class="col-md-6">
+                <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2">Upload Photos</a>
+                <a href="{% url 'events:pending_payments' %}" class="btn btn-primary mb-2">View Pending Payments</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Registrations List -->
+        {% if registrations %}
+          <div class="card shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">All Registrations</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>RSVP</th>
+                      <th>Payment Status</th>
+                      <th>Registered</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for reg in registrations %}
+                      <tr>
+                        <td>{{ reg.user.get_full_name }}</td>
+                        <td>{{ reg.get_rsvp_display }}</td>
+                        <td>
+                          <span class="badge {% if reg.payment_status == 'paid' %}bg-success{% elif reg.payment_status == 'pending' %}bg-warning{% elif reg.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ reg.get_payment_status_display }}
+                          </span>
+                        </td>
+                        <td>{{ reg.registered_at|date:"M d, Y" }}</td>
+                        <td>
+                          {% if reg.payment_status == 'pending' %}
+                            <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-primary">Verify Payment</a>
+                          {% endif %}
+                          {% if reg.receipt_image %}
+                            <a href="{{ reg.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">View Receipt</a>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Attendance Summary -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Attendance Summary</h5>
+        </div>
+        <div class="card-body">
+          <p><strong>Present:</strong> {{ present_count }}</p>
+          <p><strong>Absent:</strong> {{ absent_count }}</p>
+          <p><strong>Total:</strong> {{ total_scouts }}</p>
+        </div>
+      </div>
+
+      <!-- Event Photos -->
+      {% if photos %}
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">Event Photos</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              {% for photo in photos %}
+                <div class="col-6 mb-2">
+                  <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" class="img-fluid rounded">
+                  {% if photo.is_featured %}
+                    <span class="badge bg-warning">Featured</span>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %} 

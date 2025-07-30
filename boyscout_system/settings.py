@@ -21,12 +21,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+a#&-n(nrg5%@tu^o!k(d=35)b48@$(!c5q&q0%_x%!l-bkb%e'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+a#&-n(nrg5%@tu^o!k(d=35)b48@$(!c5q&q0%_x%!l-bkb%e')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
 
 
 # Application definition
@@ -148,9 +148,9 @@ LOGIN_URL = 'accounts:login'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # This will print emails to console instead of sending them
 
 # Twilio Configuration for SMS
-TWILIO_ACCOUNT_SID = ''  # Add your Twilio Account SID
-TWILIO_AUTH_TOKEN = ''   # Add your Twilio Auth Token
-TWILIO_PHONE_NUMBER = '' # Add your Twilio phone number
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')  # Add your Twilio Account SID
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')   # Add your Twilio Auth Token
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '') # Add your Twilio phone number
 
 # File upload settings
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB

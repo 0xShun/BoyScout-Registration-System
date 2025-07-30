@@ -36,6 +36,14 @@ class User(AbstractUser):
         ('eagle', 'Eagle'),
     )
 
+    REGISTRATION_STATUS_CHOICES = [
+        ('pending_payment', 'Pending Registration Payment'),
+        ('payment_submitted', 'Registration Payment Submitted'),
+        ('payment_verified', 'Registration Payment Verified'),
+        ('active', 'Active Member'),
+        ('inactive', 'Inactive'),
+    ]
+
     rank = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout')
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
@@ -46,8 +54,16 @@ class User(AbstractUser):
     medical_conditions = models.TextField(blank=True)
     allergies = models.TextField(blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=False)  # Changed to False by default
     groups_membership = models.ManyToManyField(Group, related_name='members', blank=True)
+    
+    # Registration payment fields
+    registration_status = models.CharField(max_length=30, choices=REGISTRATION_STATUS_CHOICES, default='pending_payment')
+    registration_payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, verbose_name="Registration Fee")
+    registration_receipt = models.ImageField(upload_to='registration_receipts/', null=True, blank=True, verbose_name="Registration Payment Receipt")
+    registration_verified_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_registrations')
+    registration_verification_date = models.DateTimeField(null=True, blank=True)
+    registration_notes = models.TextField(blank=True, verbose_name="Registration Notes")
 
     def is_admin(self):
         return self.rank == 'admin'
@@ -61,6 +77,11 @@ class User(AbstractUser):
     @property
     def join_date(self):
         return self.date_joined
+
+    @property
+    def is_registration_complete(self):
+        """Check if user has completed registration payment"""
+        return self.registration_status == 'active'
 
     def save(self, *args, **kwargs):
         if not self.username:

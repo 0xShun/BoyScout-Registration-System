@@ -1,23 +1,120 @@
 {% extends 'base_sidebar.html' %}
 {% block content %}
 <div class="container py-4">
-    <h2>Verify Event Registration Payment</h2>
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <p><strong>Scout:</strong> {{ registration.user.get_full_name }}</p>
-            <p><strong>RSVP:</strong> {{ registration.get_rsvp_display }}</p>
-            <p><strong>Registered At:</strong> {{ registration.registered_at|date:'M d, Y H:i' }}</p>
-            <p><strong>Receipt:</strong> {% if registration.receipt_image %}<a href="{{ registration.receipt_image.url }}" target="_blank">View Uploaded Receipt</a>{% else %}<span class="text-danger">No receipt uploaded</span>{% endif %}</p>
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="notes" class="form-label">Admin Notes (optional):</label>
-                    <textarea name="notes" id="notes" class="form-control" rows="2"></textarea>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Verify Event Registration Payment</h2>
+        <a href="{% url 'events:event_detail' event_pk %}" class="btn btn-secondary">Back to Event</a>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Registration Details</h5>
                 </div>
-                <button type="submit" name="action" value="verify" class="btn btn-success">Verify Payment</button>
-                <button type="submit" name="action" value="reject" class="btn btn-danger ms-2">Reject Payment</button>
-                <a href="{% url 'events:event_detail' event_pk %}" class="btn btn-secondary ms-2">Back to Event</a>
-            </form>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Scout:</strong> {{ registration.user.get_full_name }}</p>
+                            <p><strong>Email:</strong> {{ registration.user.email }}</p>
+                            <p><strong>RSVP:</strong> 
+                                <span class="badge {% if registration.rsvp == 'yes' %}bg-success{% elif registration.rsvp == 'no' %}bg-danger{% else %}bg-warning{% endif %}">
+                                    {{ registration.get_rsvp_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Event:</strong> {{ registration.event.title }}</p>
+                            <p><strong>Event Fee:</strong> ₱{{ registration.event.payment_amount }}</p>
+                            <p><strong>Registered At:</strong> {{ registration.registered_at|date:'M d, Y g:i A' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Receipt -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Receipt</h5>
+                </div>
+                <div class="card-body">
+                    {% if registration.receipt_image %}
+                        <div class="text-center mb-3">
+                            <img src="{{ registration.receipt_image.url }}" alt="Payment Receipt" class="img-fluid" style="max-width: 100%; max-height: 400px;">
+                        </div>
+                        <div class="text-center">
+                            <a href="{{ registration.receipt_image.url }}" target="_blank" class="btn btn-info">
+                                <i class="fas fa-external-link-alt"></i> Open Full Size
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i> No receipt uploaded
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Verification Form -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Payment Verification</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="notes" class="form-label">Admin Notes (optional):</label>
+                            <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Add any notes about the payment verification..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="action" value="verify" class="btn btn-success">
+                                <i class="fas fa-check"></i> Verify Payment
+                            </button>
+                            <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                <i class="fas fa-times"></i> Reject Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Event QR Code -->
+            {% if registration.event.qr_code %}
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">Event QR Code</h5>
+                    </div>
+                    <div class="card-body text-center">
+                        <img src="{{ registration.event.qr_code.url }}" alt="Event QR Code" class="img-fluid" style="max-width: 200px;">
+                        <p class="mt-2"><small>Expected payment amount: ₱{{ registration.event.payment_amount }}</small></p>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Payment Status -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0">Current Status</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Payment Status:</strong> 
+                        <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ registration.get_payment_status_display }}
+                        </span>
+                    </p>
+                    {% if registration.verified_by %}
+                        <p><strong>Verified by:</strong> {{ registration.verified_by.get_full_name }}</p>
+                        <p><strong>Verification date:</strong> {{ registration.verification_date|date:"M d, Y g:i A" }}</p>
+                    {% endif %}
+                    {% if registration.payment_notes %}
+                        <p><strong>Notes:</strong> {{ registration.payment_notes }}</p>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
 </div>

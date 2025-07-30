@@ -1,7 +1,12 @@
 {% extends 'base_sidebar.html' %}
 {% block content %}
   <div class="container-fluid py-4">
-    <h2 class="mb-4">Admin Dashboard</h2>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>Admin Dashboard</h2>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#announcementModal">
+        <i class="fas fa-bullhorn"></i> Quick Announcement
+      </button>
+    </div>
     <div class="row g-4 mb-4">
       <div class="col-md-3">
         <div class="card text-center shadow-sm h-100">
@@ -217,8 +222,54 @@
         </div>
       </div>
     </div>
+    
+    <!-- Quick Actions -->
+    <div class="row g-4 mb-4">
+      <div class="col-12">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">Quick Actions</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'events:event_create' %}" class="btn btn-success w-100">
+                  <i class="fas fa-plus"></i> Create Event
+                </a>
+              </div>
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'events:pending_payments' %}" class="btn btn-warning w-100">
+                  <i class="fas fa-clock"></i> Pending Payments
+                </a>
+              </div>
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'accounts:pending_registrations' %}" class="btn btn-info w-100">
+                  <i class="fas fa-user-plus"></i> Pending Registrations
+                </a>
+              </div>
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'payments:qr_code_manage' %}" class="btn btn-primary w-100">
+                  <i class="fas fa-qrcode"></i> QR Code Management
+                </a>
+              </div>
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary w-100">
+                  <i class="fas fa-users"></i> Manage Members
+                </a>
+              </div>
+              <div class="col-md-2 mb-2">
+                <a href="{% url 'announcements:announcement_create' %}" class="btn btn-dark w-100">
+                  <i class="fas fa-bullhorn"></i> Create Announcement
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="row g-4">
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card text-center h-100">
           <div class="card-body">
             <h5 class="card-title">Engagement Analytics</h5>
@@ -227,7 +278,7 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
         <div class="card text-center h-100">
           <div class="card-body">
             <h5 class="card-title">Audit Log</h5>
@@ -236,7 +287,16 @@
           </div>
         </div>
       </div>
-      <div class="col-md-4">
+      <div class="col-md-3">
+        <div class="card text-center h-100">
+          <div class="card-body">
+            <h5 class="card-title">Announcements</h5>
+            <p class="card-text">Manage all announcements.</p>
+            <a href="{% url 'announcements:announcement_list' %}" class="btn btn-success">Manage Announcements</a>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
         <div class="card text-center h-100">
           <div class="card-body">
             <h5 class="card-title">Settings</h5>
@@ -244,6 +304,60 @@
             <a href="{% url 'accounts:settings' %}" class="btn btn-secondary">Go to Settings</a>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Announcement Modal -->
+  <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="announcementModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="announcementModalLabel">Create Quick Announcement</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="post" action="{% url 'accounts:quick_announcement' %}">
+          {% csrf_token %}
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="announcement_title" class="form-label">Title *</label>
+              <input type="text" class="form-control" id="announcement_title" name="title" required>
+            </div>
+            <div class="mb-3">
+              <label for="announcement_message" class="form-label">Message *</label>
+              <textarea class="form-control" id="announcement_message" name="message" rows="4" required></textarea>
+            </div>
+            <div class="mb-3">
+              <label for="announcement_recipients" class="form-label">Recipients</label>
+              <select class="form-select" id="announcement_recipients" name="recipients" multiple>
+                <option value="all">All Members</option>
+                <option value="scouts">Scouts Only</option>
+                <option value="admins">Admins Only</option>
+              </select>
+              <div class="form-text">Hold Ctrl/Cmd to select multiple options. Leave empty to send to all members.</div>
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="send_email" name="send_email" checked>
+                <label class="form-check-label" for="send_email">
+                  Send Email Notification
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="send_sms" name="send_sms">
+                <label class="form-check-label" for="send_sms">
+                  Send SMS Notification (if available)
+                </label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="fas fa-paper-plane"></i> Send Announcement
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

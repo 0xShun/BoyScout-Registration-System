@@ -25,7 +25,11 @@
                         <td>{{ announcement.title }}</td>
                         <td>{{ announcement.reads }}</td>
                         <td>{{ announcement.recipients_count }}</td>
-                        <td>{% if announcement.recipients_count > 0 %}{{ announcement.reads|floatformat:2 / announcement.recipients_count|floatformat:2 * 100|floatformat:2 }}%{% else %}N/A{% endif %}</td>
+                        <td>
+                            {% if announcement.read_rate is not None %}
+                                {{ announcement.read_rate|floatformat:2 }}%
+                            {% else %}N/A{% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -70,7 +74,7 @@
                 <tbody>
                     {% for user in user_engagement %}
                     <tr>
-                        <td>{{ user.get_full_name }}</td>
+                        <td>{{ user.full_name }}</td>
                         <td>{{ user.engagement_score }}</td>
                     </tr>
                     {% endfor %}

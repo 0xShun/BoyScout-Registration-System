@@ -18,6 +18,7 @@ from django.urls import reverse_lazy
 from datetime import date
 from events.models import Attendance
 from django import forms
+from notifications.services import NotificationService, send_realtime_notification
 
 @login_required
 def admin_dashboard(request):
@@ -116,29 +117,68 @@ def scout_dashboard(request):
     if not user.emergency_phone:
         incomplete_fields.append('Emergency Phone')
     profile_incomplete = bool(incomplete_fields)
+
+    # Fetch latest announcements for this user (limit 5)
+    from announcements.models import Announcement
+    latest_announcements = Announcement.objects.filter(recipients=user).order_by('-date_posted')[:5]
+
+    # Fetch upcoming events (limit 5)
+    from events.models import Event
+    from django.utils import timezone
+    today = timezone.now().date()
+    upcoming_events = Event.objects.filter(date__gte=today).order_by('date', 'time')[:5]
+
     return render(request, 'accounts/scout_dashboard.html', {
         'is_active_member': is_active_member,
         'profile_incomplete': profile_incomplete,
         'incomplete_fields': incomplete_fields,
+        'latest_announcements': latest_announcements,
+        'upcoming_events': upcoming_events,
     })
 
 def register(request):
     if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
+        form = UserRegisterForm(request.POST, request.FILES)
         if form.is_valid():
             user = form.save(commit=False)
             user.rank = 'scout'
-            user.is_active = True
+            user.is_active = False  # User must pay registration fee first
+            user.registration_status = 'pending_payment'
             user.save()
             
-            messages.success(request, 'Registration successful. You can now log in.')
-            return redirect('accounts:login')
+            # If receipt is uploaded, update status
+            if user.registration_receipt:
+                user.registration_status = 'payment_submitted'
+                user.save()
+                
+                # Notify admins about new registration payment
+                admins = User.objects.filter(rank='admin')
+                for admin in admins:
+                    send_realtime_notification(
+                        admin.id, 
+                        f"New registration payment submitted: {user.get_full_name()} ({user.email})",
+                        type='registration'
+                    )
+                
+                messages.success(request, 'Registration successful! Your payment receipt has been submitted and is pending verification by an administrator.')
+            else:
+                messages.success(request, 'Registration successful! Please submit your registration payment to complete your account activation.')
+            
+            return redirect('accounts:registration_payment', user_id=user.id)
     else:
         form = UserRegisterForm()
     return render(request, 'accounts/register.html', {'form': form})
 
 def admin_required(view_func):
-    return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
+    def wrapper(request, *args, **kwargs):
+        print(f"[DEBUG] admin_required decorator: user={request.user}, is_authenticated={request.user.is_authenticated}, is_admin={request.user.is_admin() if request.user.is_authenticated else 'N/A'}")
+        if request.user.is_authenticated and request.user.is_admin():
+            print(f"[DEBUG] admin_required: Access granted")
+            return view_func(request, *args, **kwargs)
+        else:
+            print(f"[DEBUG] admin_required: Access denied, redirecting")
+            return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)(request, *args, **kwargs)
+    return wrapper
 
 @admin_required
 def member_list(request):
@@ -349,6 +389,17 @@ class MyLoginView(LoginView):
     redirect_field_name = '' # Explicitly ignore 'next' parameter
 
     def get_success_url(self):
+        # Check if user has completed registration
+        if not self.request.user.is_registration_complete:
+            # Only redirect if user is not already on a payment-related page
+            current_path = self.request.path
+            if 'registration-payment' not in current_path and 'payments' not in current_path:
+                if self.request.user.registration_status == 'pending_payment':
+                    return reverse_lazy('accounts:registration_payment', kwargs={'user_id': self.request.user.id})
+                else:
+                    messages.warning(self.request, 'Your registration payment is pending verification. Please wait for admin approval.')
+                    return reverse_lazy('accounts:registration_payment', kwargs={'user_id': self.request.user.id})
+        
         # Redirect based on user role after successful login
         if self.request.user.is_admin():
             return reverse_lazy('accounts:admin_dashboard')
@@ -360,6 +411,90 @@ class MyLoginView(LoginView):
 
 class MyLogoutView(LogoutView):
     next_page = reverse_lazy('home') # Redirect to home after logout
+
+@admin_required
+def quick_announcement(request):
+    """Handle quick announcement creation from admin dashboard"""
+    print(f"[DEBUG] quick_announcement view entered. Method: {request.method}, User: {request.user}, Is Admin: {request.user.is_admin() if request.user.is_authenticated else 'Not authenticated'}")
+    
+    if request.method == 'POST':
+        print(f"[DEBUG] Processing POST request")
+        title = request.POST.get('title')
+        message = request.POST.get('message')
+        recipients = request.POST.getlist('recipients')
+        send_email = request.POST.get('send_email') == 'on'
+        send_sms = request.POST.get('send_sms') == 'on'
+        print(f"[DEBUG] Quick Announcement POST: title={title}, message={message}, recipients={recipients}, send_email={send_email}, send_sms={send_sms}")
+        
+        if not title or not message:
+            print("[DEBUG] Missing title or message")
+            messages.error(request, 'Title and message are required.')
+            return redirect('accounts:admin_dashboard')
+        
+        try:
+            # Create the announcement
+            announcement = Announcement.objects.create(
+                title=title,
+                message=message
+            )
+            print(f"[DEBUG] Announcement created: id={announcement.id}, title={announcement.title}")
+            
+            # Determine recipients
+            if not recipients or 'all' in recipients:
+                all_users = User.objects.all()
+                announcement.recipients.set(all_users)
+                target_users = all_users
+                print(f"[DEBUG] Recipients set to all users: count={all_users.count()}")
+            else:
+                target_users = []
+                if 'scouts' in recipients:
+                    scouts = User.objects.filter(rank='scout')
+                    target_users.extend(scouts)
+                if 'admins' in recipients:
+                    admins = User.objects.filter(rank='admin')
+                    target_users.extend(admins)
+                announcement.recipients.set(target_users)
+                print(f"[DEBUG] Recipients set to filtered users: count={len(target_users)}")
+            
+            # Send notifications
+            for user in target_users:
+                try:
+                    send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
+                except Exception as e:
+                    print(f"[DEBUG] Failed to send real-time notification to user {user.id}: {e}")
+                
+                # Send email if enabled
+                if send_email and user.email:
+                    try:
+                        from django.core.mail import send_mail
+                        send_mail(
+                            subject=f"[ScoutConnect] {announcement.title}",
+                            message=f"{announcement.message}\n\nPosted on: {announcement.date_posted.strftime('%B %d, %Y at %I:%M %p')}",
+                            from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@scoutconnect.com',
+                            recipient_list=[user.email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        print(f"[DEBUG] Failed to send email to {user.email}: {e}")
+                
+                # Send SMS if enabled and available
+                if send_sms and hasattr(user, 'phone_number') and user.phone_number:
+                    try:
+                        NotificationService.send_sms(user.phone_number, f"[ScoutConnect] {announcement.title}: {announcement.message[:100]}...")
+                    except Exception as e:
+                        print(f"[DEBUG] Failed to send SMS to {user.phone_number}: {e}")
+            print(f"[DEBUG] Announcement process complete. Title: {announcement.title}")
+            messages.success(request, f'Announcement "{announcement.title}" created and sent to {len(target_users)} recipients.')
+            
+        except Exception as e:
+            messages.error(request, f'Failed to create announcement: {str(e)}')
+            print(f"[DEBUG] Error creating announcement: {e}")
+        
+        return redirect('accounts:admin_dashboard')
+    
+    else:
+        print(f"[DEBUG] Not a POST request, redirecting to admin dashboard")
+    return redirect('accounts:admin_dashboard')
 
 @admin_required
 def badge_list(request):
@@ -389,4 +524,116 @@ def badge_manage(request, pk):
     return render(request, 'accounts/badge_manage.html', {
         'badge': badge,
         'user_badges': user_badges,
+    })
+
+def registration_payment(request, user_id):
+    """View for users to submit registration payment receipt"""
+    user = get_object_or_404(User, id=user_id)
+    
+    # Allow users to access their own registration payment page
+    if request.user != user:
+        messages.error(request, 'You can only access your own registration payment page.')
+        return redirect('accounts:login')
+    
+    # If user is already active and registration is complete, redirect to dashboard
+    if user.is_active and user.registration_status == 'active':
+        messages.info(request, 'Your account is already active. Please log in.')
+        return redirect('accounts:login')
+    
+    if request.method == 'POST':
+        if 'receipt' in request.FILES:
+            user.registration_receipt = request.FILES['receipt']
+            user.registration_status = 'payment_submitted'
+            user.save()
+            
+            # Notify admins about new registration payment
+            admins = User.objects.filter(rank='admin')
+            for admin in admins:
+                send_realtime_notification(
+                    admin.id, 
+                    f"New registration payment submitted: {user.get_full_name()} ({user.email})",
+                    type='registration'
+                )
+            
+            messages.success(request, 'Payment receipt submitted successfully! Your account will be activated once an administrator verifies your payment.')
+            return redirect('accounts:registration_payment', user_id=user.id)
+        else:
+            messages.error(request, 'Please upload a payment receipt.')
+    
+    return render(request, 'accounts/registration_payment.html', {
+        'user': user,
+        'registration_fee': user.registration_payment_amount
+    })
+
+@admin_required
+def verify_registration_payment(request, user_id):
+    """View for admins to verify registration payments"""
+    user = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        notes = request.POST.get('notes', '')
+        
+        if action == 'verify':
+            user.registration_status = 'active'
+            user.is_active = True
+            user.registration_verified_by = request.user
+            user.registration_verification_date = timezone.now()
+            user.registration_notes = notes
+            user.save()
+            
+            # Send notification to user
+            send_realtime_notification(
+                user.id, 
+                f"Your registration payment has been verified! Your account is now active.",
+                type='registration'
+            )
+            
+            # Send email notification
+            NotificationService.send_email(
+                subject="Registration Payment Verified - ScoutConnect",
+                message=f"Dear {user.get_full_name()},\n\nYour registration payment has been verified by an administrator. Your account is now active and you can log in to ScoutConnect.\n\nWelcome to the ScoutConnect community!\n\nBest regards,\nScoutConnect Team",
+                recipient_list=[user.email]
+            )
+            
+            messages.success(request, f'Registration payment for {user.get_full_name()} has been verified.')
+            
+        elif action == 'reject':
+            user.registration_status = 'pending_payment'
+            user.registration_verified_by = request.user
+            user.registration_verification_date = timezone.now()
+            user.registration_notes = notes
+            user.save()
+            
+            # Send notification to user
+            send_realtime_notification(
+                user.id, 
+                f"Your registration payment has been rejected. Please submit a new payment receipt.",
+                type='registration'
+            )
+            
+            # Send email notification
+            NotificationService.send_email(
+                subject="Registration Payment Rejected - ScoutConnect",
+                message=f"Dear {user.get_full_name()},\n\nYour registration payment has been rejected by an administrator. Please submit a new payment receipt.\n\nReason: {notes}\n\nBest regards,\nScoutConnect Team",
+                recipient_list=[user.email]
+            )
+            
+            messages.warning(request, f'Registration payment for {user.get_full_name()} has been rejected.')
+        
+        return redirect('accounts:pending_registrations')
+    
+    return render(request, 'accounts/verify_registration_payment.html', {
+        'user': user
+    })
+
+@admin_required
+def pending_registrations(request):
+    """View for admins to see all pending registration payments"""
+    pending_users = User.objects.filter(
+        registration_status__in=['payment_submitted', 'pending_payment']
+    ).order_by('-date_joined')
+    
+    return render(request, 'accounts/pending_registrations.html', {
+        'pending_users': pending_users,
     })

@@ -1,5 +1,100 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
 {% block content %}
+  <style>
+    .dashboard-card {
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      background: #fff;
+      margin-bottom: 2rem;
+      transition: box-shadow 0.2s;
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    .dashboard-section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dashboard-badge {
+      background: #1976d2;
+      color: #fff;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      padding: 0.2rem 0.7rem;
+      margin-left: 0.5rem;
+      font-weight: 600;
+    }
+    .dashboard-list-item {
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      background: #f8fafc;
+      box-shadow: 0 1px 4px rgba(25, 118, 210, 0.07);
+      padding: 1.1rem 1.2rem;
+      transition: background 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      position: relative;
+    }
+    .dashboard-list-item:hover {
+      background: #e3f2fd;
+      box-shadow: 0 4px 16px rgba(25, 118, 210, 0.13);
+    }
+    .dashboard-list-item .item-icon {
+      font-size: 1.7rem;
+      color: #1976d2;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .dashboard-list-item .item-content {
+      flex: 1;
+    }
+    .dashboard-list-item .item-title {
+      font-weight: 600;
+      font-size: 1.08rem;
+      margin-bottom: 0.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dashboard-list-item .item-badge {
+      background: #43a047;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      padding: 0.1rem 0.5rem;
+      margin-left: 0.4rem;
+      font-weight: 500;
+    }
+    .dashboard-list-item .item-date {
+      font-size: 0.92rem;
+      color: #888;
+      margin-bottom: 0.2rem;
+    }
+    .dashboard-list-item .item-desc {
+      font-size: 0.98rem;
+      color: #222;
+      margin-bottom: 0.2rem;
+    }
+    .dashboard-list-item .item-link {
+      font-size: 0.95rem;
+      color: #1976d2;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .dashboard-list-item .item-link:hover {
+      text-decoration: underline;
+    }
+    @media (max-width: 991px) {
+      .dashboard-list-item { flex-direction: column; gap: 0.5rem; }
+      .dashboard-list-item .item-icon { margin-bottom: 0.5rem; }
+    }
+  </style>
   <div class="container-fluid py-4">
     {% if profile_incomplete %}
     <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
@@ -11,20 +106,29 @@
     <h2 class="mb-4">Dashboard</h2>
     <div class="row g-4">
       <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="dashboard-card card h-100">
           <div class="card-body">
-            <h5 class="card-title"><i class="fas fa-bullhorn me-2"></i>Current Announcements</h5>
+            <div class="dashboard-section-title"><i class="fas fa-bullhorn"></i>Current Announcements {% if latest_announcements %}<span class="dashboard-badge">{{ latest_announcements|length }}</span>{% endif %}</div>
             {% if latest_announcements %}
-              <ul class="list-group list-group-flush">
+              <div>
                 {% for announcement in latest_announcements %}
-                  <li class="list-group-item">
-                    <strong>{{ announcement.title }}</strong><br>
-                    <span class="text-muted small">{{ announcement.date_posted|date:"M d, Y" }}</span>
-                    <p class="mb-1">{{ announcement.message|truncatechars:100 }}</p>
-                    <a href="{% url 'announcements:announcement_list' %}" class="btn btn-link btn-sm p-0">Read more</a>
-                  </li>
+                  <div class="dashboard-list-item">
+                    <span class="item-icon"><i class="fas fa-bullhorn"></i></span>
+                    <div class="item-content">
+                      <div class="item-title">
+                        {{ announcement.title }}
+                        {% if announcement.date_posted|date:'Y-m-d' == today %}<span class="item-badge">New</span>{% endif %}
+                      </div>
+                      <div class="item-date">{{ announcement.date_posted|date:"M d, Y" }}</div>
+                      <div class="item-desc">{{ announcement.message|truncatechars:100 }}</div>
+                      <a href="{% url 'announcements:announcement_list' %}" class="item-link">Read more</a>
+                    </div>
+                  </div>
                 {% endfor %}
-              </ul>
+              </div>
+              <div class="text-end mt-2">
+                <a href="{% url 'announcements:announcement_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
+              </div>
             {% else %}
               <div class="alert alert-info mt-3">No recent announcements.</div>
             {% endif %}
@@ -32,20 +136,30 @@
         </div>
       </div>
       <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="dashboard-card card h-100">
           <div class="card-body">
-            <h5 class="card-title"><i class="fas fa-calendar-alt me-2"></i>Events & Activities</h5>
+            <div class="dashboard-section-title"><i class="fas fa-calendar-alt"></i>Events & Activities {% if upcoming_events %}<span class="dashboard-badge">{{ upcoming_events|length }}</span>{% endif %}</div>
             {% if upcoming_events %}
-              <ul class="list-group list-group-flush">
+              <div>
                 {% for event in upcoming_events %}
-                  <li class="list-group-item">
-                    <strong>{{ event.title }}</strong><br>
-                    <span class="text-muted small">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"P" }}{% endif %}</span>
-                    <p class="mb-1">{{ event.description|truncatechars:100 }}</p>
-                    <a href="{% url 'events:event_list' %}" class="btn btn-link btn-sm p-0">View details</a>
-                  </li>
+                  <div class="dashboard-list-item">
+                    <span class="item-icon"><i class="fas fa-calendar-alt"></i></span>
+                    <div class="item-content">
+                      <div class="item-title">
+                        {{ event.title }}
+                        {% if event.date == today %}<span class="item-badge" style="background:#ffb300;color:#222;">Today</span>{% endif %}
+                        {% if event.date > today %}<span class="item-badge">Upcoming</span>{% endif %}
+                      </div>
+                      <div class="item-date">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"P" }}{% endif %}</div>
+                      <div class="item-desc">{{ event.description|truncatechars:100 }}</div>
+                      <a href="{% url 'events:event_list' %}" class="item-link">View details</a>
+                    </div>
+                  </div>
                 {% endfor %}
-              </ul>
+              </div>
+              <div class="text-end mt-2">
+                <a href="{% url 'events:event_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
+              </div>
             {% else %}
               <div class="alert alert-info mt-3">No upcoming activities.</div>
             {% endif %}
