@@ -41,7 +41,13 @@
                     <span class="badge bg-info">₱{{ user.registration_payment_amount }}</span>
                   </td>
                   <td>
-                    <span class="badge {% if user.registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
+                    <span class="badge 
+                      {% if user.registration_status == 'payment_verified' %}bg-success
+                      {% elif user.registration_status == 'payment_submitted' %}bg-warning
+                      {% elif user.registration_status == 'pending_payment' %}bg-danger
+                      {% elif user.registration_status == 'active' %}bg-primary
+                      {% elif user.registration_status == 'partial_payment' %}bg-info
+                      {% else %}bg-secondary{% endif %}">
                       {{ user.get_registration_status_display }}
                     </span>
                   </td>

@@ -1,30 +1,62 @@
 {% extends 'base_sidebar.html' %}
 {% block content %}
   <div class="container-fluid py-4">
-    <h2 class="mb-4">My Payments</h2>
-    {% if total_paid is not None and total_dues is not None and balance is not None %}
+    <h2 class="mb-4">{% if user.is_admin %}All Payments (excluding yours){% else %}My Payments{% endif %}</h2>
+    
+    <!-- Payment Summary Dashboard -->
+    {% if payment_summary and not user.is_admin %}
       <div class="row mb-4 g-3">
+        <!-- Registration Payment -->
         <div class="col-md-4">
-          <div class="card text-center shadow-sm h-100">
+          <div class="card text-center shadow-sm h-100 {% if payment_summary.registration.is_paid %}border-success{% else %}border-warning{% endif %}">
             <div class="card-body">
-              <h6 class="card-title">Total Paid</h6>
-              <p class="display-6 fw-bold text-success">₱{{ total_paid }}</p>
+              <h6 class="card-title">
+                <i class="fas fa-user-plus"></i> Registration Fee
+              </h6>
+              <p class="display-6 fw-bold {% if payment_summary.registration.is_paid %}text-success{% else %}text-warning{% endif %}">
+                ₱{{ payment_summary.registration.amount }}
+              </p>
+              <span class="badge {% if payment_summary.registration.is_paid %}bg-success{% else %}bg-warning{% endif %}">
+                {{ payment_summary.registration.status|title }}
+              </span>
             </div>
           </div>
         </div>
+        
+        <!-- Event Payments -->
         <div class="col-md-4">
           <div class="card text-center shadow-sm h-100">
             <div class="card-body">
-              <h6 class="card-title">Total Dues</h6>
-              <p class="display-6 fw-bold text-primary">₱{{ total_dues }}</p>
+              <h6 class="card-title">
+                <i class="fas fa-calendar-alt"></i> Event Payments
+              </h6>
+              <p class="display-6 fw-bold text-info">
+                {{ payment_summary.events.paid_events }}/{{ payment_summary.events.total_events }}
+              </p>
+              <small class="text-muted">
+                ₱{{ payment_summary.events.paid_amount }} of ₱{{ payment_summary.events.total_amount }} paid
+              </small>
+              {% if payment_summary.events.pending_events > 0 %}
+                <br><span class="badge bg-warning mt-1">{{ payment_summary.events.pending_events }} Pending</span>
+              {% endif %}
             </div>
           </div>
         </div>
+        
+        <!-- General Payments -->
         <div class="col-md-4">
           <div class="card text-center shadow-sm h-100">
             <div class="card-body">
-              <h6 class="card-title">Balance</h6>
-              <p class="display-6 fw-bold {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ balance }}</p>
+              <h6 class="card-title">
+                <i class="fas fa-receipt"></i> Other Payments
+              </h6>
+              <p class="display-6 fw-bold text-primary">
+                ₱{{ payment_summary.general.total_paid }}
+              </p>
+              <small class="text-muted">{{ payment_summary.general.total_payments }} transactions</small>
+              {% if payment_summary.general.pending_amount > 0 %}
+                <br><span class="badge bg-info mt-1">₱{{ payment_summary.general.pending_amount }} Pending</span>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -32,7 +64,7 @@
     {% endif %}
     
     <!-- General Payment QR Code for Scouts -->
-    {% if not user.is_admin %}
+  {% if not user.is_admin %}
       {% load static %}
       {% with active_qr_code=active_qr_code|default:None %}
         {% if active_qr_code %}
@@ -111,6 +143,7 @@
             <table class="table table-hover align-middle">
               <thead>
                 <tr>
+                  {% if user.is_admin %}<th>Member</th>{% endif %}
                   <th>Date</th>
                   <th>Type</th>
                   <th>Amount</th>
@@ -122,17 +155,25 @@
               <tbody>
                 {% for payment in page_obj %}
                   <tr>
+                    {% if user.is_admin %}
+                      <td>
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="fw-semibold">{{ payment.user.get_full_name|default:payment.user.email }}</span>
+                          <small class="text-muted">({{ payment.user.get_rank_display }})</small>
+                        </div>
+                      </td>
+                    {% endif %}
                     <td>{{ payment.date|date:"M d, Y" }}</td>
                     <td>
-                      {% if payment.type == 'registration' %}
+                      {% if payment.type == 'registration' or payment.payment_type == 'registration' %}
                         <span class="badge bg-primary">Registration Fee</span>
                       {% else %}
-                        <span class="badge bg-secondary">Monthly Payment</span>
+                        <span class="badge bg-secondary">Other</span>
                       {% endif %}
                     </td>
                     <td>₱{{ payment.amount }}</td>
                     <td>
-                      {% if payment.status == 'verified' or payment.status == 'active' %}
+                      {% if payment.status == 'verified' or payment.status == 'payment_verified' %}
                         <span class="badge bg-success">Verified</span>
                       {% elif payment.status == 'pending' or payment.status == 'payment_submitted' %}
                         <span class="badge bg-warning text-dark">Pending</span>
@@ -149,16 +190,20 @@
                         <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-info">
                           <i class="fas fa-eye"></i> View
                         </a>
+                      {% elif payment.gcash_receipt_image %}
+                        <a href="{{ payment.gcash_receipt_image.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                          <i class="fas fa-eye"></i> View
+                        </a>
                       {% else %}
                         <span class="text-muted">-</span>
                       {% endif %}
                     </td>
                     <td>
-                      {% if payment.type == 'registration' and payment.status == 'pending_payment' %}
+                      {% if not user.is_admin and payment.type == 'registration' and payment.status == 'pending_payment' %}
                         <a href="{% url 'accounts:registration_payment' user.id %}" class="btn btn-sm btn-primary">
                           <i class="fas fa-upload"></i> Submit Receipt
                         </a>
-                      {% elif payment.type == 'registration' and payment.status == 'payment_submitted' %}
+                      {% elif not user.is_admin and payment.type == 'registration' and payment.status == 'payment_submitted' %}
                         <span class="text-muted">Awaiting verification</span>
                       {% elif payment.status == 'verified' or payment.status == 'active' %}
                         <span class="text-success">

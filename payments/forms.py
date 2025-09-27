@@ -1,5 +1,6 @@
 from django import forms
 from .models import Payment, PaymentQRCode
+from django.conf import settings
  
 class PaymentForm(forms.ModelForm):
     class Meta:
@@ -15,6 +16,16 @@ class PaymentForm(forms.ModelForm):
         self.fields['amount'].label = "Payment Amount (₱)"
         self.fields['gcash_receipt_image'].label = "Payment Receipt Screenshot"
         self.fields['gcash_receipt_image'].help_text = "Upload a screenshot of your payment receipt"
+
+    def clean_gcash_receipt_image(self):
+        file = self.cleaned_data.get('gcash_receipt_image')
+        if file:
+            if file.size > getattr(settings, 'MAX_UPLOAD_SIZE', 5 * 1024 * 1024):
+                raise forms.ValidationError('File too large. Maximum is 5MB.')
+            allowed = set(getattr(settings, 'ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif']))
+            if hasattr(file, 'content_type') and file.content_type not in allowed:
+                raise forms.ValidationError('Unsupported file type. Use JPG/PNG/GIF.')
+        return file
 
 class PaymentQRCodeForm(forms.ModelForm):
     class Meta:

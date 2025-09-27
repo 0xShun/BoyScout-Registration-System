@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.text import slugify
+from phonenumber_field.modelfields import PhoneNumberField
+from decimal import Decimal
 
 # Create your models here.
 
@@ -12,6 +14,33 @@ class Group(models.Model):
 
     def __str__(self):
         return self.name
+
+class RegistrationPayment(models.Model):
+    """Model to track individual registration payments"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='registration_payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Payment Amount")
+    receipt_image = models.ImageField(upload_to='registration_payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(blank=True, verbose_name="Payment Notes")
+    verified_by = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_registration_payments')
+    verification_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=["user", "status", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user.get_full_name()} - Registration Payment - ₱{self.amount} ({self.get_status_display()})"
 
 class User(AbstractUser):
     # Override the username field from AbstractUser to make it not unique and nullable
@@ -39,6 +68,7 @@ class User(AbstractUser):
     REGISTRATION_STATUS_CHOICES = [
         ('pending_payment', 'Pending Registration Payment'),
         ('payment_submitted', 'Registration Payment Submitted'),
+        ('partial_payment', 'Partial Registration Payment'),
         ('payment_verified', 'Registration Payment Verified'),
         ('active', 'Active Member'),
         ('inactive', 'Inactive'),
@@ -48,12 +78,14 @@ class User(AbstractUser):
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     address = models.TextField(blank=True)
-    phone_number = models.CharField(max_length=20, blank=True)
+    phone_number = PhoneNumberField(blank=True, region="PH")
     emergency_contact = models.CharField(max_length=100, blank=True)
-    emergency_phone = models.CharField(max_length=20, blank=True)
+    emergency_phone = PhoneNumberField(blank=True, region="PH")
     medical_conditions = models.TextField(blank=True)
     allergies = models.TextField(blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    registration_date = models.DateTimeField(null=True, blank=True)
+    membership_expiry = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=False)  # Changed to False by default
     groups_membership = models.ManyToManyField(Group, related_name='members', blank=True)
     
@@ -64,6 +96,9 @@ class User(AbstractUser):
     registration_verified_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_registrations')
     registration_verification_date = models.DateTimeField(null=True, blank=True)
     registration_notes = models.TextField(blank=True, verbose_name="Registration Notes")
+    # New fields for partial registration payments
+    registration_total_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Registration Paid")
+    registration_amount_required = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('500.00'), verbose_name="Registration Amount Required")
 
     def is_admin(self):
         return self.rank == 'admin'
@@ -76,12 +111,54 @@ class User(AbstractUser):
 
     @property
     def join_date(self):
-        return self.date_joined
+        # Only set join_date if registration payment is complete
+        if self.is_registration_fully_paid:
+            return self.date_joined
+        return None
+
+    @property
+    def registration_amount_remaining(self):
+        """Calculate remaining registration amount to be paid"""
+        return max(Decimal('0.00'), self.registration_amount_required - self.registration_total_paid)
+
+    @property
+    def is_registration_fully_paid(self):
+        """Check if user has completed registration payment"""
+        # Admin users don't need payment verification
+        if self.rank == 'admin':
+            return True
+        return self.registration_total_paid >= self.registration_amount_required
 
     @property
     def is_registration_complete(self):
         """Check if user has completed registration payment"""
-        return self.registration_status == 'active'
+        # Admin users don't need payment verification
+        if self.rank == 'admin':
+            return True
+        # Consider both legacy 'active' and current 'payment_verified' as complete
+        return self.registration_status in ('active', 'payment_verified')
+
+    def update_registration_status(self):
+        """Update registration status and set registration_date/expiry when fully paid"""
+        from django.utils import timezone
+        from dateutil.relativedelta import relativedelta
+        if self.registration_amount_required == 0:
+            self.registration_status = 'active'
+            self.is_active = True
+        elif self.registration_total_paid >= self.registration_amount_required:
+            self.registration_status = 'payment_verified'
+            self.is_active = True
+            if not self.registration_date:
+                self.registration_date = timezone.now()
+            years = min(int(self.registration_total_paid // self.registration_amount_required), 2)
+            self.membership_expiry = timezone.now() + relativedelta(years=years)
+        elif self.registration_total_paid > 0:
+            self.registration_status = 'partial_payment'
+            self.is_active = False
+        else:
+            self.registration_status = 'pending_payment'
+            self.is_active = False
+        self.save()
 
     def save(self, *args, **kwargs):
         if not self.username:
@@ -92,6 +169,12 @@ class User(AbstractUser):
                 unique_username = f"{base_username}{num}"
                 num += 1
             self.username = unique_username
+        
+        # Admin users are automatically active and don't need payment verification
+        if self.rank == 'admin':
+            self.is_active = True
+            self.registration_status = 'active'
+        
         super().save(*args, **kwargs)
 
     def __str__(self):

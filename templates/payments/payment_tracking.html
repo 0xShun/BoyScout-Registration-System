@@ -1,0 +1,12 @@
+{% for up in user_payments %}
+  <h3>{{ up.user.get_full_name }} ({{ up.user.email }})</h3>
+  <p>Total Registration Paid: ₱{{ up.total_registration }}</p>
+  <p>Membership Years: {{ up.membership_years }}</p>
+  <p>Membership Expiry: {{ up.membership_expiry }}</p>
+  <ul>
+    {% for p in up.payments %}
+      <li>{{ p.payment_type }} - ₱{{ p.amount }} - {{ p.date }} - {{ p.get_status_display }} - {% if p.verified_by %}Verified by {{ p.verified_by.get_full_name }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  <hr>
+{% endfor %}

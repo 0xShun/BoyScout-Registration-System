@@ -1,14 +1,1 @@
-{% extends 'base.html' %}
-{% block content %}
-  <h2>Verify Payment</h2>
-  <p><strong>User:</strong> {{ payment.user.username }}</p>
-  <p><strong>Amount:</strong> {{ payment.amount }}</p>
-  <p><strong>Date:</strong> {{ payment.date }}</p>
-  <p><strong>Status:</strong> {{ payment.get_status_display }}</p>
-  <p><strong>Proof:</strong> {% if payment.proof %}<a href="{{ payment.proof.url }}" target="_blank">View</a>{% else %}-{% endif %}</p>
-  <form method="post">
-    {% csrf_token %}
-    <button name="status" value="verified" type="submit">Mark as Verified</button>
-    <button name="status" value="rejected" type="submit">Mark as Rejected</button>
-  </form>
-{% endblock %} 
+{% extends 'payments/payment_verify.html' %}

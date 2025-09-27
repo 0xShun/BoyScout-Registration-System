@@ -54,6 +54,19 @@
 - Use this checklist to resume work after breaks. 
 - Use the documentation folder to put txt files of what you did everyday.
 
+# Demo Account Credentials
+
+## Scout Account  
+- **Email**: demo_admin1@scoutconnect.com
+- **Password**: password123
+- **Role**: Scout
+
+## Scout Account 2
+- **Email**: demo_scout2@scoutconnect.com
+- **Password**: demo123
+- **Role**: Scout
+
+
 # ScoutConnect Capstone Project: Remaining To-Do Items (from Proposal Gap Analysis)
 
 ## Membership & Registration

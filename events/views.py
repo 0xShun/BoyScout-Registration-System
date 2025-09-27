@@ -1,8 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Event, EventPhoto, Attendance, EventRegistration
-from .forms import EventForm, EventPhotoForm, EventRegistrationForm
+from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayment
+from .forms import EventForm, EventPhotoForm, EventRegistrationForm, EventPaymentForm
 from accounts.views import admin_required # Reusing the admin_required decorator
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -16,12 +16,63 @@ from django.core.files.base import ContentFile
 from accounts.models import User
 from django.utils import timezone
 from notifications.services import send_realtime_notification, NotificationService
+from decimal import Decimal
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
 
+def send_event_notifications(event, action='created'):
+    """Send notifications to all active users about new/updated events"""
+    from accounts.models import User
+    
+    active_users = User.objects.filter(is_active=True)
+    
+    if action == 'created':
+        subject = f"New Event: {event.title}"
+        message = f"""
+        A new event has been scheduled!
+        
+        Event: {event.title}
+        Date: {event.date}
+        Time: {event.time}
+        Location: {event.location}
+        
+        {event.description}
+        
+        Please log in to your dashboard to register.
+        """
+        sms_message = f"New event: {event.title} on {event.date}"
+    else:  # updated
+        subject = f"Event Updated: {event.title}"
+        message = f"""
+        An event has been updated!
+        
+        Event: {event.title}
+        Date: {event.date}
+        Time: {event.time}
+        Location: {event.location}
+        
+        {event.description}
+        
+        Please check your dashboard for updated details.
+        """
+        sms_message = f"Event updated: {event.title} on {event.date}"
+    
+    # Send email to all active users
+    for user in active_users:
+        if user.email:
+            NotificationService.send_email(subject, message, [user.email])
+        
+        # Send SMS if phone number exists
+        if user.phone_number:
+            NotificationService.send_sms(user.phone_number, sms_message)
+
 @login_required
 def event_list(request):
+    # Gate events for scouts until registration is verified
+    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
+        messages.warning(request, 'Events are locked until your registration payment is verified.')
+        return redirect('accounts:registration_payment', user_id=request.user.id)
     events = Event.objects.all().order_by('-date', '-time')
     paginator = Paginator(events, 10)
     page = request.GET.get('page')
@@ -36,6 +87,10 @@ def event_create(request):
             event = form.save(commit=False)
             event.created_by = request.user
             event.save()
+            
+            # Send notifications to all active users
+            send_event_notifications(event, 'created')
+            
             messages.success(request, 'Event created successfully.')
             return redirect('events:event_detail', pk=event.pk)
     else:
@@ -44,7 +99,12 @@ def event_create(request):
 
 @login_required
 def event_detail(request, pk):
+    # Gate events for scouts until registration is verified
+    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
+        messages.warning(request, 'Events are locked until your registration payment is verified.')
+        return redirect('accounts:registration_payment', user_id=request.user.id)
     event = get_object_or_404(Event, pk=pk)
+    
     photos = event.photos.all().order_by('-is_featured', '-uploaded_at')
     # Attendance summary
     attendance_qs = event.attendances.select_related('user')
@@ -54,6 +114,15 @@ def event_detail(request, pk):
     absent_count = len(absent_list)
     total_scouts = present_count + absent_count
 
+    # Get QR code for payment (event-specific or fallback to general)
+    from payments.models import PaymentQRCode
+    # Use the actual event.qr_code object if it exists, otherwise get the general QR code
+    qr_code = None
+    if event.qr_code:
+        qr_code = event.qr_code
+    else:
+        qr_code = PaymentQRCode.get_active_qr_code()
+    
     # Registration logic
     registration = None
     registration_form = None
@@ -114,6 +183,7 @@ def event_detail(request, pk):
         'registration': registration,
         'registration_form': registration_form,
         'registrations': registrations,
+        'qr_code': qr_code,
     })
 
 @admin_required
@@ -123,6 +193,10 @@ def event_edit(request, pk):
         form = EventForm(request.POST, request.FILES, instance=event)
         if form.is_valid():
             form.save()
+            
+            # Send notifications to all active users about the update
+            send_event_notifications(event, 'updated')
+            
             messages.success(request, 'Event updated successfully.')
             return redirect('events:event_detail', pk=event.pk)
     else:
@@ -270,51 +344,164 @@ def verify_event_registration(request, event_pk, reg_pk):
     if request.method == 'POST':
         action = request.POST.get('action')
         notes = request.POST.get('notes', '')
+        payment_id = request.POST.get('payment_id')
+        payment_amount = request.POST.get('payment_amount')
         
-        if action == 'verify':
-            registration.verified = True
-            registration.payment_status = 'paid'
-            registration.verified_by = request.user
-            registration.verification_date = timezone.now()
-            registration.payment_notes = notes
-            registration.save()
+        if payment_id:
+            # Verify a specific payment
+            payment = get_object_or_404(EventPayment, pk=payment_id, registration=registration)
             
-            # Email and notification
-            subject = f"Event Registration Payment Verified: {registration.event.title}"
-            message = f"Your payment for event '{registration.event.title}' has been verified."
-            if notes:
-                message += f"\n\nAdmin notes: {notes}"
-            NotificationService.send_email(subject, message, [registration.user.email])
-            send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been verified.", type='event')
-            messages.success(request, 'Registration payment verified.')
-            
-        elif action == 'reject':
-            registration.verified = False
-            registration.payment_status = 'rejected'
-            registration.verified_by = request.user
-            registration.verification_date = timezone.now()
-            registration.payment_notes = notes
-            registration.save()
-            
-            # Email and notification
-            subject = f"Event Registration Payment Rejected: {registration.event.title}"
-            message = f"Your payment for event '{registration.event.title}' has been rejected."
-            if notes:
-                message += f"\n\nAdmin notes: {notes}"
-            NotificationService.send_email(subject, message, [registration.user.email])
-            send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been rejected.", type='event')
-            messages.warning(request, 'Registration payment rejected.')
+            if action == 'verify':
+                # Validate payment amount
+                try:
+                    if payment_amount:
+                        amount = Decimal(payment_amount)
+                        if amount <= 0:
+                            messages.error(request, 'Payment amount must be greater than 0.')
+                            return redirect('events:verify_event_registration', event_pk=event_pk, reg_pk=reg_pk)
+                        payment.amount = amount
+                    else:
+                        messages.error(request, 'Please enter the payment amount.')
+                        return redirect('events:verify_event_registration', event_pk=event_pk, reg_pk=reg_pk)
+                except (ValueError, TypeError):
+                    messages.error(request, 'Please enter a valid payment amount.')
+                    return redirect('events:verify_event_registration', event_pk=event_pk, reg_pk=reg_pk)
+                
+                payment.status = 'verified'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = notes
+                payment.save()
+                
+                # Update registration total paid
+                registration.total_paid += payment.amount
+                registration.update_payment_status()
+                registration.save()
+                
+                # Email and notification
+                subject = f"Event Payment Verified: {registration.event.title}"
+                message = f"Your payment of ₱{payment.amount} for event '{registration.event.title}' has been verified."
+                if notes:
+                    message += f"\n\nAdmin notes: {notes}"
+                NotificationService.send_email(subject, message, [registration.user.email])
+                send_realtime_notification(registration.user.id, f"Your payment of ₱{payment.amount} for '{registration.event.title}' has been verified.", type='event')
+                messages.success(request, f'Payment of ₱{payment.amount} verified.')
+                
+            elif action == 'reject':
+                payment.status = 'rejected'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = notes
+                payment.save()
+                
+                # Email and notification
+                subject = f"Event Payment Rejected: {registration.event.title}"
+                message = f"Your payment of ₱{payment.amount} for event '{registration.event.title}' has been rejected."
+                if notes:
+                    message += f"\n\nAdmin notes: {notes}"
+                NotificationService.send_email(subject, message, [registration.user.email])
+                send_realtime_notification(registration.user.id, f"Your payment of ₱{payment.amount} for '{registration.event.title}' has been rejected.", type='event')
+                messages.warning(request, f'Payment of ₱{payment.amount} rejected.')
+        else:
+            # Legacy verification for old registrations without EventPayment records
+            if action == 'verify':
+                registration.verified = True
+                registration.payment_status = 'paid'
+                registration.verified_by = request.user
+                registration.verification_date = timezone.now()
+                registration.payment_notes = notes
+                registration.save()
+                
+                # Email and notification
+                subject = f"Event Registration Payment Verified: {registration.event.title}"
+                message = f"Your payment for event '{registration.event.title}' has been verified."
+                if notes:
+                    message += f"\n\nAdmin notes: {notes}"
+                NotificationService.send_email(subject, message, [registration.user.email])
+                send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been verified.", type='event')
+                messages.success(request, 'Registration payment verified.')
+                
+            elif action == 'reject':
+                registration.verified = False
+                registration.payment_status = 'rejected'
+                registration.verified_by = request.user
+                registration.verification_date = timezone.now()
+                registration.payment_notes = notes
+                registration.save()
+                
+                # Email and notification
+                subject = f"Event Registration Payment Rejected: {registration.event.title}"
+                message = f"Your payment for event '{registration.event.title}' has been rejected."
+                if notes:
+                    message += f"\n\nAdmin notes: {notes}"
+                NotificationService.send_email(subject, message, [registration.user.email])
+                send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been rejected.", type='event')
+                messages.warning(request, 'Registration payment rejected.')
             
         return redirect('events:event_detail', pk=event_pk)
     
     return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})
 
+@login_required
+def event_payment(request, pk):
+    """Dedicated payment page for a specific event"""
+    event = get_object_or_404(Event, pk=pk)
+    
+    # Check if user is registered for this event
+    try:
+        registration = EventRegistration.objects.get(event=event, user=request.user)
+    except EventRegistration.DoesNotExist:
+        messages.error(request, 'You must register for this event first before making a payment.')
+        return redirect('events:event_detail', pk=event.pk)
+    
+    # Check if event requires payment
+    if not event.has_payment_required:
+        messages.info(request, 'This event does not require payment.')
+        return redirect('events:event_detail', pk=event.pk)
+    
+    # Handle new payment submission
+    if request.method == 'POST':
+        form = EventPaymentForm(request.POST, request.FILES, registration=registration)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            payment.registration = registration
+            payment.save()
+            
+            # Notify admins about payment submission
+            admins = User.objects.filter(rank='admin')
+            for admin in admins:
+                send_realtime_notification(
+                    admin.id, 
+                    f"Event payment submitted: {registration.user.get_full_name()} - ₱{payment.amount} for {event.title}",
+                    type='event'
+                )
+            
+            messages.success(request, f'Payment of ₱{payment.amount} submitted successfully! Your payment is pending verification.')
+            return redirect('events:event_payment', pk=event.pk)
+    else:
+        form = EventPaymentForm(registration=registration)
+    
+    # Get QR code (event-specific or general)
+    from payments.models import PaymentQRCode
+    qr_code = event.qr_code if event.qr_code else PaymentQRCode.get_active_qr_code()
+    
+    # Get payment history for this registration
+    payments = registration.payments.all().order_by('-created_at')
+    
+    return render(request, 'events/event_payment.html', {
+        'event': event,
+        'registration': registration,
+        'form': form,
+        'qr_code': qr_code,
+        'payments': payments,
+    })
+
 @admin_required
 def pending_payments(request):
     """View for admins to see all pending payment registrations"""
     pending_registrations = EventRegistration.objects.filter(
-        payment_status='pending'
-    ).select_related('user', 'event').order_by('-registered_at')
+        payment_status__in=['pending', 'partial']
+    ).select_related('user', 'event').prefetch_related('payments').order_by('-registered_at')
     
     return render(request, 'events/pending_payments.html', {
         'pending_registrations': pending_registrations,

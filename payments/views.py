@@ -1,3 +1,31 @@
+from django.db.models import Sum, Count, Q
+from django.contrib.auth.decorators import user_passes_test
+from django.shortcuts import render
+from accounts.models import User
+# Admin payment tracking view
+from accounts.models import User
+from django.contrib.auth.decorators import login_required
+def admin_required(view_func):
+    return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
+
+@login_required
+@admin_required
+def payment_tracking(request):
+    users = User.objects.all()
+    user_payments = []
+    from .models import Payment
+    for user in users:
+        payments = Payment.objects.filter(user=user).order_by('-date')
+        total_registration = payments.filter(payment_type='registration', status='verified').aggregate(Sum('amount'))['amount__sum'] or 0
+        membership_years = int(total_registration // 500)
+        user_payments.append({
+            'user': user,
+            'payments': payments,
+            'total_registration': total_registration,
+            'membership_years': membership_years,
+            'membership_expiry': user.membership_expiry,
+        })
+    return render(request, 'payments/payment_tracking.html', {'user_payments': user_payments})
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -17,19 +45,21 @@ def admin_required(view_func):
 
 @login_required
 def payment_list(request):
+    registration_fee = 500
+    membership_years = 0
+    membership_expiry = None
     if request.user.is_admin():
-        # Admin sees all payments
-        payments = Payment.objects.all().order_by('-date')
-        # Filter options
+        # Admins see payments from other users (exclude their own)
+        payments = Payment.objects.exclude(user=request.user).order_by('-date')
         status_filter = request.GET.get('status', '')
         if status_filter:
             payments = payments.filter(status=status_filter)
         payments_list = list(payments)
     else:
-        # Regular users see only their payments
         payments = Payment.objects.filter(user=request.user).order_by('-date')
-        
-        # Always include registration payment information for users
+        total_registration_paid = payments.filter(payment_type='registration', status='verified').aggregate(Sum('amount'))['amount__sum'] or 0
+        membership_years = int(total_registration_paid // registration_fee)
+        membership_expiry = request.user.membership_expiry
         registration_payment = {
             'id': 'registration',
             'amount': request.user.registration_payment_amount,
@@ -41,26 +71,66 @@ def payment_list(request):
             'verified_by': request.user.registration_verified_by,
             'verification_date': request.user.registration_verification_date,
             'notes': request.user.registration_notes,
+            'membership_years': membership_years,
+            'membership_expiry': membership_expiry,
+            'registration_fee': registration_fee,
         }
-        
-        # Add to payments list
         payments_list = list(payments)
         payments_list.insert(0, registration_payment)
-    
     paginator = Paginator(payments_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # Get active QR code for scouts
     active_qr_code = None
     if not request.user.is_admin():
         active_qr_code = PaymentQRCode.get_active_qr_code()
+    payment_summary = {}
+    if not request.user.is_admin():
+        from events.models import EventRegistration
+        
+        # Registration payment status
+        registration_status = {
+            'status': request.user.registration_status,
+            'amount': request.user.registration_payment_amount,
+            'is_paid': request.user.registration_status == 'active'
+        }
+        
+        # Event payments summary
+        event_registrations = EventRegistration.objects.filter(
+            user=request.user,
+            event__payment_amount__gt=0
+        ).select_related('event')
+        
+        event_payment_summary = {
+            'total_events': event_registrations.count(),
+            'paid_events': event_registrations.filter(payment_status='paid').count(),
+            'pending_events': event_registrations.filter(payment_status='pending').count(),
+            'rejected_events': event_registrations.filter(payment_status='rejected').count(),
+            'total_amount': sum(reg.event.payment_amount for reg in event_registrations if reg.event.payment_amount),
+            'paid_amount': sum(reg.event.payment_amount for reg in event_registrations.filter(payment_status='paid') if reg.event.payment_amount)
+        }
+        
+        # General payments summary
+        general_payments_summary = {
+            'total_paid': payments.filter(status='verified').aggregate(total=Sum('amount'))['total'] or 0,
+            'pending_amount': payments.filter(status='pending').aggregate(total=Sum('amount'))['total'] or 0,
+            'total_payments': payments.count()
+        }
+        
+        payment_summary = {
+            'registration': registration_status,
+            'events': event_payment_summary,
+            'general': general_payments_summary
+        }
     
     return render(request, 'payments/payment_list.html', {
         'page_obj': page_obj,
         'status_choices': Payment.STATUS_CHOICES,
         'current_filter': request.GET.get('status', ''),
         'active_qr_code': active_qr_code,
+        'payment_summary': payment_summary,
+        'membership_years': membership_years,
+        'membership_expiry': membership_expiry,
+        'registration_fee': registration_fee,
     })
 
 @login_required
@@ -90,7 +160,13 @@ def payment_submit(request):
     else:
         form = PaymentForm()
     
-    return render(request, 'payments/payment_submit.html', {'form': form})
+    # Get active QR code for payment
+    active_qr_code = PaymentQRCode.get_active_qr_code()
+    
+    return render(request, 'payments/payment_submit.html', {
+        'form': form,
+        'active_qr_code': active_qr_code
+    })
 
 @login_required
 def payment_verify(request, payment_id):
@@ -101,6 +177,13 @@ def payment_verify(request, payment_id):
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        # Backward compatibility: accept 'status' values from older templates
+        if not action:
+            status_val = request.POST.get('status')
+            if status_val == 'verified':
+                action = 'verify'
+            elif status_val == 'rejected':
+                action = 'reject'
         notes = request.POST.get('notes', '')
         
         if action == 'verify':

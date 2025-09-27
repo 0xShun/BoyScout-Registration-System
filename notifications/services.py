@@ -32,26 +32,61 @@ class NotificationService:
             return False
 
     @staticmethod
+    def format_phone_number(phone_number):
+        """Format phone number to international format for Twilio"""
+        if not phone_number:
+            return None
+        try:
+            from phonenumber_field.phonenumber import PhoneNumber
+            # If it's already a PhoneNumber instance, format directly
+            if isinstance(phone_number, PhoneNumber):
+                return phone_number.as_e164
+        except Exception:
+            pass
+
+        # Fallback: simple PH normalization
+        digits_only = ''.join(filter(str.isdigit, str(phone_number)))
+        if len(digits_only) == 11 and digits_only.startswith('09'):
+            return f"+63{digits_only[1:]}"
+        if str(phone_number).startswith('+'):
+            return str(phone_number)
+        if len(digits_only) == 10 and digits_only.startswith('9'):
+            return f"+63{digits_only}"
+        return str(phone_number)
+
+    @staticmethod
     def send_sms(to_number, message):
         from django.conf import settings
+        
+        # Format phone number to international format
+        formatted_number = NotificationService.format_phone_number(to_number)
+        
         # Simulate SMS if Twilio is not configured
         if not all([
             getattr(settings, 'TWILIO_ACCOUNT_SID', None),
             getattr(settings, 'TWILIO_AUTH_TOKEN', None),
-            getattr(settings, 'TWILIO_PHONE_NUMBER', None)
         ]):
-            print(f"[SIMULATED SMS] To: {to_number} | Message: {message}")
-            SimulatedSMSLog.objects.create(to_number=to_number, message=message)
+            print(f"[SIMULATED SMS] To: {formatted_number} | Message: {message}")
+            SimulatedSMSLog.objects.create(to_number=formatted_number, message=message)
             return True
         try:
             from twilio.rest import Client
             from twilio.base.exceptions import TwilioRestException
             client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-            client.messages.create(
-                body=message,
-                from_=settings.TWILIO_PHONE_NUMBER,
-                to=to_number
-            )
+            
+            # Use Messaging Service if available, otherwise use phone number
+            if hasattr(settings, 'TWILIO_MESSAGING_SERVICE_SID') and settings.TWILIO_MESSAGING_SERVICE_SID:
+                client.messages.create(
+                    body=message,
+                    messaging_service_sid=settings.TWILIO_MESSAGING_SERVICE_SID,
+                    to=formatted_number
+                )
+            else:
+                client.messages.create(
+                    body=message,
+                    from_=settings.TWILIO_PHONE_NUMBER,
+                    to=formatted_number
+                )
             return True
         except Exception as e:
             print(f"SMS sending failed: {str(e)}")

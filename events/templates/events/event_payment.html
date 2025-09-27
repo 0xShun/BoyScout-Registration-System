@@ -1,0 +1,314 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4 position-relative">
+  {% if user.is_authenticated and user.registration_status != 'active' and user.rank != 'admin' %}
+    <div id="event-blur-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; backdrop-filter: blur(6px) brightness(0.8); background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;">
+      <div class="text-center">
+        <div style="font-size: 4rem; color: #888;"><i class="fas fa-lock"></i></div>
+        <h3 class="fw-bold mt-3">Event Payment Locked</h3>
+        <p class="lead">You need to have your registration payment verified by an admin to pay for or join events.</p>
+        <p class="text-muted">Please complete your payment and wait for admin approval to unlock this feature.</p>
+      </div>
+    </div>
+  {% endif %}
+  <div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+      <!-- Event Information -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h3 class="mb-0">Payment for: {{ event.title }}</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <p><strong>Date:</strong> {{ event.date|date:"F d, Y" }}</p>
+              <p><strong>Time:</strong> {{ event.time|time:"g:i A" }}</p>
+              <p><strong>Location:</strong> {{ event.location }}</p>
+            </div>
+            <div class="col-md-6">
+              <p><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
+              <p><strong>Payment Status:</strong> 
+                <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  {{ registration.get_payment_status_display }}
+                </span>
+              </p>
+              <p><strong>Amount Paid:</strong> ₱{{ registration.total_paid }}</p>
+              <p><strong>Amount Remaining:</strong> ₱{{ registration.amount_remaining }}</p>
+            </div>
+          </div>
+          
+          {% if registration.payment_notes %}
+            <div class="alert alert-info mt-3">
+              <strong>Admin Notes:</strong> {{ registration.payment_notes }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- QR Code Section -->
+      {% if qr_code and registration.amount_remaining > 0 %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-qrcode"></i> Payment QR Code
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-4 text-center">
+                <img src="{{ qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
+              </div>
+              <div class="col-md-8">
+                <h6>Pay ₱{{ registration.amount_remaining }} for {{ event.title }}</h6>
+                <div class="alert alert-info mb-0">
+                  <strong>Payment Instructions:</strong>
+                  <ol class="mb-0 mt-2">
+                    <li>Scan the QR code with your GCash app</li>
+                    <li>Enter the amount: <strong>₱{{ registration.amount_remaining }}</strong></li>
+                    <li>Complete the payment</li>
+                    <li>Upload your receipt below</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Payment History -->
+      {% if payments %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-history"></i> Payment History
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Receipt</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for payment in payments %}
+                    <tr>
+                      <td>{{ payment.created_at|date:"M d, Y g:i A" }}</td>
+                      <td>₱{{ payment.amount }}</td>
+                      <td>
+                        <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% elif payment.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                          {{ payment.get_status_display }}
+                        </span>
+                      </td>
+                      <td>
+                        {% if payment.receipt_image %}
+                          <a href="{{ payment.receipt_image.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-image"></i> View
+                          </a>
+                        {% else %}
+                          <span class="text-muted">No receipt</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% if payment.notes %}
+                          <small class="text-muted">{{ payment.notes|truncatechars:50 }}</small>
+                        {% else %}
+                          <span class="text-muted">-</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- New Payment Form -->
+      {% if registration.amount_remaining > 0 %}
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-plus"></i> Add New Payment
+            </h5>
+          </div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+              {% csrf_token %}
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.amount.id_for_label }}" class="form-label">Payment Amount</label>
+                    {{ form.amount }}
+                    {% if form.amount.help_text %}
+                      <div class="form-text">{{ form.amount.help_text }}</div>
+                    {% endif %}
+                    {% for error in form.amount.errors %}
+                      <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="mb-3">
+                    <label for="{{ form.receipt_image.id_for_label }}" class="form-label">Payment Receipt</label>
+                    {{ form.receipt_image }}
+                    {% if form.receipt_image.help_text %}
+                      <div class="form-text">{{ form.receipt_image.help_text }}</div>
+                    {% endif %}
+                    {% for error in form.receipt_image.errors %}
+                      <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="{{ form.notes.id_for_label }}" class="form-label">Notes (Optional)</label>
+                {{ form.notes }}
+                {% for error in form.notes.errors %}
+                  <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+              </div>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-upload"></i> Submit Payment
+              </button>
+              <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-secondary ms-2">
+                <i class="fas fa-arrow-left"></i> Back to Event
+              </a>
+            </form>
+          </div>
+        </div>
+      {% else %}
+        <div class="alert alert-success">
+          <h5><i class="fas fa-check-circle"></i> Payment Complete</h5>
+          <p class="mb-0">Your payment for this event has been completed. Thank you!</p>
+          <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-success mt-2">
+            <i class="fas fa-arrow-left"></i> Back to Event
+          </a>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+      <!-- Payment Summary -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header">
+          <h5 class="mb-0">Payment Summary</h5>
+        </div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Event Fee:</span>
+            <strong>₱{{ event.payment_amount }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Amount Paid:</span>
+            <strong class="text-success">₱{{ registration.total_paid }}</strong>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between">
+            <span><strong>Remaining:</strong></span>
+            <strong class="{% if registration.amount_remaining > 0 %}text-danger{% else %}text-success{% endif %}">₱{{ registration.amount_remaining }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Timeline -->
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h5 class="mb-0">Payment Status</h5>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="timeline-item {% if registration %}completed{% endif %}">
+              <div class="timeline-marker bg-success"></div>
+              <div class="timeline-content">
+                <h6>Registered for Event</h6>
+                <small>{{ registration.registered_at|date:"M d, Y g:i A" }}</small>
+              </div>
+            </div>
+            <div class="timeline-item {% if registration.total_paid > 0 %}completed{% endif %}">
+              <div class="timeline-marker {% if registration.total_paid > 0 %}bg-warning{% else %}bg-secondary{% endif %}"></div>
+              <div class="timeline-content">
+                <h6>Payment Submitted</h6>
+                <small>₱{{ registration.total_paid }} paid</small>
+              </div>
+            </div>
+            <div class="timeline-item {% if registration.payment_status == 'paid' %}completed{% endif %}">
+              <div class="timeline-marker {% if registration.payment_status == 'paid' %}bg-success{% else %}bg-secondary{% endif %}"></div>
+              <div class="timeline-content">
+                <h6>Payment Complete</h6>
+                {% if registration.is_fully_paid %}
+                  <small>Fully paid</small>
+                {% else %}
+                  <small>Pending full payment</small>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.timeline {
+  position: relative;
+  padding-left: 30px;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.timeline-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 20px;
+  width: 2px;
+  height: calc(100% + 10px);
+  background-color: #dee2e6;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -26px;
+  top: 5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #dee2e6;
+}
+
+.timeline-item.completed .timeline-marker {
+  box-shadow: 0 0 0 2px currentColor;
+}
+
+.timeline-content h6 {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.timeline-content small {
+  color: #6c757d;
+}
+  {% if user.is_authenticated and user.registration_status != 'active' %}
+  .container.py-4 > *:not(#event-blur-overlay) {
+    filter: blur(6px) brightness(0.8);
+    pointer-events: none;
+    user-select: none;
+  }
+  {% endif %}
+</style>
+{% endblock %}

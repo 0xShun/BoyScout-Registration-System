@@ -3,22 +3,72 @@
 {% block content %}
   <div class="container-fluid py-4">
     <div class="row justify-content-center mb-4">
-      <div class="col-lg-6">
+      <div class="col-lg-10">
         <div class="card shadow-sm text-center">
           <div class="card-body">
             <h5 class="card-title">Payment Summary</h5>
             <div class="row g-2">
-              <div class="col-4">
+              <div class="col-2">
                 <div class="fw-bold text-success">₱{{ total_paid }}</div>
                 <div class="small">Total Paid</div>
               </div>
-              <div class="col-4">
+              <div class="col-2">
                 <div class="fw-bold text-primary">₱{{ total_dues }}</div>
                 <div class="small">Total Dues</div>
               </div>
-              <div class="col-4">
+              <div class="col-2">
                 <div class="fw-bold {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ balance }}</div>
                 <div class="small">Balance</div>
+              </div>
+              <div class="col-2">
+                <div class="fw-bold">
+                  <span class="badge {% if registration_status == 'active' %}bg-success{% elif registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
+                    {{ member.get_registration_status_display }}
+                  </span>
+                </div>
+                <div class="small">Status</div>
+              </div>
+              <div class="col-2">
+                <div class="fw-bold text-info">₱{{ registration_payment }}</div>
+                <div class="small">Registration</div>
+              </div>
+              <div class="col-2">
+                <div class="fw-bold text-warning">₱{{ event_payments }}</div>
+                <div class="small">Events</div>
+              </div>
+            </div>
+            
+            <!-- Payment Breakdown -->
+            <div class="mt-3">
+              <h6>Payment Breakdown:</h6>
+              <div class="row g-2">
+                <div class="col-md-4">
+                  <small class="text-muted">Registration Payments:</small><br>
+                  <span class="fw-bold">₱{{ registration_payments }}</span>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Event Payments:</small><br>
+                  <span class="fw-bold">₱{{ event_payments }}</span>
+                </div>
+                <div class="col-md-4">
+                  <small class="text-muted">Other Payments:</small><br>
+                  <span class="fw-bold">₱{{ general_payments }}</span>
+                </div>
+              </div>
+              
+              <!-- Dues Breakdown -->
+              <div class="mt-3">
+                <h6>Outstanding Dues:</h6>
+                <div class="row g-2">
+                  <div class="col-md-6">
+                    <small class="text-muted">Registration Dues:</small><br>
+                    <span class="fw-bold text-warning">₱{{ registration_dues }}</span>
+                  </div>
+                  <div class="col-md-6">
+                    <small class="text-muted">Event Dues:</small><br>
+                    <span class="fw-bold text-warning">₱{{ event_dues }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -42,8 +92,12 @@
           </div>
           
           <div class="row mb-3">
-            <div class="col-md-4"><strong>Role:</strong></div>
-            <div class="col-md-8">{{ member.get_role_display }}</div>
+            <div class="col-md-4"><strong>Registration Status:</strong></div>
+            <div class="col-md-8">
+              <span class="badge {% if member.registration_status == 'active' %}bg-success{% elif member.registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
+                {{ member.get_registration_status_display }}
+              </span>
+            </div>
           </div>
           
           <div class="row mb-3">
@@ -100,4 +154,82 @@
       </div>
     </div>
   </div>
+  
+  <!-- Verified Registration Payments Section -->
+  {% if verified_registration_payments %}
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-8">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">Verified Registration Payments</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Verified By</th>
+                    <th>Verification Date</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for payment in verified_registration_payments %}
+                    <tr>
+                      <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                      <td class="text-success">₱{{ payment.amount }}</td>
+                      <td>{{ payment.verified_by.get_full_name }}</td>
+                      <td>{{ payment.verification_date|date:"M d, Y" }}</td>
+                      <td>{{ payment.notes|default:"-" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+  
+  <!-- Verified Event Payments Section -->
+  {% if verified_event_payments %}
+    <div class="row justify-content-center mt-4">
+      <div class="col-md-8">
+        <div class="card shadow-sm">
+          <div class="card-header">
+            <h5 class="mb-0">Verified Event Payments</h5>
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Verified By</th>
+                    <th>Verification Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for reg in verified_event_payments %}
+                    <tr>
+                      <td>{{ reg.event.title }}</td>
+                      <td>{{ reg.event.date|date:"M d, Y" }}</td>
+                      <td class="text-success">₱{{ reg.event.payment_amount }}</td>
+                      <td>{{ reg.verified_by.get_full_name }}</td>
+                      <td>{{ reg.verification_date|date:"M d, Y" }}</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 {% endblock %} 

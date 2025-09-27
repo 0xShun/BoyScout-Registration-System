@@ -19,6 +19,9 @@ from datetime import date
 from events.models import Attendance
 from django import forms
 from notifications.services import NotificationService, send_realtime_notification
+from decimal import Decimal
+from .models import RegistrationPayment
+from analytics.models import AuditLog, AnalyticsEvent
 
 @login_required
 def admin_dashboard(request):
@@ -84,6 +87,34 @@ def admin_dashboard(request):
     repeated_absentees = scout_attendance.filter(absent_count__gte=3).order_by('-absent_count')[:5]
     # Check if the logged-in admin user has any verified payments
     is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
+    # Recent Activity: mix of audit logs and analytics events
+    # Client-side filtering; default selection is 'all'
+    activity_filter = 'all'
+    recent_logs = list(AuditLog.objects.select_related('user').order_by('-timestamp')[:10])
+    recent_events = list(AnalyticsEvent.objects.select_related('user').order_by('-timestamp')[:10])
+    # Normalize to a single list of objects with common attributes for template
+    unified = []
+    for l in recent_logs:
+        unified.append(type('Item', (), {
+            'action': l.action,
+            'details': l.details,
+            'timestamp': l.timestamp,
+            'user': l.user,
+            'page_url': None,
+            'event_type': 'audit',
+        }))
+    for e in recent_events:
+        unified.append(type('Item', (), {
+            'action': e.event_type.replace('_', ' ').title(),
+            'details': e.metadata if isinstance(e.metadata, str) else (e.metadata or ''),
+            'timestamp': e.timestamp,
+            'user': e.user,
+            'page_url': e.page_url,
+            'event_type': e.event_type,
+        }))
+    # No server-side filtering; the template JS handles filter chips without reload
+    recent_activity = sorted(unified, key=lambda x: x.timestamp, reverse=True)[:12]
+
     return render(request, 'accounts/admin_dashboard.html', {
         'member_count': member_count,
         'payment_total': payment_total,
@@ -98,6 +129,8 @@ def admin_dashboard(request):
         'least_active_scouts': least_active_scouts,
         'repeated_absentees': repeated_absentees,
         'is_active_member': is_active_member,
+        'recent_activity': recent_activity,
+    'activity_filter': activity_filter,
     })
 
 @login_required
@@ -120,54 +153,91 @@ def scout_dashboard(request):
 
     # Fetch latest announcements for this user (limit 5)
     from announcements.models import Announcement
-    latest_announcements = Announcement.objects.filter(recipients=user).order_by('-date_posted')[:5]
+    latest_announcements = Announcement.objects.order_by('-date_posted')[:3]
+
+
 
     # Fetch upcoming events (limit 5)
-    from events.models import Event
+    from events.models import Event, EventRegistration
     from django.utils import timezone
     today = timezone.now().date()
-    upcoming_events = Event.objects.filter(date__gte=today).order_by('date', 'time')[:5]
+    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:3]
+    
+    # Fetch pending event payments for this user
+    pending_event_payments = EventRegistration.objects.filter(
+        user=user,
+        event__payment_amount__gt=0,
+        payment_status__in=['pending'],  # Only pending payments
+        event__date__gte=today
+    ).select_related('event').order_by('event__date', 'event__time')[:5]
 
     return render(request, 'accounts/scout_dashboard.html', {
         'is_active_member': is_active_member,
         'profile_incomplete': profile_incomplete,
         'incomplete_fields': incomplete_fields,
         'latest_announcements': latest_announcements,
-        'upcoming_events': upcoming_events,
+        'upcoming_events': upcoming_events if user.registration_status == 'payment_verified' or user.rank == 'admin' else [],
+        'pending_event_payments': pending_event_payments,
+        'today': today,
     })
 
 def register(request):
+    from django.db import models
+    from payments.models import Payment
+    from django.utils import timezone
+    try:
+        from dateutil.relativedelta import relativedelta
+    except ImportError:
+        relativedelta = None
     if request.method == 'POST':
         form = UserRegisterForm(request.POST, request.FILES)
         if form.is_valid():
+            # Create user but don't commit, so we can set flags
             user = form.save(commit=False)
             user.rank = 'scout'
-            user.is_active = False  # User must pay registration fee first
-            user.registration_status = 'pending_payment'
+            # Allow login but keep not verified; receipt submission marks as submitted
+            user.is_active = True
+            user.registration_status = 'payment_submitted'
             user.save()
-            
-            # If receipt is uploaded, update status
-            if user.registration_receipt:
-                user.registration_status = 'payment_submitted'
+
+            amount = form.cleaned_data.get('amount')
+            receipt = form.cleaned_data.get('registration_receipt')
+            from .models import RegistrationPayment
+            reg_payment = RegistrationPayment.objects.create(
+                user=user,
+                amount=amount,
+                receipt_image=receipt,
+                status='pending'
+            )
+
+            total_paid = RegistrationPayment.objects.filter(user=user, status='verified').aggregate(models.Sum('amount'))['amount__sum'] or 0
+            if total_paid >= 500 and relativedelta:
+                user.is_active = True
+                user.registration_status = 'active'
+                years = min(int(total_paid // 500), 2)
+                user.membership_expiry = timezone.now() + relativedelta(years=years)
                 user.save()
-                
-                # Notify admins about new registration payment
-                admins = User.objects.filter(rank='admin')
-                for admin in admins:
-                    send_realtime_notification(
-                        admin.id, 
-                        f"New registration payment submitted: {user.get_full_name()} ({user.email})",
-                        type='registration'
-                    )
-                
-                messages.success(request, 'Registration successful! Your payment receipt has been submitted and is pending verification by an administrator.')
-            else:
-                messages.success(request, 'Registration successful! Please submit your registration payment to complete your account activation.')
-            
+
+            admins = User.objects.filter(rank='admin')
+            for admin in admins:
+                send_realtime_notification(
+                    admin.id,
+                    f"New registration payment submitted: {user.get_full_name()} ({user.email})",
+                    type='registration'
+                )
+            messages.success(request, 'Registration successful! Your payment is pending verification by an administrator. You can log in, but events are locked until verified.')
             return redirect('accounts:registration_payment', user_id=user.id)
     else:
         form = UserRegisterForm()
-    return render(request, 'accounts/register.html', {'form': form})
+    
+    # Get the active QR code for payment
+    from payments.models import PaymentQRCode
+    active_qr_code = PaymentQRCode.get_active_qr_code()
+    
+    return render(request, 'accounts/register.html', {
+        'form': form,
+        'active_qr_code': active_qr_code
+    })
 
 def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
@@ -189,20 +259,64 @@ def member_list(request):
         members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
     if filter_rank:
         members = members.filter(rank=filter_rank)
-    monthly_due = 100
+    
+    registration_fee = 500  # Registration fee instead of monthly dues
+    
+    # Import EventRegistration for event payments
+    from events.models import EventRegistration
+    
     for member in members:
+        # Get verified general payments
         payments = member.payments.filter(status='verified')
         total_paid = payments.aggregate(total=models.Sum('amount'))['total'] or 0
-        join_date = member.date_joined.date() if member.date_joined else date.today()
-        today = date.today()
-        months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
-        total_dues = months * monthly_due
+        
+        # Add verified registration payments
+        verified_registration_payments = member.registration_payments.filter(status='verified')
+        registration_payments_total = verified_registration_payments.aggregate(total=models.Sum('amount'))['total'] or 0
+        total_paid += registration_payments_total
+        
+        # Add verified event payments
+        verified_event_payments = EventRegistration.objects.filter(
+            user=member,
+            payment_status='paid'
+        ).select_related('event')
+        
+        event_payments_total = sum(
+            reg.event.payment_amount for reg in verified_event_payments 
+            if reg.event.payment_amount
+        )
+        total_paid += event_payments_total
+        
+        # Calculate registration dues
+        registration_dues = member.registration_amount_remaining
+        
+        # Calculate event dues (pending and partial payments)
+        event_dues = EventRegistration.objects.filter(
+            user=member,
+            payment_status__in=['pending', 'partial']
+        ).select_related('event')
+        
+        event_dues_total = sum(
+            reg.amount_remaining for reg in event_dues
+            if reg.amount_remaining > 0
+        )
+        
+        # Calculate total dues (registration + event dues)
+        total_dues = registration_dues + event_dues_total
+        
         balance = total_paid - total_dues
         member.balance_info = {
             'total_paid': total_paid,
             'total_dues': total_dues,
             'balance': balance,
+            'registration_status': member.registration_status,
+            'registration_payments': registration_payments_total,
+            'registration_dues': registration_dues,
+            'event_payments': event_payments_total,
+            'event_dues': event_dues_total,
+            'general_payments': payments.aggregate(total=models.Sum('amount'))['total'] or 0,
         }
+    
     paginator = Paginator(members, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -218,14 +332,50 @@ def member_detail(request, pk):
     user = User.objects.get(pk=pk)
     if not (request.user.is_admin() or request.user.pk == user.pk):
         return HttpResponseForbidden()
-    monthly_due = 100
+    
+    registration_fee = 500  # Registration fee instead of monthly dues
+    
+    # Get verified general payments
     payments = user.payments.filter(status='verified')
     total_paid = payments.aggregate(total=models.Sum('amount'))['total'] or 0
-    join_date = user.date_joined.date() if user.date_joined else date.today()
-    today = date.today()
-    months = (today.year - join_date.year) * 12 + (today.month - join_date.month) + 1
-    total_dues = months * monthly_due
+    
+    # Add verified registration payments
+    verified_registration_payments = user.registration_payments.filter(status='verified')
+    registration_payments_total = verified_registration_payments.aggregate(total=models.Sum('amount'))['total'] or 0
+    total_paid += registration_payments_total
+    
+    # Add verified event payments
+    from events.models import EventRegistration
+    verified_event_payments = EventRegistration.objects.filter(
+        user=user,
+        payment_status='paid'
+    ).select_related('event')
+    
+    event_payments_total = sum(
+        reg.event.payment_amount for reg in verified_event_payments 
+        if reg.event.payment_amount
+    )
+    total_paid += event_payments_total
+    
+    # Calculate registration dues
+    registration_dues = user.registration_amount_remaining
+    
+    # Calculate event dues (pending and partial payments)
+    event_dues = EventRegistration.objects.filter(
+        user=user,
+        payment_status__in=['pending', 'partial']
+    ).select_related('event')
+    
+    event_dues_total = sum(
+        reg.amount_remaining for reg in event_dues
+        if reg.amount_remaining > 0
+    )
+    
+    # Calculate total dues (registration + event dues)
+    total_dues = registration_dues + event_dues_total
+    
     balance = total_paid - total_dues
+    
     # Badge progress for this member
     user_badges = user.user_badges.select_related('badge').all().order_by('-awarded', '-percent_complete', 'badge__name')
     return render(request, 'accounts/member_detail.html', {
@@ -234,6 +384,14 @@ def member_detail(request, pk):
         'total_dues': total_dues,
         'balance': balance,
         'user_badges': user_badges,
+        'registration_status': user.registration_status,
+        'registration_payments': registration_payments_total,
+        'registration_dues': registration_dues,
+        'event_payments': event_payments_total,
+        'event_dues': event_dues_total,
+        'general_payments': payments.aggregate(total=models.Sum('amount'))['total'] or 0,
+        'verified_event_payments': verified_event_payments,
+        'verified_registration_payments': verified_registration_payments,
     })
 
 @admin_required
@@ -535,34 +693,63 @@ def registration_payment(request, user_id):
         messages.error(request, 'You can only access your own registration payment page.')
         return redirect('accounts:login')
     
+    # Admin users don't need to pay registration fees
+    if user.rank == 'admin':
+        messages.info(request, 'Admin users do not need to pay registration fees.')
+        return redirect('accounts:admin_dashboard' if user.is_admin() else 'accounts:scout_dashboard')
+    
     # If user is already active and registration is complete, redirect to dashboard
     if user.is_active and user.registration_status == 'active':
         messages.info(request, 'Your account is already active. Please log in.')
         return redirect('accounts:login')
     
     if request.method == 'POST':
-        if 'receipt' in request.FILES:
-            user.registration_receipt = request.FILES['receipt']
-            user.registration_status = 'payment_submitted'
-            user.save()
-            
-            # Notify admins about new registration payment
-            admins = User.objects.filter(rank='admin')
-            for admin in admins:
-                send_realtime_notification(
-                    admin.id, 
-                    f"New registration payment submitted: {user.get_full_name()} ({user.email})",
-                    type='registration'
+        amount = request.POST.get('amount')
+        receipt = request.FILES.get('receipt')
+        notes = request.POST.get('notes', '')
+        
+        if amount and receipt:
+            try:
+                payment_amount = Decimal(amount)
+                if payment_amount <= 0:
+                    messages.error(request, 'Payment amount must be greater than 0.')
+                    return redirect('accounts:registration_payment', user_id=user.id)
+                
+                # Create new registration payment
+                payment = RegistrationPayment.objects.create(
+                    user=user,
+                    amount=payment_amount,
+                    receipt_image=receipt,
+                    notes=notes
                 )
-            
-            messages.success(request, 'Payment receipt submitted successfully! Your account will be activated once an administrator verifies your payment.')
-            return redirect('accounts:registration_payment', user_id=user.id)
+                
+                # Notify admins about new registration payment
+                admins = User.objects.filter(rank='admin')
+                for admin in admins:
+                    send_realtime_notification(
+                        admin.id, 
+                        f"New registration payment submitted: {user.get_full_name()} - ₱{payment_amount}",
+                        type='registration'
+                    )
+                messages.success(request, f'Payment of ₱{payment_amount} submitted successfully! Your payment is pending verification.')
+                return redirect('accounts:registration_payment', user_id=user.id)
+            except (ValueError, TypeError):
+                messages.error(request, 'Please enter a valid payment amount.')
         else:
-            messages.error(request, 'Please upload a payment receipt.')
+            messages.error(request, 'Please enter payment amount and upload a receipt.')
+    
+    # Get the active QR code for payment
+    from payments.models import PaymentQRCode
+    active_qr_code = PaymentQRCode.get_active_qr_code()
+    
+    # Get payment history for this user
+    payments = user.registration_payments.all().order_by('-created_at')
     
     return render(request, 'accounts/registration_payment.html', {
         'user': user,
-        'registration_fee': user.registration_payment_amount
+        'registration_fee': user.registration_payment_amount,
+        'active_qr_code': active_qr_code,
+        'payments': payments,
     })
 
 @admin_required
@@ -573,58 +760,141 @@ def verify_registration_payment(request, user_id):
     if request.method == 'POST':
         action = request.POST.get('action')
         notes = request.POST.get('notes', '')
+        payment_id = request.POST.get('payment_id')
+        payment_amount = request.POST.get('payment_amount')
         
-        if action == 'verify':
-            user.registration_status = 'active'
-            user.is_active = True
-            user.registration_verified_by = request.user
-            user.registration_verification_date = timezone.now()
-            user.registration_notes = notes
-            user.save()
+        if payment_id:
+            # Verify a specific payment
+            payment = get_object_or_404(RegistrationPayment, pk=payment_id, user=user)
             
-            # Send notification to user
-            send_realtime_notification(
-                user.id, 
-                f"Your registration payment has been verified! Your account is now active.",
-                type='registration'
-            )
-            
-            # Send email notification
-            NotificationService.send_email(
-                subject="Registration Payment Verified - ScoutConnect",
-                message=f"Dear {user.get_full_name()},\n\nYour registration payment has been verified by an administrator. Your account is now active and you can log in to ScoutConnect.\n\nWelcome to the ScoutConnect community!\n\nBest regards,\nScoutConnect Team",
-                recipient_list=[user.email]
-            )
-            
-            messages.success(request, f'Registration payment for {user.get_full_name()} has been verified.')
-            
-        elif action == 'reject':
-            user.registration_status = 'pending_payment'
-            user.registration_verified_by = request.user
-            user.registration_verification_date = timezone.now()
-            user.registration_notes = notes
-            user.save()
-            
-            # Send notification to user
-            send_realtime_notification(
-                user.id, 
-                f"Your registration payment has been rejected. Please submit a new payment receipt.",
-                type='registration'
-            )
-            
-            # Send email notification
-            NotificationService.send_email(
-                subject="Registration Payment Rejected - ScoutConnect",
-                message=f"Dear {user.get_full_name()},\n\nYour registration payment has been rejected by an administrator. Please submit a new payment receipt.\n\nReason: {notes}\n\nBest regards,\nScoutConnect Team",
-                recipient_list=[user.email]
-            )
-            
-            messages.warning(request, f'Registration payment for {user.get_full_name()} has been rejected.')
+            if action == 'verify':
+                # Validate payment amount
+                try:
+                    if payment_amount:
+                        amount = Decimal(payment_amount)
+                        if amount <= 0:
+                            messages.error(request, 'Payment amount must be greater than 0.')
+                            return redirect('accounts:verify_registration_payment', user_id=user_id)
+                        payment.amount = amount
+                    else:
+                        messages.error(request, 'Please enter the payment amount.')
+                        return redirect('accounts:verify_registration_payment', user_id=user_id)
+                except (ValueError, TypeError):
+                    messages.error(request, 'Please enter a valid payment amount.')
+                    return redirect('accounts:verify_registration_payment', user_id=user_id)
+                
+                payment.status = 'verified'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = notes
+                payment.save()
+                
+                # Update user total paid
+                user.registration_total_paid += payment.amount
+                user.update_registration_status()
+                user.save()
+                
+                # Send notification to user
+                send_realtime_notification(
+                    user.id, 
+                    f"Your registration payment of ₱{payment.amount} has been verified!",
+                    type='registration'
+                )
+                
+                # Send email notification
+                NotificationService.send_email(
+                    subject="Registration Payment Verified - ScoutConnect",
+                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been verified by an administrator.\n\nTotal paid: ₱{user.registration_total_paid}\nRemaining: ₱{user.registration_amount_remaining}\n\nBest regards,\nScoutConnect Team",
+                    recipient_list=[user.email]
+                )
+                
+                messages.success(request, f'Registration payment of ₱{payment.amount} verified.')
+                
+            elif action == 'reject':
+                payment.status = 'rejected'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = notes
+                payment.save()
+                
+                # Send notification to user
+                send_realtime_notification(
+                    user.id, 
+                    f"Your registration payment of ₱{payment.amount} has been rejected.",
+                    type='registration'
+                )
+                
+                # Send email notification
+                NotificationService.send_email(
+                    subject="Registration Payment Rejected - ScoutConnect",
+                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been rejected by an administrator.\n\nReason: {notes}\n\nPlease submit a new payment receipt.\n\nBest regards,\nScoutConnect Team",
+                    recipient_list=[user.email]
+                )
+                
+                messages.warning(request, f'Registration payment of ₱{payment.amount} rejected.')
+        else:
+            # Legacy verification for old registrations without RegistrationPayment records
+            if action == 'verify':
+                user.registration_status = 'active'
+                user.is_active = True
+                user.registration_verified_by = request.user
+                user.registration_verification_date = timezone.now()
+                user.registration_notes = notes
+                user.save()
+                
+                # Send notification to user
+                send_realtime_notification(
+                    user.id, 
+                    f"Your registration payment has been verified! Your account is now active.",
+                    type='registration'
+                )
+                
+                # Send email notification
+                NotificationService.send_email(
+                    subject="Registration Payment Verified - ScoutConnect",
+                    message=f"Dear {user.get_full_name()},\n\nYour registration payment has been verified by an administrator. Your account is now active and you can log in to ScoutConnect.\n\nWelcome to the ScoutConnect community!\n\nBest regards,\nScoutConnect Team",
+                    recipient_list=[user.email]
+                )
+                
+                messages.success(request, f'Registration payment for {user.get_full_name()} has been verified.')
+                
+            elif action == 'reject':
+                user.registration_status = 'pending_payment'
+                user.registration_verified_by = request.user
+                user.registration_verification_date = timezone.now()
+                user.registration_notes = notes
+                user.save()
+                
+                # Send notification to user
+                send_realtime_notification(
+                    user.id, 
+                    f"Your registration payment has been rejected. Please submit a new payment receipt.",
+                    type='registration'
+                )
+                
+                # Send email notification
+                NotificationService.send_email(
+                    subject="Registration Payment Rejected - ScoutConnect",
+                    message=f"Dear {user.get_full_name()},\n\nYour registration payment has been rejected by an administrator. Please submit a new payment receipt.\n\nReason: {notes}\n\nBest regards,\nScoutConnect Team",
+                    recipient_list=[user.email]
+                )
+                
+                messages.warning(request, f'Registration payment for {user.get_full_name()} has been rejected.')
         
-        return redirect('accounts:pending_registrations')
+        return redirect('accounts:verify_registration_payment', user_id=user_id)
     
+    # Get payment history for this user
+    payments = user.registration_payments.all().order_by('-created_at')
+    
+    registration_fee = user.registration_amount_required
+    total_paid = user.registration_total_paid
+    membership_years = int(total_paid // registration_fee) if registration_fee else 0
+    membership_expiry = user.membership_expiry
     return render(request, 'accounts/verify_registration_payment.html', {
-        'user': user
+        'user': user,
+        'payments': payments,
+        'membership_years': membership_years,
+        'membership_expiry': membership_expiry,
     })
 
 @admin_required

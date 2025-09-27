@@ -1,7 +1,17 @@
 {% extends 'base_sidebar.html' %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container py-4 position-relative">
+  {% if user.is_authenticated and user.registration_status != 'payment_verified' and user.rank != 'admin' %}
+    <div id="event-blur-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; backdrop-filter: blur(6px) brightness(0.8); background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;">
+      <div class="text-center">
+        <div style="font-size: 4rem; color: #888;"><i class="fas fa-lock"></i></div>
+        <h3 class="fw-bold mt-3">Event Locked</h3>
+        <p class="lead">You need to have your registration payment verified by an admin to join or view event details.</p>
+        <p class="text-muted">Please complete your payment and wait for admin approval to unlock this feature.</p>
+      </div>
+    </div>
+  {% endif %}
   <div class="row">
     <!-- Event Information -->
     <div class="col-lg-8">
@@ -35,10 +45,21 @@
             <div class="alert alert-info">
               <h5>Payment Required</h5>
               <p><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
-              {% if event.qr_code %}
+              
+              {% if qr_code %}
                 <p><strong>Payment QR Code:</strong></p>
-                <img src="{{ event.qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
-                <p class="mt-2"><small>Scan this QR code to pay the event fee</small></p>
+                <img src="{{ qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
+                <p class="mt-2">
+                  <small>
+                    {% if event.qr_code %}
+                      Scan this QR code to pay the event fee
+                    {% else %}
+                      Scan this QR code to pay the event fee (using general payment QR code)
+                    {% endif %}
+                  </small>
+                </p>
+              {% else %}
+                <p class="text-warning"><strong>No QR code available.</strong> Please contact an administrator for payment instructions.</p>
               {% endif %}
             </div>
           {% else %}
@@ -62,10 +83,15 @@
                 <h6>Your Registration Status</h6>
                 <p><strong>RSVP:</strong> {{ registration.get_rsvp_display }}</p>
                 <p><strong>Payment Status:</strong> 
-                  <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                  <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
                     {{ registration.get_payment_status_display }}
                   </span>
                 </p>
+                {% if event.has_payment_required %}
+                  <p><strong>Amount Required:</strong> ₱{{ registration.amount_required }}</p>
+                  <p><strong>Amount Paid:</strong> ₱{{ registration.total_paid }}</p>
+                  <p><strong>Amount Remaining:</strong> ₱{{ registration.amount_remaining }}</p>
+                {% endif %}
                 {% if registration.payment_notes %}
                   <p><strong>Admin Notes:</strong> {{ registration.payment_notes }}</p>
                 {% endif %}
@@ -73,6 +99,20 @@
                   <p><strong>Verified by:</strong> {{ registration.verified_by.get_full_name }} on {{ registration.verification_date|date:"F d, Y" }}</p>
                 {% endif %}
               </div>
+              
+              <!-- Payment Actions -->
+              {% if event.has_payment_required and registration.amount_remaining > 0 %}
+                <div class="mb-3">
+                  <a href="{% url 'events:event_payment' event.pk %}" class="btn btn-success">
+                    <i class="fas fa-credit-card"></i> 
+                    {% if registration.total_paid > 0 %}
+                      Add Payment (₱{{ registration.amount_remaining }} remaining)
+                    {% else %}
+                      Pay for Event (₱{{ registration.amount_required }})
+                    {% endif %}
+                  </a>
+                </div>
+              {% endif %}
               
               <!-- Update Registration Form -->
               <form method="post" enctype="multipart/form-data">
@@ -232,3 +272,13 @@
   </div>
 </div>
 {% endblock %} 
+
+<style>
+  {% if user.is_authenticated and user.registration_status != 'active' %}
+  .container.py-4 > *:not(#event-blur-overlay) {
+    filter: blur(6px) brightness(0.8);
+    pointer-events: none;
+    user-select: none;
+  }
+  {% endif %}
+</style> 

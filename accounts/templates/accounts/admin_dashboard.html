@@ -1,4 +1,39 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .kpi-card {
+    border: 0; border-radius: 16px; color: #fff; position: relative; overflow: hidden;
+  }
+  .kpi-card .icon-bg { position:absolute; right:-10px; top:-10px; font-size:4rem; opacity:0.15; }
+  .kpi-card .value { font-size: 2.2rem; font-weight: 800; }
+  .kpi-primary { background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%); }
+  .kpi-success { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+  .kpi-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  .kpi-info { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+  .section-title { font-weight: 700; }
+  .card-rounded { border: 0; border-radius: 16px; }
+  .list-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+  .progress { height: 10px; border-radius: 999px; }
+  canvas { max-height: 320px; }
+  @media (max-width: 576px) { .value { font-size: 1.8rem !important; } }
+  .subtle { color: #6c757d; }
+  /* Improve contrast on KPI gradient cards */
+  .kpi-card .subtle { color: #ffffff !important; opacity: 0.9; }
+  /* Grid for management cards matching Recent Activity height */
+  .info-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 1rem; height: auto; }
+  .info-grid .card { height: 100%; }
+  /* Quick Actions: equalize button heights */
+  .quick-actions .qa-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 12px;
+  }
+</style>
+{% endblock %}
 {% block content %}
   <div class="container-fluid py-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -7,76 +42,263 @@
         <i class="fas fa-bullhorn"></i> Quick Announcement
       </button>
     </div>
+
+    <!-- Quick Actions - Moved to Top -->
+  <div class="row g-3 mb-4 quick-actions">
+      <div class="col-12">
+        <div class="card shadow border-0" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+          <div class="card-header border-0 text-white" style="background: transparent;">
+            <h4 class="mb-0 fw-bold">
+              <i class="fas fa-bolt"></i> Quick Actions
+            </h4>
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-3">
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a href="{% url 'events:event_create' %}" class="btn btn-success w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-plus fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">Create Event</span>
+                </a>
+              </div>
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a href="{% url 'events:pending_payments' %}" class="btn btn-warning w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-clock fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">Pending Payments</span>
+                </a>
+              </div>
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a id="qa-pending-registrations" href="{% url 'accounts:pending_registrations' %}" class="btn btn-info w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-user-plus fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">Pending Registrations</span>
+                </a>
+              </div>
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a href="{% url 'payments:qr_code_manage' %}" class="btn btn-primary w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-qrcode fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">QR Code Management</span>
+                </a>
+              </div>
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-users fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">Manage Members</span>
+                </a>
+              </div>
+              <div class="col-lg-2 col-md-4 col-sm-6">
+                <a href="{% url 'announcements:announcement_create' %}" class="btn btn-dark w-100 py-3 shadow-sm qa-btn">
+                  <i class="fas fa-bullhorn fa-lg d-block mb-2"></i>
+                  <span class="fw-bold d-block">Create Announcement</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Management Sections in 2x2 grid vs Recent Activity -->
+    <div class="row g-4 mb-4 align-items-stretch">
+      <div class="col-lg-6">
+        <div id="info-grid" class="info-grid">
+          <div>
+            <div id="card-engagement" class="card text-center shadow-sm border-info">
+              <div class="card-body p-4">
+                <i class="fas fa-chart-line fa-2x text-info mb-3"></i>
+                <h5 class="card-title">Engagement Analytics</h5>
+                <p class="card-text text-muted">View user engagement metrics.</p>
+                <a href="{% url 'analytics:engagement_dashboard' %}" class="btn btn-info">
+                  <i class="fas fa-eye"></i> View Engagement
+                </a>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div id="card-audit" class="card text-center shadow-sm border-warning">
+              <div class="card-body p-4">
+                <i class="fas fa-clipboard-list fa-2x text-warning mb-3"></i>
+                <h5 class="card-title">Audit Log</h5>
+                <p class="card-text text-muted">View system audit log.</p>
+                <a href="{% url 'analytics:audit_log' %}" class="btn btn-warning">
+                  <i class="fas fa-search"></i> View Audit Log
+                </a>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div id="card-announcements" class="card text-center shadow-sm border-success">
+              <div class="card-body p-4">
+                <i class="fas fa-bullhorn fa-2x text-success mb-3"></i>
+                <h5 class="card-title">Announcements</h5>
+                <p class="card-text text-muted">Manage all announcements.</p>
+                <a href="{% url 'announcements:announcement_list' %}" class="btn btn-success">
+                  <i class="fas fa-cog"></i> Manage Announcements
+                </a>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div id="card-settings" class="card text-center shadow-sm border-secondary">
+              <div class="card-body p-4">
+                <i class="fas fa-cogs fa-2x text-secondary mb-3"></i>
+                <h5 class="card-title">Settings</h5>
+                <p class="card-text text-muted">Manage system settings.</p>
+                <a href="{% url 'accounts:settings' %}" class="btn btn-secondary">
+                  <i class="fas fa-wrench"></i> Go to Settings
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div id="card-recent-activity" class="card card-rounded h-100 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Recent Activity</h5>
+              <div class="btn-group" role="group" aria-label="Activity filters" id="activity-filter-chips">
+                <button type="button" class="btn btn-sm btn-primary" data-filter="all">All</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="audit">Audit</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="page_view">Page Views</button>
+                <button type="button" class="btn btn-sm btn-outline-primary" data-filter="error">Errors</button>
+              </div>
+            </div>
+            <ul id="recent-activity-list" class="list-group list-group-flush">
+              {% with logs=recent_activity|default:None %}
+              {% if logs %}
+                {% for log in logs|slice:':8' %}
+                  <li class="list-group-item d-flex align-items-start" data-type="{{ log.event_type|default:'audit' }}">
+                    <div class="me-3 mt-1">
+                      <i class="fas fa-history text-secondary"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <div class="d-flex justify-content-between">
+                        <div class="fw-semibold">{{ log.action|default:log.event_type|capfirst }}</div>
+                        <small class="text-muted">{{ log.timestamp|date:'M d, Y H:i' }}</small>
+                      </div>
+                      <div class="small text-muted">
+                        {% if log.user %}by {{ log.user.get_full_name|default:log.user.email }}{% else %}system{% endif %}
+                        {% if log.details %} — {{ log.details|truncatechars:120 }}{% endif %}
+                        {% if log.page_url %}<span class="text-break"> — {{ log.page_url }}</span>{% endif %}
+                      </div>
+                    </div>
+                  </li>
+                {% endfor %}
+              {% else %}
+                <li class="list-group-item text-center text-muted">No recent activity</li>
+              {% endif %}
+              {% endwith %}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- KPI Overview -->
     <div class="row g-4 mb-4">
-      <div class="col-md-3">
-        <div class="card text-center shadow-sm h-100">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card kpi-card kpi-primary">
           <div class="card-body">
-            <h5 class="card-title">Members</h5>
-            <p class="display-6 fw-bold">{{ member_count }}</p>
+            <i class="fas fa-users icon-bg"></i>
+            <div class="subtle">Members</div>
+            <div class="value">{{ member_count }}</div>
+            <div class="small subtle">Total registered</div>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card text-center shadow-sm h-100">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card kpi-card kpi-success">
           <div class="card-body">
-            <h5 class="card-title">Payments (Verified)</h5>
-            <p class="display-6 fw-bold">₱{{ payment_total }}</p>
+            <i class="fas fa-check-circle icon-bg"></i>
+            <div class="subtle">Payments (Verified)</div>
+            <div class="value">₱{{ payment_total }}</div>
+            <div class="small subtle">Verified total</div>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card text-center shadow-sm h-100">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card kpi-card kpi-warning">
           <div class="card-body">
-            <h5 class="card-title">Payments (Pending)</h5>
-            <p class="display-6 fw-bold">{{ payment_pending }}</p>
+            <i class="fas fa-clock icon-bg"></i>
+            <div class="subtle">Payments (Pending)</div>
+            <div class="value">{{ payment_pending }}</div>
+            <div class="small subtle">Awaiting review</div>
           </div>
         </div>
       </div>
-      <div class="col-md-3">
-        <div class="card text-center shadow-sm h-100">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card kpi-card kpi-info">
           <div class="card-body">
-            <h5 class="card-title">Announcements</h5>
-            <p class="display-6 fw-bold">{{ announcement_count }}</p>
+            <i class="fas fa-bullhorn icon-bg"></i>
+            <div class="subtle">Announcements</div>
+            <div class="value">{{ announcement_count }}</div>
+            <div class="small subtle">Total posts</div>
           </div>
         </div>
       </div>
     </div>
     <div class="row g-4 mb-4">
       <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="card card-rounded h-100 shadow-sm">
           <div class="card-body">
-            <h5 class="card-title">Membership Growth (by Month)</h5>
-            <div class="table-responsive">
-              <table class="table table-striped table-hover align-middle bg-white rounded">
-                <thead class="table-light">
-                  <tr><th>Month</th><th>New Members</th></tr>
-                </thead>
-                <tbody>
-                  {% for row in member_growth %}
-                    <tr><td>{{ row.month|date:'Y-m' }}</td><td>{{ row.count }}</td></tr>
-                  {% empty %}<tr><td colspan="2" class="text-center">No data</td></tr>{% endfor %}
-                </tbody>
-              </table>
+            <h5 class="card-title">Membership Growth</h5>
+            <canvas id="memberGrowthChart" style="height: 300px;"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-6">
+        <div class="card card-rounded h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Payment Trends</h5>
+            <canvas id="paymentTrendsChart" style="height: 300px;"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-lg-6">
+        <div class="card card-rounded h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Announcement Engagement</h5>
+            <div class="list-group list-group-flush">
+              {% for a in announcement_engagement|slice:':5' %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <div class="fw-semibold">{{ a.title }}</div>
+                  <small class="text-muted">{{ a.read }}/{{ a.total }}</small>
+                </div>
+                {% widthratio a.read a.total 100 as percent %}
+                <div class="progress">
+                  <div class="progress-bar bg-info" role="progressbar" data-percent="{{ percent }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+              </div>
+              {% empty %}
+              <div class="list-group-item text-center text-muted">No announcements</div>
+              {% endfor %}
             </div>
           </div>
         </div>
       </div>
       <div class="col-lg-6">
-        <div class="card shadow-sm h-100">
+        <div class="card card-rounded h-100 shadow-sm">
           <div class="card-body">
-            <h5 class="card-title">Payment Trends (by Month)</h5>
-            <div class="table-responsive">
-              <table class="table table-striped table-hover align-middle bg-white rounded">
-                <thead class="table-light">
-                  <tr><th>Month</th><th>Total Payments</th></tr>
-                </thead>
-                <tbody>
-                  {% for row in payment_trends %}
-                    <tr><td>{{ row.month|date:'Y-m' }}</td><td>₱{{ row.total }}</td></tr>
-                  {% empty %}<tr><td colspan="2" class="text-center">No data</td></tr>{% endfor %}
-                </tbody>
-              </table>
-            </div>
+            <h5 class="card-title">Most Active Scouts (Payments)</h5>
+            <ul class="list-group list-group-flush">
+              {% for scout in active_scouts %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <div class="d-flex align-items-center gap-3">
+                    <img class="list-avatar" src="{% if scout.profile_image %}{{ scout.profile_image.url }}{% else %}{% static 'img/placeholder-avatar.png' %}{% endif %}" alt="avatar">
+                    <div>
+                      <div class="fw-semibold">{{ scout.get_full_name|default:scout.username }}</div>
+                      <small class="text-muted">{{ scout.get_rank_display }}</small>
+                    </div>
+                  </div>
+                  <span class="badge text-bg-primary">{{ scout.payment_count }} payments</span>
+                </li>
+              {% empty %}
+                <li class="list-group-item text-center text-muted">No data</li>
+              {% endfor %}
+            </ul>
           </div>
         </div>
       </div>
@@ -222,90 +444,7 @@
         </div>
       </div>
     </div>
-    
-    <!-- Quick Actions -->
-    <div class="row g-4 mb-4">
-      <div class="col-12">
-        <div class="card shadow-sm">
-          <div class="card-header">
-            <h5 class="mb-0">Quick Actions</h5>
-          </div>
-          <div class="card-body">
-            <div class="row">
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'events:event_create' %}" class="btn btn-success w-100">
-                  <i class="fas fa-plus"></i> Create Event
-                </a>
-              </div>
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'events:pending_payments' %}" class="btn btn-warning w-100">
-                  <i class="fas fa-clock"></i> Pending Payments
-                </a>
-              </div>
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'accounts:pending_registrations' %}" class="btn btn-info w-100">
-                  <i class="fas fa-user-plus"></i> Pending Registrations
-                </a>
-              </div>
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'payments:qr_code_manage' %}" class="btn btn-primary w-100">
-                  <i class="fas fa-qrcode"></i> QR Code Management
-                </a>
-              </div>
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary w-100">
-                  <i class="fas fa-users"></i> Manage Members
-                </a>
-              </div>
-              <div class="col-md-2 mb-2">
-                <a href="{% url 'announcements:announcement_create' %}" class="btn btn-dark w-100">
-                  <i class="fas fa-bullhorn"></i> Create Announcement
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <div class="row g-4">
-      <div class="col-md-3">
-        <div class="card text-center h-100">
-          <div class="card-body">
-            <h5 class="card-title">Engagement Analytics</h5>
-            <p class="card-text">View user engagement metrics.</p>
-            <a href="{% url 'analytics:engagement_dashboard' %}" class="btn btn-info">View Engagement</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card text-center h-100">
-          <div class="card-body">
-            <h5 class="card-title">Audit Log</h5>
-            <p class="card-text">View system audit log.</p>
-            <a href="{% url 'analytics:audit_log' %}" class="btn btn-warning">View Audit Log</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card text-center h-100">
-          <div class="card-body">
-            <h5 class="card-title">Announcements</h5>
-            <p class="card-text">Manage all announcements.</p>
-            <a href="{% url 'announcements:announcement_list' %}" class="btn btn-success">Manage Announcements</a>
-          </div>
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="card text-center h-100">
-          <div class="card-body">
-            <h5 class="card-title">Settings</h5>
-            <p class="card-text">Manage system settings.</p>
-            <a href="{% url 'accounts:settings' %}" class="btn btn-secondary">Go to Settings</a>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Quick Announcement Modal -->
@@ -362,3 +501,133 @@
     </div>
   </div>
 {% endblock %} 
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{{ member_growth|json_script:"member-growth-data" }}
+{{ payment_trends|json_script:"payment-trends-data" }}
+<script>
+  (function() {
+    const mg = JSON.parse(document.getElementById('member-growth-data').textContent || '[]');
+    const pt = JSON.parse(document.getElementById('payment-trends-data').textContent || '[]');
+    function fmtMonth(val){
+      const d = new Date(val);
+      if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      // Fallback if server already formatted
+      return String(val).slice(0,7);
+    }
+    const mgLabels = mg.map(r => fmtMonth(r.month));
+    const mgValues = mg.map(r => r.count || 0);
+    const ptLabels = pt.map(r => fmtMonth(r.month));
+    const ptValues = pt.map(r => Number(r.total || 0));
+
+    const memberCtx = document.getElementById('memberGrowthChart');
+    if (memberCtx) {
+      new Chart(memberCtx, {
+        type: 'line',
+        data: {
+          labels: mgLabels,
+          datasets: [{
+            label: 'New Members',
+            data: mgValues,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59,130,246,0.15)',
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true, ticks: { precision: 0 }}}}
+      });
+    }
+
+    const paymentCtx = document.getElementById('paymentTrendsChart');
+    if (paymentCtx) {
+      new Chart(paymentCtx, {
+        type: 'bar',
+        data: {
+          labels: ptLabels,
+          datasets: [{
+            label: '₱ Verified Total',
+            data: ptValues,
+            backgroundColor: 'rgba(34,197,94,0.6)',
+            borderColor: '#16a34a',
+            borderWidth: 1,
+            borderRadius: 8,
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false,
+          scales: { y: { beginAtZero: true }}}
+      });
+    }
+
+    // Set progress widths dynamically
+    document.querySelectorAll('.progress-bar[data-percent]').forEach(el => {
+      const pct = Math.max(0, Math.min(100, Number(el.getAttribute('data-percent') || 0)));
+      el.style.width = pct + '%';
+      el.setAttribute('aria-valuenow', String(pct));
+    });
+
+    // Sync the height of the left 2x2 grid with the Recent Activity card on the right
+    function syncGridHeight() {
+      const grid = document.getElementById('info-grid');
+      const activity = document.getElementById('card-recent-activity');
+      if (!grid || !activity) return;
+      grid.style.height = 'auto';
+      const h = activity.getBoundingClientRect().height;
+      if (h > 0) grid.style.height = h + 'px';
+    }
+    window.addEventListener('load', syncGridHeight);
+    window.addEventListener('resize', () => { requestAnimationFrame(syncGridHeight); });
+    setTimeout(syncGridHeight, 300);
+
+    // Client-side Recent Activity filtering
+    const chips = document.getElementById('activity-filter-chips');
+    const list = document.getElementById('recent-activity-list');
+    function applyActivityFilter(val) {
+      if (!list) return;
+      const items = list.querySelectorAll('li.list-group-item');
+      items.forEach(li => {
+        const t = (li.getAttribute('data-type') || '').toLowerCase();
+        // If no type provided, only show on "all"
+        const show = (val === 'all') || (t === val);
+        li.classList.toggle('d-none', !show);
+      });
+      // Update chip styles
+      if (chips) {
+        chips.querySelectorAll('button[data-filter]').forEach(b => {
+          const active = b.getAttribute('data-filter') === val;
+          b.classList.toggle('btn-primary', active);
+          b.classList.toggle('btn-outline-primary', !active);
+        });
+      }
+      // Re-sync heights after content change
+      requestAnimationFrame(syncGridHeight);
+    }
+    if (chips) {
+      chips.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-filter]');
+        if (!btn) return;
+        const val = btn.getAttribute('data-filter');
+        applyActivityFilter(val);
+      });
+    }
+    // Default to "all" on load
+    applyActivityFilter('all');
+
+    // Equalize Quick Actions button heights to match Pending Registrations
+    function equalizeQuickActionHeights() {
+      const ref = document.getElementById('qa-pending-registrations');
+      const buttons = document.querySelectorAll('.quick-actions .qa-btn');
+      if (!buttons || buttons.length === 0 || !ref) return;
+      // Reset to natural height
+      buttons.forEach(b => { b.style.height = 'auto'; });
+      const h = ref.getBoundingClientRect().height;
+      if (h > 0) buttons.forEach(b => { b.style.height = h + 'px'; });
+    }
+    window.addEventListener('load', equalizeQuickActionHeights);
+    window.addEventListener('resize', () => { requestAnimationFrame(equalizeQuickActionHeights); });
+    setTimeout(equalizeQuickActionHeights, 250);
+  })();
+</script>
+{% endblock %}

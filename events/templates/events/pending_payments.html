@@ -11,6 +11,7 @@
     <div class="card shadow-sm">
       <div class="card-header">
         <h5 class="mb-0">Registrations Awaiting Payment Verification</h5>
+        <small class="text-muted">Click "Verify Payment" to enter the actual amount paid by the user</small>
       </div>
       <div class="card-body">
         <div class="table-responsive">
@@ -19,10 +20,12 @@
               <tr>
                 <th>User</th>
                 <th>Event</th>
-                <th>Event Fee</th>
+                <th>Payment Status</th>
+                <th>Amount Required</th>
+                <th>Amount Paid</th>
+                <th>Amount Remaining</th>
                 <th>RSVP</th>
                 <th>Registered</th>
-                <th>Receipt</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -38,7 +41,18 @@
                     <small class="text-muted">{{ registration.event.date|date:"M d, Y" }}</small>
                   </td>
                   <td>
-                    <span class="badge bg-info">₱{{ registration.event.payment_amount }}</span>
+                    <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                      {{ registration.get_payment_status_display }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info">₱{{ registration.amount_required }}</span>
+                  </td>
+                  <td>
+                    <span class="badge bg-success">₱{{ registration.total_paid }}</span>
+                  </td>
+                  <td>
+                    <span class="badge {% if registration.amount_remaining > 0 %}bg-warning{% else %}bg-success{% endif %}">₱{{ registration.amount_remaining }}</span>
                   </td>
                   <td>
                     <span class="badge {% if registration.rsvp == 'yes' %}bg-success{% elif registration.rsvp == 'no' %}bg-danger{% else %}bg-warning{% endif %}">
@@ -46,15 +60,6 @@
                     </span>
                   </td>
                   <td>{{ registration.registered_at|date:"M d, Y g:i A" }}</td>
-                  <td>
-                    {% if registration.receipt_image %}
-                      <a href="{{ registration.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">
-                        <i class="fas fa-eye"></i> View Receipt
-                      </a>
-                    {% else %}
-                      <span class="badge bg-warning">No Receipt</span>
-                    {% endif %}
-                  </td>
                   <td>
                     <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary">
                       <i class="fas fa-check"></i> Verify Payment

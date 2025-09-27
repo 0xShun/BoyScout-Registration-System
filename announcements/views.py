@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .forms import AnnouncementForm
@@ -19,6 +19,13 @@ def admin_required(view_func):
 def announcement_list(request):
     announcements = Announcement.objects.all().order_by('-date_posted')
     return render(request, 'announcements/announcement_list.html', {'announcements': announcements})
+
+@login_required
+def announcement_detail(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+    # Mark as read for this user
+    announcement.read_by.add(request.user)
+    return render(request, 'announcements/announcement_detail.html', {'announcement': announcement})
 
 @admin_required
 def announcement_create(request):

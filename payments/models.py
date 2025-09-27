@@ -38,6 +38,7 @@ class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    payment_type = models.CharField(max_length=30, choices=[('registration', 'Registration'), ('other', 'Other')], default='other')
     gcash_receipt_image = models.ImageField(upload_to='payment_receipts/', null=True, blank=True)
     date = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateTimeField(null=True, blank=True)
@@ -49,6 +50,10 @@ class Payment(models.Model):
 
     class Meta:
         ordering = ['-date']
+        indexes = [
+            models.Index(fields=["user", "status", "date"]),
+            models.Index(fields=["payment_type", "status"]),
+        ]
 
     def __str__(self):
         return f"{self.user.get_full_name()} - ₱{self.amount} - {self.get_status_display()}"

@@ -20,10 +20,12 @@
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Role</th>
                 <th>Rank</th>
+                <th>Registration Status</th>
                 <th>Phone</th>
                 <th>Join Date</th>
+                <th>Total Paid</th>
+                <th>Dues</th>
                 <th>Balance</th>
                 <th>Actions</th>
               </tr>
@@ -33,15 +35,59 @@
               <tr>
                 <td><a href="{% url 'accounts:member_detail' member.pk %}">{{ member.get_full_name }}</a></td>
                 <td>{{ member.email }}</td>
-                <td>{{ member.get_role_display }}</td>
                 <td>{{ member.get_rank_display }}</td>
+                <td>
+                  <span class="badge 
+                    {% if member.registration_status == 'active' %}bg-primary
+                    {% elif member.registration_status == 'payment_verified' %}bg-success
+                    {% elif member.registration_status == 'payment_submitted' %}bg-warning
+                    {% elif member.registration_status == 'partial_payment' %}bg-info
+                    {% elif member.registration_status == 'pending_payment' %}bg-warning
+                    {% elif member.registration_status == 'inactive' %}bg-secondary
+                    {% else %}bg-secondary{% endif %}">
+                    {{ member.get_registration_status_display }}
+                  </span>
+                </td>
                 <td>{{ member.phone_number|default:"-" }}</td>
                 <td>{{ member.join_date|date:"M d, Y" }}</td>
                 <td>
                   {% if member.balance_info %}
+                    <div class="small">
+                      <div class="text-success">₱{{ member.balance_info.total_paid }}</div>
+                      {% if member.balance_info.registration_payments > 0 %}
+                        <div class="text-muted">Reg: ₱{{ member.balance_info.registration_payments }}</div>
+                      {% endif %}
+                      {% if member.balance_info.event_payments > 0 %}
+                        <div class="text-muted">Events: ₱{{ member.balance_info.event_payments }}</div>
+                      {% endif %}
+                      {% if member.balance_info.general_payments > 0 %}
+                        <div class="text-muted">Other: ₱{{ member.balance_info.general_payments }}</div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <span class="text-muted">₱0</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if member.balance_info %}
+                    <div class="small">
+                      <div class="text-info">₱{{ member.balance_info.total_dues }}</div>
+                      {% if member.balance_info.registration_dues > 0 %}
+                        <div class="text-warning">Registration: ₱{{ member.balance_info.registration_dues }}</div>
+                      {% endif %}
+                      {% if member.balance_info.event_dues > 0 %}
+                        <div class="text-warning">Events: ₱{{ member.balance_info.event_dues }}</div>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <span class="text-muted">₱500</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if member.balance_info %}
                     <span class="fw-bold {% if member.balance_info.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ member.balance_info.balance }}</span>
                   {% else %}
-                    <span class="text-muted">-</span>
+                    <span class="text-danger">₱-500</span>
                   {% endif %}
                 </td>
                 <td>
@@ -50,7 +96,7 @@
                 </td>
               </tr>
               {% empty %}
-              <tr><td colspan="7" class="text-center">No members found.</td></tr>
+              <tr><td colspan="10" class="text-center">No members found.</td></tr>
               {% endfor %}
             </tbody>
           </table>

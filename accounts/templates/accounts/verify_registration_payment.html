@@ -6,7 +6,6 @@
     <h2>Verify Registration Payment</h2>
     <a href="{% url 'accounts:pending_registrations' %}" class="btn btn-secondary">Back to Pending Registrations</a>
   </div>
-  
   <div class="row">
     <div class="col-lg-8">
       <div class="card shadow-sm mb-4">
@@ -16,17 +15,38 @@
         <div class="card-body">
           <div class="row">
             <div class="col-md-6">
-              <p><strong>Name:</strong> {{ user.get_full_name }}</p>
+              <p><strong>Name:</strong> <span {% if user.registration_status == 'active' %}style="text-decoration: underline;"{% endif %}>{{ user.get_full_name }}</span>
+              {% if user.registration_status == 'active' and user.membership_expiry and user.membership_expiry >= today %}
+                <span class="badge bg-success ms-2">Active Member</span>
+              {% elif user.registration_status == 'active' %}
+                <span class="badge bg-secondary ms-2">Registration Payment Verified</span>
+              {% endif %}
+              </p>
               <p><strong>Username:</strong> @{{ user.username }}</p>
               <p><strong>Email:</strong> {{ user.email }}</p>
               <p><strong>Phone:</strong> {{ user.phone_number|default:"Not provided" }}</p>
             </div>
             <div class="col-md-6">
-              <p><strong>Registration Fee:</strong> ₱{{ user.registration_payment_amount }}</p>
-              <p><strong>Registration Date:</strong> {{ user.date_joined|date:"M d, Y g:i A" }}</p>
+              <p><strong>Registration Fee Required:</strong> ₱{{ user.registration_amount_required }}</p>
+              <p><strong>Amount Paid:</strong> ₱{{ user.registration_total_paid }}</p>
+              <p><strong>Amount Remaining:</strong> ₱{{ user.registration_amount_remaining }}</p>
+              <p><strong>Membership Years:</strong> {{ membership_years }}</p>
+              <p><strong>Membership Expiry:</strong> {% if membership_expiry %}{{ membership_expiry|date:"M d, Y" }}{% else %}-{% endif %}</p>
+              <p><strong>Registration Date:</strong> {% if user.registration_date %}{{ user.registration_date|date:"M d, Y g:i A" }}{% else %}-{% endif %}</p>
               <p><strong>Current Status:</strong> 
-                <span class="badge {% if user.registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
-                  {{ user.get_registration_status_display }}
+                <span class="badge 
+                  {% if user.registration_status == 'active' %}bg-primary
+                  {% elif user.registration_status == 'payment_verified' %}bg-success
+                  {% elif user.registration_status == 'payment_submitted' or user.registration_status == 'pending_payment' %}bg-warning
+                  {% elif user.registration_status == 'partial_payment' %}bg-info
+                  {% else %}bg-secondary{% endif %}">
+                  {% if user.registration_status == 'active' and user.membership_expiry and user.membership_expiry >= today %}
+                    Active Member
+                  {% elif user.registration_status == 'active' %}
+                    Registration Payment Verified
+                  {% else %}
+                    {{ user.get_registration_status_display }}
+                  {% endif %}
                 </span>
               </p>
             </div>
@@ -34,52 +54,55 @@
         </div>
       </div>
 
-      <!-- Payment Receipt -->
-      <div class="card shadow-sm mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">Payment Receipt</h5>
+      <!-- Registration Payment Cards -->
+      {% for payment in payments %}
+        {% if payment.status == 'pending' %}
+        <div class="card shadow-sm mb-4">
+          <div class="card-header">
+            <h5 class="mb-0">Pending Registration Payment</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Date Submitted:</strong> {{ payment.created_at|date:"M d, Y g:i A" }}</p>
+                <p><strong>Amount:</strong> ₱{{ payment.amount }}</p>
+                <p><strong>Status:</strong> <span class="badge bg-warning">Pending</span></p>
+                <p><strong>Notes:</strong> {{ payment.notes|default:"-" }}</p>
+              </div>
+              <div class="col-md-6">
+                <p><strong>Receipt:</strong></p>
+                {% if payment.receipt_image %}
+                  <a href="{{ payment.receipt_image.url }}" target="_blank" class="btn btn-info mb-2">
+                    <i class="fas fa-image"></i> View Receipt
+                  </a>
+                {% else %}
+                  <span class="text-muted">No receipt</span>
+                {% endif %}
+              </div>
+            </div>
+            <form method="post" class="mt-3">
+              {% csrf_token %}
+              <input type="hidden" name="payment_id" value="{{ payment.id }}">
+              <div class="row g-2 align-items-center">
+                <div class="col-md-4">
+                  <input type="number" name="payment_amount" class="form-control" placeholder="Amount paid" step="0.01" min="0.01" value="{{ payment.amount }}" required>
+                </div>
+                <div class="col-md-8">
+                  <button type="submit" name="action" value="verify" class="btn btn-success me-2">
+                    <i class="fas fa-check"></i> Verify Payment & Activate Account
+                  </button>
+                  <button type="submit" name="action" value="reject" class="btn btn-danger">
+                    <i class="fas fa-times"></i> Reject Payment
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
-        <div class="card-body">
-          {% if user.registration_receipt %}
-            <div class="text-center mb-3">
-              <img src="{{ user.registration_receipt.url }}" alt="Payment Receipt" class="img-fluid" style="max-width: 100%; max-height: 400px;">
-            </div>
-            <div class="text-center">
-              <a href="{{ user.registration_receipt.url }}" target="_blank" class="btn btn-info">
-                <i class="fas fa-external-link-alt"></i> Open Full Size
-              </a>
-            </div>
-          {% else %}
-            <div class="alert alert-warning">
-              <i class="fas fa-exclamation-triangle"></i> No receipt uploaded
-            </div>
-          {% endif %}
-        </div>
-      </div>
+        {% endif %}
+      {% endfor %}
+      <!-- End Registration Payment Cards -->
 
-      <!-- Verification Form -->
-      <div class="card shadow-sm">
-        <div class="card-header">
-          <h5 class="mb-0">Payment Verification</h5>
-        </div>
-        <div class="card-body">
-          <form method="post">
-            {% csrf_token %}
-            <div class="mb-3">
-              <label for="notes" class="form-label">Administrator Notes (optional):</label>
-              <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Add any notes about the payment verification...">{{ user.registration_notes }}</textarea>
-            </div>
-            <div class="d-flex gap-2">
-              <button type="submit" name="action" value="verify" class="btn btn-success">
-                <i class="fas fa-check"></i> Verify Payment & Activate Account
-              </button>
-              <button type="submit" name="action" value="reject" class="btn btn-danger">
-                <i class="fas fa-times"></i> Reject Payment
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
     </div>
 
     <!-- Sidebar -->
@@ -87,10 +110,12 @@
       <!-- Payment Information -->
       <div class="card shadow-sm mb-4">
         <div class="card-header">
-          <h5 class="mb-0">Payment Details</h5>
+          <h5 class="mb-0">Payment Summary</h5>
         </div>
         <div class="card-body">
-          <p><strong>Expected Amount:</strong> ₱{{ user.registration_payment_amount }}</p>
+          <p><strong>Amount Required:</strong> ₱{{ user.registration_amount_required }}</p>
+          <p><strong>Amount Paid:</strong> ₱{{ user.registration_total_paid }}</p>
+          <p><strong>Amount Remaining:</strong> ₱{{ user.registration_amount_remaining }}</p>
           <p><strong>Payment Methods:</strong></p>
           <ul class="list-unstyled">
             <li>• GCash: 0912-345-6789</li>
@@ -119,4 +144,4 @@
     </div>
   </div>
 </div>
-{% endblock %} 
+{% endblock %}

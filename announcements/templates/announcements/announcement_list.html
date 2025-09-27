@@ -13,7 +13,7 @@
                 <div class="mb-2 text-muted small">
                   <i class="fas fa-calendar-alt me-1"></i> {{ announcement.date_posted|date:"M d, Y" }}
                 </div>
-                <a href="#" class="btn btn-outline-primary btn-sm">Read More</a>
+                <a href="{% url 'announcements:announcement_detail' announcement.pk %}" class="btn btn-outline-primary btn-sm">Read More</a>
               </div>
             </div>
           </div>

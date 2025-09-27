@@ -22,7 +22,7 @@ from accounts.views import home
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('accounts/', include('accounts.urls')),
+    path('accounts/', include('accounts.urls', namespace='accounts')),
     path('payments/', include('payments.urls')),
     path('announcements/', include('announcements.urls')),
     path('events/', include('events.urls')),

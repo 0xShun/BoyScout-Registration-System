@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from accounts.models import User
+from decimal import Decimal
 
 def get_current_time():
     return timezone.now().time()
@@ -59,6 +60,33 @@ class Attendance(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.event.title} ({self.status})"
 
+class EventPayment(models.Model):
+    """Model to track individual payments for event registrations"""
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('verified', 'Verified'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    registration = models.ForeignKey('EventRegistration', on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Payment Amount")
+    receipt_image = models.ImageField(upload_to='event_payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    notes = models.TextField(blank=True, verbose_name="Payment Notes")
+    verified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_event_payments')
+    verification_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=["registration", "status", "created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.registration.user.get_full_name()} - {self.registration.event.title} - ₱{self.amount} ({self.get_status_display()})"
+
 class EventRegistration(models.Model):
     RSVP_CHOICES = [
         ('yes', 'Attending'),
@@ -69,7 +97,8 @@ class EventRegistration(models.Model):
     PAYMENT_STATUS_CHOICES = [
         ('not_required', 'Payment Not Required'),
         ('pending', 'Payment Pending'),
-        ('paid', 'Payment Verified'),
+        ('partial', 'Partial Payment'),
+        ('paid', 'Payment Complete'),
         ('rejected', 'Payment Rejected'),
     ]
     
@@ -81,9 +110,11 @@ class EventRegistration(models.Model):
     verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_event_registrations')
     verification_date = models.DateTimeField(null=True, blank=True)
-    # New fields for payment flow
+    # Updated fields for payment flow
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='not_required')
     payment_notes = models.TextField(blank=True, verbose_name="Payment Notes")
+    total_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Amount Paid")
+    amount_required = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Amount Required")
 
     class Meta:
         unique_together = ('event', 'user')
@@ -92,11 +123,35 @@ class EventRegistration(models.Model):
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.event.title} ({self.rsvp})"
 
+    @property
+    def amount_remaining(self):
+        """Calculate remaining amount to be paid"""
+        return max(Decimal('0.00'), self.amount_required - self.total_paid)
+
+    @property
+    def is_fully_paid(self):
+        """Check if registration is fully paid"""
+        return self.total_paid >= self.amount_required
+
+    def update_payment_status(self):
+        """Update payment status based on total paid vs required"""
+        if self.amount_required == 0:
+            self.payment_status = 'not_required'
+        elif self.total_paid >= self.amount_required:
+            self.payment_status = 'paid'
+        elif self.total_paid > 0:
+            self.payment_status = 'partial'
+        else:
+            self.payment_status = 'pending'
+        self.save()
+
     def save(self, *args, **kwargs):
         # Auto-set payment status based on event requirements
         if not self.pk:  # Only on creation
             if self.event.has_payment_required:
                 self.payment_status = 'pending'
+                self.amount_required = self.event.payment_amount
             else:
                 self.payment_status = 'not_required'
+                self.amount_required = Decimal('0.00')
         super().save(*args, **kwargs)

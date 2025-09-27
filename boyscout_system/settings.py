@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'analytics',
     'notifications',
     'widget_tweaks',
+    'phonenumber_field',
     'channels',
 ]
 
@@ -72,6 +73,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'notifications.context_processors.notifications_unread',
             ],
         },
     },
@@ -144,13 +146,38 @@ AUTH_USER_MODEL = 'accounts.User'
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = 'accounts:login'
 
-# Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # This will print emails to console instead of sending them
+# Email Configuration (use environment variables)
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'True').lower() == 'true'
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER or 'ScoutConnect <noreply@example.com>')
 
+# For GCP SendGrid
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.sendgrid.net'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'apikey'
+# EMAIL_HOST_PASSWORD = 'your-sendgrid-api-key'
+# DEFAULT_FROM_EMAIL = 'ScoutConnect <noreply@yourdomain.com>'
 # Twilio Configuration for SMS
-TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')  # Add your Twilio Account SID
-TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')   # Add your Twilio Auth Token
-TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '') # Add your Twilio phone number
+# TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')  # Add your Twilio Account SID
+# TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')   # Add your Twilio Auth Token
+# TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '') # Add your Twilio phone number
+
+# Twilio (use environment variables)
+TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID', '')
+TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
+TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
+TWILIO_MESSAGING_SERVICE_SID = os.environ.get('TWILIO_MESSAGING_SERVICE_SID', '')
+
+# Alternative: Vonage (Nexmo)
+# VONAGE_API_KEY = 'your-api-key'
+# VONAGE_API_SECRET = 'your-api-secret'
+# VONAGE_FROM_NUMBER = '+1234567890'
 
 # File upload settings
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
@@ -160,8 +187,8 @@ ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif']
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_BROWSER_XSS_FILTER = True
 X_FRAME_OPTIONS = 'DENY'
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = os.environ.get('CSRF_COOKIE_SECURE', 'True').lower() == 'true'
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
 
 # Cache settings
 CACHES = {
@@ -183,3 +210,6 @@ CHANNEL_LAYERS = {
         'BACKEND': 'channels.layers.InMemoryChannelLayer',
     },
 }
+
+# Phone number field
+PHONENUMBER_DEFAULT_REGION = os.environ.get('PHONENUMBER_DEFAULT_REGION', 'PH')

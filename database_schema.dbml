@@ -1,0 +1,267 @@
+Project BoyScoutSystem {
+  database_type: 'PostgreSQL'
+  Note: '''
+  # Boy Scout System Database Schema (Simplified)
+  
+  A streamlined database schema for managing Boy Scout troops, focusing on:
+  - User management with different ranks and roles
+  - Event management and attendance tracking
+  - Payment processing and verification
+  - Basic announcements
+  
+  ## Key Features
+  - Multi-role user system (Admin, Scouts, Leaders)
+  - Event registration with payment support
+  - Payment verification workflow
+  - Simple announcement system
+  '''
+}
+
+// Enums for consistent data types
+enum user_rank {
+  admin [note: 'System Administrator']
+  scout [note: 'Regular Scout Member']
+  senior_scout [note: 'Senior Scout Member']
+  patrol_leader [note: 'Patrol Leader']
+  assistant_patrol_leader [note: 'Assistant Patrol Leader']
+  second_class [note: 'Second Class Rank']
+  first_class [note: 'First Class Rank']
+  star [note: 'Star Rank']
+  life [note: 'Life Rank']
+  eagle [note: 'Eagle Rank']
+}
+
+enum registration_status {
+  pending_payment [note: 'Waiting for registration payment']
+  payment_submitted [note: 'Payment receipt submitted']
+  payment_verified [note: 'Payment verified by admin']
+  active [note: 'Active member']
+  inactive [note: 'Inactive member']
+}
+
+enum attendance_status {
+  present [note: 'Attended the event']
+  absent [note: 'Did not attend']
+}
+
+enum rsvp_status {
+  yes [note: 'Will attend']
+  no [note: 'Will not attend']
+  maybe [note: 'Might attend']
+}
+
+enum payment_status {
+  not_required [note: 'No payment needed for this event']
+  pending [note: 'Payment pending verification']
+  paid [note: 'Payment verified']
+  rejected [note: 'Payment rejected']
+}
+
+enum general_payment_status {
+  pending [note: 'Payment pending verification']
+  verified [note: 'Payment verified by admin']
+  rejected [note: 'Payment rejected']
+}
+
+// Core User Management Tables
+Table users {
+  id integer [primary key, increment]
+  username varchar(150) [unique, null]
+  email varchar(254) [unique, not null, note: 'Primary login identifier']
+  password varchar(128) [not null]
+  first_name varchar(150) [not null]
+  last_name varchar(150) [not null]
+  rank user_rank [default: 'scout', note: 'User rank in the scout system']
+  verification_code varchar(6) [null, note: 'Email verification code']
+  date_of_birth date [null]
+  address text [note: 'User address']
+  phone_number varchar(20) [note: 'Contact phone number']
+  emergency_contact varchar(100) [note: 'Emergency contact name']
+  emergency_phone varchar(20) [note: 'Emergency contact phone']
+  medical_conditions text [note: 'Medical conditions or notes']
+  allergies text [note: 'Allergies information']
+  date_joined timestamp [default: `now()`, note: 'When user joined the system']
+  is_active boolean [default: false, note: 'Account activation status']
+  is_staff boolean [default: false]
+  is_superuser boolean [default: false]
+  last_login timestamp [null]
+  
+  // Registration payment fields
+  registration_status registration_status [default: 'pending_payment']
+  registration_payment_amount decimal(10,2) [default: 500.00, note: 'Registration fee amount']
+  registration_receipt varchar(100) [null, note: 'Path to receipt image']
+  registration_verified_by integer [null, note: 'Admin who verified registration']
+  registration_verification_date timestamp [null]
+  registration_notes text [note: 'Notes about registration process']
+
+  indexes {
+    email [unique]
+    username [unique]
+    rank
+    registration_status
+    date_joined
+  }
+
+  Note: 'Core user table extending Django AbstractUser with scout-specific fields'
+}
+
+// Event Management
+Table events {
+  id integer [primary key, increment]
+  title varchar(200) [not null]
+  description text [not null]
+  date date [not null]
+  time time [default: `now()`, note: 'Event time']
+  location varchar(200) [not null]
+  banner varchar(100) [null, note: 'Path to event banner image']
+  qr_code varchar(100) [null, note: 'Path to payment QR code image']
+  payment_amount decimal(10,2) [null, note: 'Event fee amount']
+  created_by integer [not null, default: 1]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    date
+    created_by
+    payment_amount
+  }
+
+  Note: 'Events organized by the scout troop'
+}
+
+Table attendances {
+  id integer [primary key, increment]
+  event_id integer [not null]
+  user_id integer [not null]
+  status attendance_status [default: 'present']
+  marked_by integer [null, note: 'User who marked attendance']
+  timestamp timestamp [default: `now()`]
+
+  indexes {
+    (event_id, user_id) [unique]
+    status
+    timestamp
+  }
+
+  Note: 'Attendance records for events'
+}
+
+Table event_registrations {
+  id integer [primary key, increment]
+  event_id integer [not null]
+  user_id integer [not null]
+  rsvp rsvp_status [default: 'yes']
+  receipt_image varchar(100) [null, note: 'Path to payment receipt']
+  registered_at timestamp [default: `now()`]
+  verified boolean [default: false, note: 'Whether registration is verified']
+  verified_by integer [null, note: 'Admin who verified registration']
+  verification_date timestamp [null]
+  payment_status payment_status [default: 'not_required']
+  payment_notes text [note: 'Notes about payment verification']
+
+  indexes {
+    (event_id, user_id) [unique]
+    rsvp
+    payment_status
+    verified
+    registered_at
+  }
+
+  Note: 'Event registration and RSVP tracking'
+}
+
+// Payment System
+Table payment_qr_codes {
+  id integer [primary key, increment]
+  qr_code varchar(100) [not null, note: 'Path to QR code image']
+  title varchar(100) [default: 'General Payment QR Code']
+  description text [note: 'QR code description']
+  is_active boolean [default: true, note: 'Whether this QR code is currently active']
+  created_by integer [not null]
+  created_at timestamp [default: `now()`]
+  updated_at timestamp [default: `now()`]
+
+  indexes {
+    is_active
+    created_at
+  }
+
+  Note: 'General payment QR codes for the system'
+}
+
+Table payments {
+  id integer [primary key, increment]
+  user_id integer [not null]
+  amount decimal(10,2) [not null]
+  status general_payment_status [default: 'pending']
+  gcash_receipt_image varchar(100) [null, note: 'Path to GCash receipt']
+  date timestamp [default: `now()`]
+  expiry_date timestamp [null, note: 'Payment expiry date']
+  verified_by integer [null, note: 'Admin who verified payment']
+  verification_date timestamp [null]
+  notes text [note: 'Payment notes']
+  payee_name varchar(100) [note: 'Name of person who made payment']
+  payee_email varchar(100) [note: 'Email of person who made payment']
+
+  indexes {
+    user_id
+    status
+    date
+    expiry_date
+  }
+
+  Note: 'General payment records for various purposes'
+}
+
+// Basic Announcements
+Table announcements {
+  id integer [primary key, increment]
+  title varchar(200) [not null]
+  message text [not null]
+  date_posted timestamp [default: `now()`]
+
+  indexes {
+    date_posted
+  }
+
+  Note: 'System announcements'
+}
+
+// Table Groups for better organization
+TableGroup user_management [note: 'Core user management tables'] {
+  users
+}
+
+TableGroup event_management [note: 'Event organization and attendance'] {
+  events
+  attendances
+  event_registrations
+}
+
+TableGroup payment_system [note: 'Payment processing and verification'] {
+  payment_qr_codes
+  payments
+}
+
+TableGroup communication [note: 'Basic announcements'] {
+  announcements
+}
+
+// Relationships
+Ref: events.created_by > users.id
+
+Ref: attendances.event_id > events.id
+Ref: attendances.user_id > users.id
+Ref: attendances.marked_by > users.id
+
+Ref: event_registrations.event_id > events.id
+Ref: event_registrations.user_id > users.id
+Ref: event_registrations.verified_by > users.id
+
+Ref: payment_qr_codes.created_by > users.id
+
+Ref: payments.user_id > users.id
+Ref: payments.verified_by > users.id
+
+// Self-referencing relationships for admin actions
+Ref: users.registration_verified_by > users.id 

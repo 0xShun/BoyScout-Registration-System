@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
 from .models import User, Group
+from django.conf import settings
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -36,16 +37,23 @@ class CustomLoginForm(AuthenticationForm):
             try:
                 user = User.objects.get(email=username)
                 if not user.is_active:
-                    raise forms.ValidationError("This account is not active. Please verify your email first.")
+                    # Check registration payment status for more specific message
+                    reg_payment = user.registration_payments.filter(status='verified').exists()
+                    if not reg_payment:
+                        raise forms.ValidationError("Your registration payment is not yet verified. Please wait for admin approval.")
+                    else:
+                        raise forms.ValidationError("This account is not active. Please verify your email first.")
             except User.DoesNotExist:
-                raise forms.ValidationError("Invalid email or password.")
+                # Don't raise validation error here - let Django's authentication handle it
+                pass
         
         return cleaned_data
 
 class UserRegisterForm(UserCreationForm):
+    amount = forms.DecimalField(label='Registration Payment', min_value=1, max_value=1000, initial=500)
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'registration_receipt']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'registration_receipt', 'amount']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -91,7 +99,14 @@ class UserRegisterForm(UserCreationForm):
 
     def clean(self):
         cleaned_data = super().clean()
-        # Add any additional validation here
+        # Validate receipt file size and type if provided
+        receipt = self.files.get('registration_receipt')
+        if receipt:
+            if receipt.size > getattr(settings, 'MAX_UPLOAD_SIZE', 5 * 1024 * 1024):
+                self.add_error('registration_receipt', 'File too large. Maximum is 5MB.')
+            allowed = set(getattr(settings, 'ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif']))
+            if hasattr(receipt, 'content_type') and receipt.content_type not in allowed:
+                self.add_error('registration_receipt', 'Unsupported file type. Use JPG/PNG/GIF.')
         return cleaned_data
 
 class UserEditForm(forms.ModelForm):

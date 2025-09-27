@@ -25,10 +25,14 @@
         <div class="alert alert-info">
           <h6 class="alert-heading">Registration Fee: ₱500.00</h6>
           <p class="mb-2">To complete your registration, you'll need to pay the registration fee. You can:</p>
-          <ul class="mb-0">
+          <ul class="mb-2">
+            <li>Scan the QR code on the right to pay via GCash</li>
             <li>Upload your payment receipt now during registration</li>
             <li>Or complete the payment later after registration</li>
           </ul>
+          {% if active_qr_code %}
+            <p class="small mb-0"><strong>Mobile users:</strong> You can find the QR code after completing registration.</p>
+          {% endif %}
         </div>
         
         <button type="submit" class="btn btn-dark w-100 py-2 mt-4">Complete Registration</button>
@@ -40,8 +44,34 @@
         <small class="text-muted">© ScoutConnect 2024</small>
       </div>
     </div>
-    <div class="col-md-5 d-none d-md-block bg-secondary p-5 rounded-end shadow-sm" style="background-image: url('https://via.placeholder.com/450x600/6c757d/ffffff?text=ScoutConnect+Image'); background-size: cover; background-position: center;">
-      <!-- Image placeholder -->
+    <div class="col-md-5 d-none d-md-block bg-secondary p-5 rounded-end shadow-sm">
+      <div class="text-center h-100 d-flex flex-column justify-content-center">
+        {% if active_qr_code %}
+          <div class="payment-qr-section">
+            <h4 class="text-white mb-3">Pay Registration Fee</h4>
+            <div class="bg-white p-3 rounded mb-3">
+              <img src="{{ active_qr_code.qr_code.url }}" alt="{{ active_qr_code.title }}" class="img-fluid" style="max-width: 280px; max-height: 280px;">
+            </div>
+            <div class="text-white">
+              <h6>{{ active_qr_code.title }}</h6>
+              {% if active_qr_code.description %}
+                <p class="small mb-2">{{ active_qr_code.description }}</p>
+              {% endif %}
+              <p class="small"><strong>Amount: ₱500.00</strong></p>
+              <p class="small">Scan the QR code to pay your registration fee</p>
+            </div>
+          </div>
+        {% else %}
+          <div class="text-center text-white">
+            <h4 class="mb-3">Registration Payment</h4>
+            <div class="bg-white p-4 rounded mb-3 text-dark">
+              <i class="fas fa-credit-card fa-3x text-secondary mb-3"></i>
+              <p>Payment QR code will be available soon</p>
+            </div>
+            <p class="small">Contact admin for payment details</p>
+          </div>
+        {% endif %}
+      </div>
     </div>
   </div>
 

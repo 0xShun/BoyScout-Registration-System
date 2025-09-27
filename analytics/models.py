@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from django.contrib.gis.geoip2 import GeoIP2
+# from django.contrib.gis.geoip2 import GeoIP2  # Commented out due to import error
 from ipware import get_client_ip
 import json
 
