@@ -179,6 +179,17 @@ TWILIO_MESSAGING_SERVICE_SID = os.environ.get('TWILIO_MESSAGING_SERVICE_SID', ''
 # VONAGE_API_SECRET = 'your-api-secret'
 # VONAGE_FROM_NUMBER = '+1234567890'
 
+# PayMongo Payment Gateway (QR PH)
+PAYMONGO_PUBLIC_KEY = os.environ.get('PAYMONGO_PUBLIC_KEY', '')
+PAYMONGO_SECRET_KEY = os.environ.get('PAYMONGO_SECRET_KEY', '')
+PAYMONGO_WEBHOOK_SECRET = os.environ.get('PAYMONGO_WEBHOOK_SECRET', '')
+
+# QR PH Payment Settings
+QRPH_MERCHANT_ID = os.environ.get('QRPH_MERCHANT_ID', '')
+QRPH_MERCHANT_NAME = os.environ.get('QRPH_MERCHANT_NAME', 'ScoutConnect')
+QRPH_ACCOUNT_NUMBER = os.environ.get('QRPH_ACCOUNT_NUMBER', '')
+QRPH_MERCHANT_CITY = os.environ.get('QRPH_MERCHANT_CITY', 'Manila')
+
 # File upload settings
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
 ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif']

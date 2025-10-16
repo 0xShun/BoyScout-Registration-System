@@ -12,3 +12,4 @@ django-ipware>=5.0.0
 twilio>=8.0.0
 requests>=2.31.0
 django-phonenumber-field[phonenumberslite]>=8.0.0
+qrcode[pil]>=7.4.2

@@ -135,6 +135,9 @@ def payment_list(request):
 
 @login_required
 def payment_submit(request):
+    from payments.services.paymongo_service import PayMongoService
+    from decimal import Decimal
+    
     if request.method == 'POST':
         form = PaymentForm(request.POST, request.FILES)
         if form.is_valid():
@@ -143,15 +146,63 @@ def payment_submit(request):
             payment.payee_name = f"{request.user.first_name} {request.user.last_name}"
             payment.payee_email = request.user.email
             payment.expiry_date = timezone.now() + timedelta(days=7)  # 7 days expiry
+            
+            # Generate QR PH reference if not provided
+            if not payment.qr_ph_reference:
+                payment.qr_ph_reference = f"QRP-{request.user.id}-{timezone.now().strftime('%Y%m%d%H%M%S')}"
+            
             payment.save()
             
+            # Check if user wants to use PayMongo (automatic) or manual payment
+            use_paymongo = request.POST.get('use_paymongo', 'no') == 'yes'
+            
+            if use_paymongo:
+                # Create PayMongo source for QR PH payment
+                paymongo = PayMongoService()
+                
+                # Get the full URL for success/failed redirects
+                success_url = request.build_absolute_uri('/payments/success/')
+                failed_url = request.build_absolute_uri('/payments/failed/')
+                
+                success, response = paymongo.create_source(
+                    amount=Decimal(str(payment.amount)),
+                    description=f"ScoutConnect Payment - {payment.payment_type}",
+                    redirect_success=success_url,
+                    redirect_failed=failed_url,
+                    metadata={
+                        'payment_id': payment.id,
+                        'user_id': request.user.id,
+                        'reference': payment.qr_ph_reference
+                    }
+                )
+                
+                if success:
+                    # Store PayMongo source ID
+                    source_data = response['data']
+                    payment.paymongo_source_id = source_data['id']
+                    payment.gateway_response = response
+                    payment.save()
+                    
+                    # Get checkout URL from response
+                    checkout_url = source_data['attributes']['redirect']['checkout_url']
+                    
+                    messages.success(request, 'Payment created! You will be redirected to complete your payment.')
+                    
+                    # Redirect user to PayMongo checkout
+                    return redirect(checkout_url)
+                else:
+                    # PayMongo API failed, fallback to manual
+                    logger.error(f'PayMongo source creation failed: {response}')
+                    messages.warning(request, 'Automatic payment is temporarily unavailable. Please use manual payment.')
+            
+            # Manual payment flow (or PayMongo fallback)
             # Notify admins about new payment
             admins = User.objects.filter(rank='admin')
             admin_emails = [admin.email for admin in admins]
             if admin_emails:
                 NotificationService.send_email(
                     subject=f"New Payment Submission - {payment.user.get_full_name()}",
-                    message=f"A new payment of ₱{payment.amount} has been submitted and is pending verification.",
+                    message=f"A new payment of ₱{payment.amount} has been submitted and is pending verification. Reference: {payment.qr_ph_reference}",
                     recipient_list=admin_emails,
                 )
             
@@ -312,3 +363,347 @@ def qr_code_toggle_active(request, qr_code_id):
         qr_code.save()
     
     return redirect('payments:qr_code_manage')
+
+
+# ============================================================================
+# PayMongo Webhook Handler and Payment Integration
+# ============================================================================
+
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from payments.services.paymongo_service import PayMongoService
+import json
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+@csrf_exempt
+def payment_webhook(request):
+    """
+    Handle PayMongo webhook notifications
+    This endpoint receives payment status updates from PayMongo
+    
+    Events handled:
+    - source.chargeable: Payment source is ready to be charged
+    - payment.paid: Payment was successful
+    - payment.failed: Payment failed
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        # Get webhook signature from headers
+        signature = request.headers.get('Paymongo-Signature')
+        if not signature:
+            logger.warning('Webhook received without signature')
+            return JsonResponse({'error': 'No signature provided'}, status=400)
+        
+        # Get raw body
+        raw_body = request.body.decode('utf-8')
+        
+        # Verify webhook signature
+        if not PayMongoService.verify_webhook_signature(raw_body, signature):
+            logger.error('Invalid webhook signature')
+            return JsonResponse({'error': 'Invalid signature'}, status=401)
+        
+        # Parse webhook data
+        webhook_data = json.loads(raw_body)
+        event_type = webhook_data['data']['attributes']['type']
+        
+        logger.info(f'Webhook received: {event_type}')
+        
+        # Handle different event types
+        if event_type == 'source.chargeable':
+            # Payment source is ready to be charged
+            handle_source_chargeable(webhook_data)
+            
+        elif event_type == 'payment.paid':
+            # Payment was successful
+            handle_payment_paid(webhook_data)
+            
+        elif event_type == 'payment.failed':
+            # Payment failed
+            handle_payment_failed(webhook_data)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Webhook {event_type} processed'
+        })
+        
+    except json.JSONDecodeError:
+        logger.error('Invalid JSON in webhook payload')
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+        
+    except Exception as e:
+        logger.error(f'Webhook processing error: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+def handle_source_chargeable(webhook_data):
+    """Handle source.chargeable event - Payment source is ready"""
+    try:
+        source_data = webhook_data['data']['attributes']['data']
+        source_id = source_data['id']
+        
+        logger.info(f'Processing source.chargeable for source: {source_id}')
+        
+        # Find payment by source_id
+        payment = Payment.objects.filter(
+            paymongo_source_id=source_id,
+            status='pending'
+        ).first()
+        
+        if payment:
+            logger.info(f'Payment {payment.id} source is chargeable')
+            # Update payment status to indicate it's in progress
+            payment.notes = 'Payment source is chargeable, waiting for confirmation'
+            payment.save()
+            
+            # Notify admin
+            admin_users = User.objects.filter(is_staff=True, is_active=True)
+            for admin in admin_users:
+                send_realtime_notification(
+                    user_id=admin.id,
+                    message=f'New payment from {payment.user.get_full_name()} is processing',
+                    notification_type='payment_update'
+                )
+        else:
+            logger.warning(f'Payment not found for source {source_id}')
+            
+    except Exception as e:
+        logger.error(f'Error handling source.chargeable: {str(e)}')
+        import traceback
+        traceback.print_exc()
+
+
+def handle_payment_paid(webhook_data):
+    """Handle payment.paid event - Payment successful"""
+    from accounts.models import RegistrationPayment
+    
+    try:
+        payment_data = webhook_data['data']['attributes']['data']
+        payment_id = payment_data['id']
+        source_id = payment_data['attributes']['source']['id']
+        amount = payment_data['attributes']['amount'] / 100  # Convert from centavos
+        metadata = payment_data['attributes'].get('metadata', {})
+        
+        logger.info(f'Processing payment.paid for payment: {payment_id}')
+        
+        # Check if this is a registration payment
+        payment_type = metadata.get('payment_type')
+        
+        if payment_type == 'registration':
+            # Handle registration payment
+            reg_payment_id = metadata.get('registration_payment_id')
+            if reg_payment_id:
+                reg_payment = RegistrationPayment.objects.filter(id=reg_payment_id).first()
+                if reg_payment:
+                    logger.info(f'Registration payment {reg_payment.id} confirmed as paid')
+                    
+                    # Update registration payment
+                    reg_payment.status = 'verified'
+                    reg_payment.paymongo_source_id = source_id
+                    reg_payment.paymongo_payment_id = payment_id
+                    reg_payment.save()
+                    
+                    # Activate user account
+                    user = reg_payment.user
+                    user.registration_status = 'active'
+                    user.is_active = True
+                    
+                    # Calculate membership expiry
+                    years = int(float(reg_payment.amount) // 500)
+                    if years > 0:
+                        try:
+                            from dateutil.relativedelta import relativedelta
+                            user.membership_expiry = timezone.now() + relativedelta(years=years)
+                        except ImportError:
+                            from datetime import timedelta
+                            user.membership_expiry = timezone.now() + timedelta(days=365 * years)
+                    user.save()
+                    
+                    logger.info(f'User {user.id} registration activated')
+                    
+                    # Send notification to user
+                    NotificationService.send_email(
+                        subject='Registration Confirmed - ScoutConnect',
+                        message=f'Welcome to ScoutConnect! Your registration payment of ₱{reg_payment.amount} has been confirmed. Your account is now active!',
+                        recipient_list=[user.email]
+                    )
+                    
+                    # Send realtime notification
+                    send_realtime_notification(
+                        user_id=user.id,
+                        message=f'Welcome to ScoutConnect! Your registration is confirmed.',
+                        notification_type='registration_verified'
+                    )
+                    
+                    # Notify admins
+                    admin_users = User.objects.filter(rank='admin', is_active=True)
+                    for admin in admin_users:
+                        send_realtime_notification(
+                            user_id=admin.id,
+                            message=f'Registration payment confirmed: {user.get_full_name()} - ₱{reg_payment.amount}',
+                            notification_type='registration_verified'
+                        )
+                    
+                    return
+        
+        # Find regular payment by source_id or payment_id
+        payment = Payment.objects.filter(
+            Q(paymongo_source_id=source_id) | Q(paymongo_payment_id=payment_id)
+        ).first()
+        
+        if payment:
+            logger.info(f'Payment {payment.id} confirmed as paid')
+            
+            # Update payment status
+            payment.status = 'verified'
+            payment.paymongo_payment_id = payment_id
+            payment.verification_date = timezone.now()
+            payment.gateway_response = webhook_data
+            payment.notes = f'Payment confirmed via PayMongo webhook. Amount: ₱{amount}'
+            payment.save()
+            
+            # Send notification to user
+            NotificationService.send_email(
+                subject='Payment Confirmed - ScoutConnect',
+                message=f'Your payment of ₱{payment.amount} has been confirmed! Reference: {payment.qr_ph_reference or payment_id}',
+                recipient_list=[payment.user.email]
+            )
+            
+            # Send realtime notification
+            send_realtime_notification(
+                user_id=payment.user.id,
+                message=f'Your payment of ₱{payment.amount} has been confirmed!',
+                notification_type='payment_verified'
+            )
+            
+            # Update user registration status if this is a registration payment
+            if payment.payment_type == 'registration':
+                user_profile = payment.user
+                if payment.status == 'verified':
+                    user_profile.registration_status = 'active'
+                    # Calculate membership expiry
+                    years = int(payment.amount // 500)
+                    if years > 0:
+                        from datetime import timedelta
+                        user_profile.membership_expiry = timezone.now() + timedelta(days=365 * years)
+                    user_profile.save()
+                    logger.info(f'User {user_profile.id} registration activated')
+            
+            # Notify admin
+            admin_users = User.objects.filter(is_staff=True, is_active=True)
+            for admin in admin_users:
+                send_realtime_notification(
+                    user_id=admin.id,
+                    message=f'Payment confirmed: {payment.user.get_full_name()} - ₱{payment.amount}',
+                    notification_type='payment_verified'
+                )
+            
+            logger.info(f'Payment {payment.id} processed successfully')
+        else:
+            logger.warning(f'Payment not found for transaction {payment_id}')
+            
+    except Exception as e:
+        logger.error(f'Error handling payment.paid: {str(e)}')
+        import traceback
+        traceback.print_exc()
+
+
+def handle_payment_failed(webhook_data):
+    """Handle payment.failed event - Payment failed"""
+    from accounts.models import RegistrationPayment
+    
+    try:
+        payment_data = webhook_data['data']['attributes']['data']
+        source_id = payment_data['attributes']['source']['id']
+        metadata = payment_data['attributes'].get('metadata', {})
+        
+        logger.info(f'Processing payment.failed for source: {source_id}')
+        
+        # Check if this is a registration payment
+        payment_type = metadata.get('payment_type')
+        
+        if payment_type == 'registration':
+            # Handle registration payment failure
+            reg_payment_id = metadata.get('registration_payment_id')
+            if reg_payment_id:
+                reg_payment = RegistrationPayment.objects.filter(id=reg_payment_id).first()
+                if reg_payment:
+                    logger.info(f'Registration payment {reg_payment.id} marked as failed')
+                    
+                    reg_payment.status = 'rejected'
+                    reg_payment.paymongo_source_id = source_id
+                    reg_payment.save()
+                    
+                    # Send notification to user
+                    user = reg_payment.user
+                    NotificationService.send_email(
+                        subject='Registration Payment Failed - ScoutConnect',
+                        message=f'Your registration payment of ₱{reg_payment.amount} has failed. Please try registering again.',
+                        recipient_list=[user.email]
+                    )
+                    
+                    send_realtime_notification(
+                        user_id=user.id,
+                        message=f'Your registration payment has failed. Please try again.',
+                        notification_type='registration_failed'
+                    )
+                    
+                    return
+        
+        # Find regular payment
+        payment = Payment.objects.filter(
+            paymongo_source_id=source_id
+        ).first()
+        
+        if payment:
+            logger.info(f'Payment {payment.id} marked as failed')
+            
+            # Update payment status
+            payment.status = 'rejected'
+            payment.gateway_response = webhook_data
+            payment.notes = 'Payment failed via PayMongo'
+            payment.save()
+            
+            # Send notification to user
+            NotificationService.send_email(
+                subject='Payment Failed - ScoutConnect',
+                message=f'Your payment of ₱{payment.amount} has failed. Please try again. Reference: {payment.qr_ph_reference or "N/A"}',
+                recipient_list=[payment.user.email]
+            )
+            
+            # Send realtime notification
+            send_realtime_notification(
+                user_id=payment.user.id,
+                message=f'Your payment of ₱{payment.amount} has failed. Please try again.',
+                notification_type='payment_failed'
+            )
+            
+            logger.info(f'Payment {payment.id} marked as failed and user notified')
+        else:
+            logger.warning(f'Payment not found for source {source_id}')
+            
+    except Exception as e:
+        logger.error(f'Error handling payment.failed: {str(e)}')
+        import traceback
+        traceback.print_exc()
+
+
+# Payment redirect handlers
+@login_required
+def payment_success(request):
+    """Handle successful payment redirect from PayMongo"""
+    messages.success(request, 'Payment submitted successfully! Please wait for confirmation.')
+    return redirect('payments:payment_list')
+
+
+@login_required
+def payment_failed(request):
+    """Handle failed payment redirect from PayMongo"""
+    messages.error(request, 'Payment was cancelled or failed. Please try again.')
+    return redirect('payments:payment_list')

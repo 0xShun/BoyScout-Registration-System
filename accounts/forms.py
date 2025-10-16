@@ -50,14 +50,15 @@ class CustomLoginForm(AuthenticationForm):
         return cleaned_data
 
 class UserRegisterForm(UserCreationForm):
-    amount = forms.DecimalField(label='Registration Payment', min_value=1, max_value=1000, initial=500)
+    amount = forms.DecimalField(label='Registration Fee', min_value=1, max_value=1000, initial=500, 
+                                help_text="Registration fee: ₱500.00 - You'll pay securely via GCash/PayMaya/GrabPay")
+    
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'registration_receipt', 'amount']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'amount']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'registration_receipt': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -78,10 +79,6 @@ class UserRegisterForm(UserCreationForm):
         self.fields['address'].label = "Address"
         self.fields['address'].widget.attrs.update({'placeholder': 'Enter your address'})
 
-        self.fields['registration_receipt'].label = "Registration Payment Receipt"
-        self.fields['registration_receipt'].widget.attrs.update({'placeholder': 'Upload payment receipt (₱500.00)'})
-        self.fields['registration_receipt'].help_text = "Upload a screenshot of your registration payment receipt. Registration fee: ₱500.00"
-
         self.fields['password1'].help_text = "Must be at least 8 characters."
         self.fields['password2'].help_text = None
 
@@ -96,18 +93,6 @@ class UserRegisterForm(UserCreationForm):
         if username and User.objects.filter(username=username).exists():
             raise forms.ValidationError('A user with this username already exists.')
         return username
-
-    def clean(self):
-        cleaned_data = super().clean()
-        # Validate receipt file size and type if provided
-        receipt = self.files.get('registration_receipt')
-        if receipt:
-            if receipt.size > getattr(settings, 'MAX_UPLOAD_SIZE', 5 * 1024 * 1024):
-                self.add_error('registration_receipt', 'File too large. Maximum is 5MB.')
-            allowed = set(getattr(settings, 'ALLOWED_IMAGE_TYPES', ['image/jpeg', 'image/png', 'image/gif']))
-            if hasattr(receipt, 'content_type') and receipt.content_type not in allowed:
-                self.add_error('registration_receipt', 'Unsupported file type. Use JPG/PNG/GIF.')
-        return cleaned_data
 
 class UserEditForm(forms.ModelForm):
     profile_image = forms.ImageField(required=False, label="Profile Picture")

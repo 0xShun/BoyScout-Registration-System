@@ -13,4 +13,9 @@ urlpatterns = [
     path('qr-codes/edit/<int:qr_code_id>/', views.qr_code_edit, name='qr_code_edit'),
     path('qr-codes/delete/<int:qr_code_id>/', views.qr_code_delete, name='qr_code_delete'),
     path('qr-codes/toggle/<int:qr_code_id>/', views.qr_code_toggle_active, name='qr_code_toggle_active'),
+    
+    # PayMongo Integration URLs
+    path('webhook/', views.payment_webhook, name='payment_webhook'),
+    path('success/', views.payment_success, name='payment_success'),
+    path('failed/', views.payment_failed, name='payment_failed'),
 ] 

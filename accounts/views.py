@@ -182,61 +182,98 @@ def scout_dashboard(request):
     })
 
 def register(request):
+    """
+    User registration with PayMongo automatic payment integration.
+    After successful registration, user is redirected to PayMongo checkout.
+    """
     from django.db import models
     from payments.models import Payment
     from django.utils import timezone
+    from payments.services.paymongo_service import PayMongoService
+    from .models import RegistrationPayment
+    
     try:
         from dateutil.relativedelta import relativedelta
     except ImportError:
         relativedelta = None
+        
     if request.method == 'POST':
-        form = UserRegisterForm(request.POST, request.FILES)
+        form = UserRegisterForm(request.POST)
         if form.is_valid():
-            # Create user but don't commit, so we can set flags
+            # Create user
             user = form.save(commit=False)
             user.rank = 'scout'
-            # Allow login but keep not verified; receipt submission marks as submitted
             user.is_active = True
-            user.registration_status = 'payment_submitted'
+            user.registration_status = 'pending'  # Will be updated after payment
             user.save()
 
-            amount = form.cleaned_data.get('amount')
-            receipt = form.cleaned_data.get('registration_receipt')
-            from .models import RegistrationPayment
+            amount = form.cleaned_data.get('amount', 500)
+            
+            # Create RegistrationPayment record (pending PayMongo payment)
             reg_payment = RegistrationPayment.objects.create(
                 user=user,
                 amount=amount,
-                receipt_image=receipt,
                 status='pending'
             )
 
-            total_paid = RegistrationPayment.objects.filter(user=user, status='verified').aggregate(models.Sum('amount'))['amount__sum'] or 0
-            if total_paid >= 500 and relativedelta:
-                user.is_active = True
-                user.registration_status = 'active'
-                years = min(int(total_paid // 500), 2)
-                user.membership_expiry = timezone.now() + relativedelta(years=years)
-                user.save()
-
-            admins = User.objects.filter(rank='admin')
-            for admin in admins:
-                send_realtime_notification(
-                    admin.id,
-                    f"New registration payment submitted: {user.get_full_name()} ({user.email})",
-                    type='registration'
+            # Create PayMongo payment source
+            try:
+                paymongo = PayMongoService()
+                source_data = paymongo.create_source(
+                    amount=float(amount),
+                    description=f"Registration Payment - {user.get_full_name()}",
+                    metadata={
+                        'user_id': str(user.id),
+                        'payment_type': 'registration',
+                        'registration_payment_id': str(reg_payment.id)
+                    }
                 )
-            messages.success(request, 'Registration successful! Your payment is pending verification by an administrator. You can log in, but events are locked until verified.')
-            return redirect('accounts:registration_payment', user_id=user.id)
+                
+                if source_data and 'data' in source_data:
+                    source = source_data['data']
+                    reg_payment.paymongo_source_id = source['id']
+                    reg_payment.save()
+                    
+                    # Get checkout URL
+                    checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
+                    
+                    if checkout_url:
+                        # Store in session for post-payment redirect
+                        request.session['pending_registration_payment_id'] = reg_payment.id
+                        
+                        # Notify admins
+                        admins = User.objects.filter(rank='admin')
+                        for admin in admins:
+                            send_realtime_notification(
+                                admin.id,
+                                f"New registration payment initiated: {user.get_full_name()} ({user.email})",
+                                type='registration'
+                            )
+                        
+                        messages.success(request, 'Registration successful! Please complete your payment to activate your account.')
+                        return redirect(checkout_url)
+                    else:
+                        messages.error(request, 'Payment gateway error. Please try again or contact support.')
+                        # Delete the user and payment record to allow retry
+                        reg_payment.delete()
+                        user.delete()
+                        return redirect('accounts:register')
+                else:
+                    messages.error(request, 'Payment gateway error. Please try again or contact support.')
+                    reg_payment.delete()
+                    user.delete()
+                    return redirect('accounts:register')
+                    
+            except Exception as e:
+                messages.error(request, f'Payment gateway error: {str(e)}. Please try again or contact support.')
+                reg_payment.delete()
+                user.delete()
+                return redirect('accounts:register')
     else:
         form = UserRegisterForm()
     
-    # Get the active QR code for payment
-    from payments.models import PaymentQRCode
-    active_qr_code = PaymentQRCode.get_active_qr_code()
-    
     return render(request, 'accounts/register.html', {
         'form': form,
-        'active_qr_code': active_qr_code
     })
 
 def admin_required(view_func):
