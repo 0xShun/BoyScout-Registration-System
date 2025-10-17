@@ -38,14 +38,14 @@
                 <td>{{ member.get_rank_display }}</td>
                 <td>
                   <span class="badge 
-                    {% if member.registration_status == 'active' %}bg-primary
-                    {% elif member.registration_status == 'payment_verified' %}bg-success
-                    {% elif member.registration_status == 'payment_submitted' %}bg-warning
-                    {% elif member.registration_status == 'partial_payment' %}bg-info
-                    {% elif member.registration_status == 'pending_payment' %}bg-warning
-                    {% elif member.registration_status == 'inactive' %}bg-secondary
+                    {% if member.registration_status == 'active' and member.is_active %}bg-success
+                    {% elif member.registration_status == 'inactive' or not member.is_active %}bg-secondary
                     {% else %}bg-secondary{% endif %}">
-                    {{ member.get_registration_status_display }}
+                    {% if member.registration_status == 'active' and member.is_active %}
+                      ✓ Active Member
+                    {% else %}
+                      ✗ Inactive
+                    {% endif %}
                   </span>
                 </td>
                 <td>{{ member.phone_number|default:"-" }}</td>

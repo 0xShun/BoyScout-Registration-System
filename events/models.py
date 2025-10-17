@@ -96,9 +96,7 @@ class EventRegistration(models.Model):
     
     PAYMENT_STATUS_CHOICES = [
         ('not_required', 'Payment Not Required'),
-        ('pending', 'Payment Pending'),
-        ('partial', 'Partial Payment'),
-        ('paid', 'Payment Complete'),
+        ('paid', 'Paid'),
         ('rejected', 'Payment Rejected'),
     ]
     
@@ -110,7 +108,7 @@ class EventRegistration(models.Model):
     verified = models.BooleanField(default=False)
     verified_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_event_registrations')
     verification_date = models.DateTimeField(null=True, blank=True)
-    # Updated fields for payment flow
+    # Payment fields - full payment required, no partial payments
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='not_required')
     payment_notes = models.TextField(blank=True, verbose_name="Payment Notes")
     total_paid = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), verbose_name="Total Amount Paid")
@@ -134,22 +132,21 @@ class EventRegistration(models.Model):
         return self.total_paid >= self.amount_required
 
     def update_payment_status(self):
-        """Update payment status based on total paid vs required"""
+        """Update payment status based on total paid vs required - full payment only"""
         if self.amount_required == 0:
             self.payment_status = 'not_required'
         elif self.total_paid >= self.amount_required:
             self.payment_status = 'paid'
-        elif self.total_paid > 0:
-            self.payment_status = 'partial'
         else:
-            self.payment_status = 'pending'
+            # Not paid yet - no partial payments allowed
+            self.payment_status = 'not_required'
         self.save()
 
     def save(self, *args, **kwargs):
         # Auto-set payment status based on event requirements
         if not self.pk:  # Only on creation
             if self.event.has_payment_required:
-                self.payment_status = 'pending'
+                self.payment_status = 'not_required'  # Until full payment confirmed
                 self.amount_required = self.event.payment_amount
             else:
                 self.payment_status = 'not_required'

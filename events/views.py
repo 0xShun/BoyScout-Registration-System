@@ -138,29 +138,21 @@ def event_detail(request, pk):
                 reg.event = event
                 reg.user = request.user
                 
-                # Handle payment status
-                if event.has_payment_required and reg.receipt_image:
-                    reg.payment_status = 'pending'
-                    reg.verified = False
-                elif not event.has_payment_required:
+                # Handle payment status - full payment required (no pending/partial)
+                # Events with payment are handled via PayMongo webhook
+                if not event.has_payment_required:
                     reg.payment_status = 'not_required'
                     reg.verified = True
+                else:
+                    # Payment required - will be marked 'paid' by PayMongo webhook
+                    reg.payment_status = 'not_required'  # Until payment confirmed
+                    reg.verified = False
                 
                 reg.save()
                 
-                # Send notification to admin if payment is pending
-                if reg.payment_status == 'pending':
-                    admins = User.objects.filter(rank='admin')
-                    for admin in admins:
-                        send_realtime_notification(
-                            admin.id, 
-                            f"New event registration with payment pending: {reg.user.get_full_name()} for {event.title}",
-                            type='event'
-                        )
-                
                 messages.success(request, 'Event registration submitted successfully!')
-                if reg.payment_status == 'pending':
-                    messages.info(request, 'Your payment receipt is pending verification by an administrator.')
+                if event.has_payment_required:
+                    messages.info(request, 'Please complete the full payment to confirm your registration.')
                 return redirect('events:event_detail', pk=event.pk)
             else:
                 messages.error(request, 'There was an error with your registration. Please check the form.')
@@ -498,11 +490,12 @@ def event_payment(request, pk):
 
 @admin_required
 def pending_payments(request):
-    """View for admins to see all pending payment registrations"""
-    pending_registrations = EventRegistration.objects.filter(
-        payment_status__in=['pending', 'partial']
+    """View for admins to see all unpaid event registrations (full payment required)"""
+    unpaid_registrations = EventRegistration.objects.filter(
+        payment_status='not_required',  # Not paid yet
+        event__payment_amount__gt=0  # Only events that require payment
     ).select_related('user', 'event').prefetch_related('payments').order_by('-registered_at')
     
     return render(request, 'events/pending_payments.html', {
-        'pending_registrations': pending_registrations,
+        'pending_registrations': unpaid_registrations,  # Keep template variable name for compatibility
     })

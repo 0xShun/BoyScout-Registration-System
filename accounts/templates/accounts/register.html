@@ -1,47 +1,168 @@
 {% extends 'base.html' %}
 {% block content %}
   <div class="row justify-content-center">
-    <div class="col-lg-6 col-md-8 bg-white p-5 rounded shadow">
+    <div class="col-lg-8 col-md-10 bg-white p-5 rounded shadow">
       <div class="mb-4 text-center">
         <h2 class="fw-bold mb-2">Register</h2>
         <p class="text-muted">Join ScoutConnect - Complete your registration</p>
       </div>
       
-      <form method="post">
+      <!-- Registration Type Toggle Switch -->
+      <div class="card mb-4 border-primary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="mb-1">
+                <i class="fas fa-user me-2"></i>
+                <span id="registrationTypeLabel">Single Registration</span>
+              </h6>
+              <small class="text-muted" id="registrationTypeDesc">Register one student</small>
+            </div>
+            <div class="form-check form-switch form-switch-lg">
+              <input class="form-check-input" type="checkbox" role="switch" id="registrationTypeSwitch" style="width: 60px; height: 30px;">
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <form method="post" id="registrationForm">
         {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-3">
-            <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
-            {% endif %}
-            {% for error in field.errors %}
-              <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-          </div>
-        {% endfor %}
+        <input type="hidden" name="registration_type" id="registrationType" value="single">
         
-        <!-- Payment Information -->
-        <div class="alert alert-primary">
-          <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Instant Payment - No Receipt Upload Needed!</h6>
-          <p class="mb-2">After registration, you'll be redirected to pay securely via:</p>
-          <div class="d-flex gap-3 justify-content-center my-3">
-            <span class="badge bg-light text-dark fs-6">GCash</span>
-            <span class="badge bg-light text-dark fs-6">PayMaya</span>
-            <span class="badge bg-light text-dark fs-6">GrabPay</span>
+        <!-- Single Registration Form (default) -->
+        <div id="singleRegistrationForm">
+          <!-- Display Fixed Registration Fee -->
+          <div class="alert alert-info mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0"><i class="fas fa-tag"></i> Registration Fee</h6>
+                <small class="text-muted">Set by administrator</small>
+              </div>
+              <div class="text-end">
+                <h4 class="mb-0 text-primary">₱500.00</h4>
+              </div>
+            </div>
           </div>
-          <ul class="mb-2">
-            <li><strong>Instant verification</strong> - No waiting for admin approval</li>
-            <li><strong>Secure payment</strong> - Protected by PayMongo</li>
-            <li><strong>Easy process</strong> - Just scan QR code in your e-wallet app</li>
-          </ul>
-          <p class="mb-0 small">Your account will be activated automatically after payment!</p>
+          
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger">{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endfor %}
+          
+          <!-- Payment Information -->
+          <div class="alert alert-primary">
+            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Instant Payment - No Receipt Upload Needed!</h6>
+            <p class="mb-2">After registration, you'll be redirected to pay securely via:</p>
+            <div class="d-flex gap-3 justify-content-center my-3">
+              <span class="badge bg-light text-dark fs-6">GCash</span>
+              <span class="badge bg-light text-dark fs-6">PayMaya</span>
+              <span class="badge bg-light text-dark fs-6">GrabPay</span>
+            </div>
+            <ul class="mb-2">
+              <li><strong>Instant verification</strong> - No waiting for admin approval</li>
+              <li><strong>Secure payment</strong> - Protected by PayMongo</li>
+              <li><strong>Easy process</strong> - Just scan QR code in your e-wallet app</li>
+            </ul>
+            <p class="mb-0 small">Your account will be activated automatically after payment!</p>
+          </div>
+          
+          <button type="submit" class="btn btn-dark w-100 py-2 mt-3">
+            <i class="fas fa-user-plus"></i> Register & Proceed to Payment
+          </button>
         </div>
         
-        <button type="submit" class="btn btn-dark w-100 py-2 mt-3">
-          <i class="fas fa-user-plus"></i> Register & Proceed to Payment
-        </button>
+        <!-- Batch Registration Form (hidden by default) -->
+        <div id="batchRegistrationForm" style="display: none;">
+          <!-- Registrar Information -->
+          <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+              <h5 class="mb-0"><i class="fas fa-chalkboard-teacher"></i> Teacher/Registrar Information</h5>
+            </div>
+            <div class="card-body">
+              {% if registrar_form %}
+                {% for field in registrar_form %}
+                  <div class="mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                      <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% for error in field.errors %}
+                      <div class="text-danger">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
+          </div>
+          
+          <!-- Students Section -->
+          <div class="card mb-4">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+              <h5 class="mb-0"><i class="fas fa-users"></i> Students Information</h5>
+              <span class="badge bg-light text-dark" id="studentCount">0 students</span>
+            </div>
+            <div class="card-body">
+              <p class="text-muted mb-3">
+                <i class="fas fa-info-circle"></i> Specify the number of students above, then proceed to payment. 
+                You'll provide individual student details after payment confirmation.
+              </p>
+              
+              <!-- Student details will be collected after payment -->
+              <div class="alert alert-info">
+                <h6 class="alert-heading">📝 How Batch Registration Works:</h6>
+                <ol class="mb-0 ps-3">
+                  <li>Enter the number of students you want to register</li>
+                  <li>Complete the payment for all students</li>
+                  <li>After payment, you'll receive a link to provide each student's details</li>
+                  <li>All student accounts will be created once you submit their information</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Total Amount Display -->
+          <div class="alert alert-info mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-0"><i class="fas fa-calculator"></i> Total Registration Fee</h6>
+                <small class="text-muted"><span id="totalStudents">0</span> students × ₱500.00</small>
+              </div>
+              <div class="text-end">
+                <h4 class="mb-0 text-primary" id="totalAmount">₱0.00</h4>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Batch Payment Information -->
+          <div class="alert alert-primary">
+            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Batch Payment - One Payment for All Students!</h6>
+            <p class="mb-2">After submitting, you'll pay once for all students via:</p>
+            <div class="d-flex gap-3 justify-content-center my-3">
+              <span class="badge bg-light text-dark fs-6">GCash</span>
+              <span class="badge bg-light text-dark fs-6">PayMaya</span>
+              <span class="badge bg-light text-dark fs-6">GrabPay</span>
+            </div>
+            <ul class="mb-2">
+              <li><strong>Single payment</strong> - Pay for all students at once</li>
+              <li><strong>Secure checkout</strong> - Protected by PayMongo</li>
+              <li><strong>Student details later</strong> - Provide info after payment</li>
+            </ul>
+            <p class="mb-0 small">Complete payment first, then add student details to activate all accounts!</p>
+          </div>
+          
+          <button type="submit" class="btn btn-success w-100 py-2 mt-3">
+            <i class="fas fa-shopping-cart"></i> Proceed to Payment (Pay for <span id="submitStudentCount">0</span> Students)
+          </button>
+        </div>
       </form>
       
       <div class="text-center mt-3">
@@ -62,6 +183,26 @@
     form p {
         margin-bottom: 0.5rem;
     }
+    
+    /* Custom toggle switch styling */
+    .form-switch-lg .form-check-input {
+      cursor: pointer;
+    }
+    
+    .form-switch-lg .form-check-input:checked {
+      background-color: #28a745;
+      border-color: #28a745;
+    }
+    
+    .form-switch-lg .form-check-input:focus {
+      box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+    }
+    
+    /* Smooth transitions */
+    #singleRegistrationForm,
+    #batchRegistrationForm {
+      transition: opacity 0.3s ease-in-out;
+    }
   </style>
 {% endblock %}
 
@@ -80,6 +221,58 @@
                 },
                 utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/utils.js"
             });
+        }
+        
+        // Registration Type Toggle Switch
+        const toggleSwitch = document.getElementById('registrationTypeSwitch');
+        const registrationType = document.getElementById('registrationType');
+        const typeLabel = document.getElementById('registrationTypeLabel');
+        const typeDesc = document.getElementById('registrationTypeDesc');
+        const singleForm = document.getElementById('singleRegistrationForm');
+        const batchForm = document.getElementById('batchRegistrationForm');
+        
+        if (toggleSwitch) {
+            toggleSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    // Switch to Batch Registration
+                    registrationType.value = 'batch';
+                    typeLabel.innerHTML = '<i class="fas fa-users me-2"></i>Batch Registration';
+                    typeDesc.textContent = 'Register multiple students (Teachers)';
+                    singleForm.style.display = 'none';
+                    batchForm.style.display = 'block';
+                    updateBatchTotal();
+                } else {
+                    // Switch to Single Registration
+                    registrationType.value = 'single';
+                    typeLabel.innerHTML = '<i class="fas fa-user me-2"></i>Single Registration';
+                    typeDesc.textContent = 'Register one student';
+                    singleForm.style.display = 'block';
+                    batchForm.style.display = 'none';
+                }
+            });
+        }
+        
+        // Batch Registration - Update total based on number of students input
+        const numberOfStudentsInput = document.getElementById('id_number_of_students');
+        const studentCountBadge = document.getElementById('studentCount');
+        const totalStudentsSpan = document.getElementById('totalStudents');
+        const totalAmountSpan = document.getElementById('totalAmount');
+        const submitStudentCount = document.getElementById('submitStudentCount');
+        
+        function updateBatchTotal() {
+            const numStudents = parseInt(numberOfStudentsInput?.value || 0);
+            if (studentCountBadge) studentCountBadge.textContent = `${numStudents} student${numStudents !== 1 ? 's' : ''}`;
+            if (totalStudentsSpan) totalStudentsSpan.textContent = numStudents;
+            if (submitStudentCount) submitStudentCount.textContent = numStudents;
+            const total = numStudents * 500;
+            if (totalAmountSpan) totalAmountSpan.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+        }
+        
+        if (numberOfStudentsInput) {
+            numberOfStudentsInput.addEventListener('input', updateBatchTotal);
+            numberOfStudentsInput.addEventListener('change', updateBatchTotal);
+            // Initialize on page load
+            updateBatchTotal();
         }
     });
 </script>

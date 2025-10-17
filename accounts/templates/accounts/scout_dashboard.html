@@ -168,23 +168,23 @@
       </div>
     </div>
     
-    <!-- Pending Event Payments Row -->
-    {% if pending_event_payments %}
+    <!-- Unpaid Event Registrations Row -->
+    {% if unpaid_event_registrations %}
       <div class="row mt-4">
         <div class="col-12">
           <div class="dashboard-card card">
             <div class="card-body">
               <div class="dashboard-section-title">
                 <i class="fas fa-credit-card text-warning"></i>
-                Pending Event Payments 
-                <span class="dashboard-badge" style="background:#ff6f00;">{{ pending_event_payments|length }}</span>
+                Unpaid Event Registrations 
+                <span class="dashboard-badge" style="background:#ff6f00;">{{ unpaid_event_registrations|length }}</span>
               </div>
               <div class="alert alert-warning">
                 <strong><i class="fas fa-exclamation-triangle"></i> Action Required:</strong> 
-                You have pending payments for registered events. Complete your payments to secure your spot.
+                You have unpaid event registrations. Complete full payment to secure your spot.
               </div>
               <div class="row">
-                {% for registration in pending_event_payments %}
+                {% for registration in unpaid_event_registrations %}
                   <div class="col-md-6 col-lg-4 mb-3">
                     <div class="card border-warning">
                       <div class="card-body">
@@ -200,13 +200,13 @@
                         </p>
                         <div class="d-flex justify-content-between align-items-center">
                           <span class="badge bg-warning text-dark">₱{{ registration.event.payment_amount }}</span>
-                          <span class="badge {% if registration.payment_status == 'pending' %}bg-info{% else %}bg-secondary{% endif %}">
-                            {{ registration.get_payment_status_display }}
+                          <span class="badge bg-secondary">
+                            Unpaid - Full Payment Required
                           </span>
                         </div>
                         <div class="mt-2">
                           <a href="{% url 'events:event_payment' registration.event.pk %}" class="btn btn-success btn-sm w-100">
-                            <i class="fas fa-credit-card"></i> Pay Now
+                            <i class="fas fa-credit-card"></i> Pay Full Amount
                           </a>
                         </div>
                       </div>

@@ -35,17 +35,13 @@
               <p><strong>Registration Date:</strong> {% if user.registration_date %}{{ user.registration_date|date:"M d, Y g:i A" }}{% else %}-{% endif %}</p>
               <p><strong>Current Status:</strong> 
                 <span class="badge 
-                  {% if user.registration_status == 'active' %}bg-primary
-                  {% elif user.registration_status == 'payment_verified' %}bg-success
-                  {% elif user.registration_status == 'payment_submitted' or user.registration_status == 'pending_payment' %}bg-warning
-                  {% elif user.registration_status == 'partial_payment' %}bg-info
-                  {% else %}bg-secondary{% endif %}">
-                  {% if user.registration_status == 'active' and user.membership_expiry and user.membership_expiry >= today %}
-                    Active Member
-                  {% elif user.registration_status == 'active' %}
-                    Registration Payment Verified
+                  {% if user.registration_status == 'active' and user.is_active %}bg-success
+                  {% elif user.registration_status == 'inactive' or not user.is_active %}bg-secondary
+                  {% else %}bg-warning{% endif %}">
+                  {% if user.registration_status == 'active' and user.is_active %}
+                    ✓ Active Member
                   {% else %}
-                    {{ user.get_registration_status_display }}
+                    ✗ Inactive
                   {% endif %}
                 </span>
               </p>

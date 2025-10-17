@@ -19,11 +19,14 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from accounts.views import home
+from payments.views import payment_webhook
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls', namespace='accounts')),
     path('payments/', include('payments.urls')),
+    # Alternative webhook endpoint for PayMongo (if they send to /webhook instead of /payments/webhook/)
+    path('webhook', payment_webhook, name='webhook_alt'),
     path('announcements/', include('announcements.urls')),
     path('events/', include('events.urls')),
     path('analytics/', include('analytics.urls')),

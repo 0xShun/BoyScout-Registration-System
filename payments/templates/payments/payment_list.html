@@ -36,8 +36,8 @@
               <small class="text-muted">
                 ₱{{ payment_summary.events.paid_amount }} of ₱{{ payment_summary.events.total_amount }} paid
               </small>
-              {% if payment_summary.events.pending_events > 0 %}
-                <br><span class="badge bg-warning mt-1">{{ payment_summary.events.pending_events }} Pending</span>
+              {% if payment_summary.events.unpaid_events > 0 %}
+                <br><span class="badge bg-warning mt-1">{{ payment_summary.events.unpaid_events }} Unpaid</span>
               {% endif %}
             </div>
           </div>

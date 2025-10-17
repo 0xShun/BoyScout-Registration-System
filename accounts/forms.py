@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm, AuthenticationForm
-from .models import User, Group
+from .models import User, Group, BatchRegistration
 from django.conf import settings
+from django.forms import formset_factory
 
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
@@ -37,12 +38,10 @@ class CustomLoginForm(AuthenticationForm):
             try:
                 user = User.objects.get(email=username)
                 if not user.is_active:
-                    # Check registration payment status for more specific message
-                    reg_payment = user.registration_payments.filter(status='verified').exists()
-                    if not reg_payment:
-                        raise forms.ValidationError("Your registration payment is not yet verified. Please wait for admin approval.")
-                    else:
-                        raise forms.ValidationError("This account is not active. Please verify your email first.")
+                    raise forms.ValidationError(
+                        "Your account has been deactivated by the administrator. "
+                        "Please contact support for assistance."
+                    )
             except User.DoesNotExist:
                 # Don't raise validation error here - let Django's authentication handle it
                 pass
@@ -50,12 +49,11 @@ class CustomLoginForm(AuthenticationForm):
         return cleaned_data
 
 class UserRegisterForm(UserCreationForm):
-    amount = forms.DecimalField(label='Registration Fee', min_value=1, max_value=1000, initial=500, 
-                                help_text="Registration fee: ₱500.00 - You'll pay securely via GCash/PayMaya/GrabPay")
+    # Amount is now fixed and set by admin, not editable by user
     
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'amount']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -141,4 +139,95 @@ class GroupForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        } 
+        }
+
+
+class BatchRegistrarForm(forms.Form):
+    """Form for teacher/registrar information in batch registration"""
+    
+    # Fields for batch registration
+    registrar_name = forms.CharField(
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Your full name'}),
+        label='Teacher/Registrar Name'
+    )
+    registrar_email = forms.EmailField(
+        required=True,
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Your email address'}),
+        label='Teacher/Registrar Email'
+    )
+    registrar_phone = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+639XXXXXXXXX'}),
+        label='Teacher/Registrar Phone'
+    )
+    number_of_students = forms.IntegerField(
+        min_value=1,
+        max_value=50,
+        required=True,
+        initial=1,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'id': 'id_number_of_students'}),
+        label='Number of Students to Register',
+        help_text='How many students will you register? (Max: 50)'
+    )
+
+
+class BatchStudentForm(forms.Form):
+    """Form for individual student information in batch registration"""
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Username'}),
+        label='Username'
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First Name'}),
+        label='First Name'
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last Name'}),
+        label='Last Name'
+    )
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Email'}),
+        label='Email'
+    )
+    phone_number = forms.CharField(
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+639XXXXXXXXX'}),
+        label='Phone Number'
+    )
+    date_of_birth = forms.DateField(
+        widget=forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+        label='Date of Birth'
+    )
+    address = forms.CharField(
+        widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Complete Address'}),
+        label='Address'
+    )
+    password = forms.CharField(
+        min_length=8,
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Password (min 8 characters)'}),
+        label='Password',
+        help_text='Must be at least 8 characters.'
+    )
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError(f'A user with email "{email}" already exists.')
+        return email
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError(f'Username "{username}" is already taken.')
+        return username
+
+
+# Create formset for batch student registration
+BatchStudentFormSet = formset_factory(BatchStudentForm, extra=0, min_num=1, validate_min=True)

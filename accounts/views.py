@@ -1,12 +1,14 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm
-from .models import User, Group, Badge, UserBadge
+from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm, BatchRegistrarForm, BatchStudentFormSet
+from .models import User, Group, Badge, UserBadge, BatchRegistration, RegistrationPayment, BatchStudentData
+from django.contrib.auth.hashers import make_password
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models.functions import TruncMonth
+from decimal import Decimal
 from payments.models import Payment
 from announcements.models import Announcement
 from events.models import Event
@@ -20,7 +22,6 @@ from events.models import Attendance
 from django import forms
 from notifications.services import NotificationService, send_realtime_notification
 from decimal import Decimal
-from .models import RegistrationPayment
 from analytics.models import AuditLog, AnalyticsEvent
 
 @login_required
@@ -30,7 +31,8 @@ def admin_dashboard(request):
     # Analytics
     member_count = User.objects.count()
     payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
-    payment_pending = Payment.objects.filter(status='pending').count()
+    # No pending payments - all payments are full payment upfront
+    unpaid_count = Payment.objects.filter(status__in=['pending', 'for_verification']).count()
     announcement_count = Announcement.objects.count()
     # Membership growth by month
     member_growth = (
@@ -118,7 +120,7 @@ def admin_dashboard(request):
     return render(request, 'accounts/admin_dashboard.html', {
         'member_count': member_count,
         'payment_total': payment_total,
-        'payment_pending': payment_pending,
+        'unpaid_count': unpaid_count,  # Unpaid platform registrations
         'announcement_count': announcement_count,
         'member_growth': list(member_growth),
         'payment_trends': list(payment_trends),
@@ -163,11 +165,12 @@ def scout_dashboard(request):
     today = timezone.now().date()
     upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:3]
     
-    # Fetch pending event payments for this user
-    pending_event_payments = EventRegistration.objects.filter(
+    # No pending payments - users must pay in full before registration
+    # Only show unpaid event registrations (those that require payment but haven't been paid)
+    unpaid_event_registrations = EventRegistration.objects.filter(
         user=user,
         event__payment_amount__gt=0,
-        payment_status__in=['pending'],  # Only pending payments
+        payment_status='not_required',  # Not paid yet
         event__date__gte=today
     ).select_related('event').order_by('event__date', 'event__time')[:5]
 
@@ -176,17 +179,17 @@ def scout_dashboard(request):
         'profile_incomplete': profile_incomplete,
         'incomplete_fields': incomplete_fields,
         'latest_announcements': latest_announcements,
-        'upcoming_events': upcoming_events if user.registration_status == 'payment_verified' or user.rank == 'admin' else [],
-        'pending_event_payments': pending_event_payments,
+        'upcoming_events': upcoming_events if user.registration_status == 'active' or user.rank == 'admin' else [],
+        'unpaid_event_registrations': unpaid_event_registrations,
         'today': today,
     })
 
 def register(request):
     """
     User registration with PayMongo automatic payment integration.
-    After successful registration, user is redirected to PayMongo checkout.
+    Supports both single and batch registration.
     """
-    from django.db import models
+    from django.db import models, transaction
     from payments.models import Payment
     from django.utils import timezone
     from payments.services.paymongo_service import PayMongoService
@@ -198,82 +201,193 @@ def register(request):
         relativedelta = None
         
     if request.method == 'POST':
-        form = UserRegisterForm(request.POST)
-        if form.is_valid():
-            # Create user
-            user = form.save(commit=False)
-            user.rank = 'scout'
-            user.is_active = True
-            user.registration_status = 'pending'  # Will be updated after payment
-            user.save()
-
-            amount = form.cleaned_data.get('amount', 500)
+        # Check if this is batch or single registration
+        registration_type = request.POST.get('registration_type', 'single')
+        
+        if registration_type == 'batch':
+            # Handle batch registration
+            registrar_form = BatchRegistrarForm(request.POST)
+            number_of_students = int(request.POST.get('number_of_students', 1))
+            formset = BatchStudentFormSet(request.POST, initial=[{} for _ in range(number_of_students)])
             
-            # Create RegistrationPayment record (pending PayMongo payment)
-            reg_payment = RegistrationPayment.objects.create(
-                user=user,
-                amount=amount,
-                status='pending'
-            )
+            if registrar_form.is_valid() and formset.is_valid():
+                try:
+                    with transaction.atomic():
+                        # Create BatchRegistration record
+                        batch_reg = BatchRegistration.objects.create(
+                            registrar_name=registrar_form.cleaned_data['registrar_name'],
+                            registrar_email=registrar_form.cleaned_data['registrar_email'],
+                            registrar_phone=registrar_form.cleaned_data.get('registrar_phone', ''),
+                            number_of_students=number_of_students,
+                            amount_per_student=Decimal('500.00'),
+                            total_amount=Decimal('500.00') * number_of_students,
+                            status='pending'
+                        )
+                        
+                        # Create PayMongo payment source for batch
+                        paymongo = PayMongoService()
+                        success, source_data = paymongo.create_source(
+                            amount=float(batch_reg.total_amount),
+                            description=f"Batch Registration - {batch_reg.registrar_name} ({number_of_students} students)",
+                            redirect_success=request.build_absolute_uri('/payments/success/'),
+                            redirect_failed=request.build_absolute_uri('/payments/failed/'),
+                            metadata={
+                                'payment_type': 'batch_registration',
+                                'batch_registration_id': str(batch_reg.id),
+                                'number_of_students': number_of_students,
+                                'registrar_email': batch_reg.registrar_email,
+                            }
+                        )
+                        
+                        if success and source_data and 'data' in source_data:
+                            source = source_data['data']
+                            batch_reg.paymongo_source_id = source['id']
+                            batch_reg.save()
+                            
+                            # Store student data in database
+                            for form in formset:
+                                if form.is_valid():
+                                    student_info = form.cleaned_data
+                                    BatchStudentData.objects.create(
+                                        batch_registration=batch_reg,
+                                        username=student_info['username'],
+                                        first_name=student_info['first_name'],
+                                        last_name=student_info['last_name'],
+                                        email=student_info['email'],
+                                        phone_number=student_info.get('phone_number', ''),
+                                        date_of_birth=student_info['date_of_birth'],
+                                        address=student_info['address'],
+                                        password_hash=make_password(student_info['password']),
+                                    )
+                            
+                            # Get checkout URL
+                            checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
+                            
+                            if checkout_url:
+                                # Notify admins
+                                admins = User.objects.filter(rank='admin')
+                                for admin in admins:
+                                    send_realtime_notification(
+                                        admin.id,
+                                        f"New batch registration initiated: {batch_reg.registrar_name} ({number_of_students} students) - Total: ₱{batch_reg.total_amount}",
+                                        type='registration'
+                                    )
+                                
+                                messages.success(request, f'Batch registration initiated! Please complete payment for {number_of_students} students (Total: ₱{batch_reg.total_amount})')
+                                return redirect(checkout_url)
+                            else:
+                                batch_reg.delete()
+                                messages.error(request, 'Payment gateway error. Please try again.')
+                                return redirect('accounts:register')
+                        else:
+                            batch_reg.delete()
+                            messages.error(request, 'Payment gateway error. Please try again.')
+                            return redirect('accounts:register')
+                            
+                except Exception as e:
+                    messages.error(request, f'Error creating batch registration: {str(e)}')
+                    return redirect('accounts:register')
+            else:
+                # Form has errors - show them
+                context = {
+                    'form': UserRegisterForm(),
+                    'registrar_form': registrar_form,
+                    'formset': formset,
+                    'registration_type': 'batch',
+                }
+                return render(request, 'accounts/register.html', context)
+        
+        else:
+            # Handle single registration (existing logic)
+            form = UserRegisterForm(request.POST)
+            if form.is_valid():
+                # Create user
+                user = form.save(commit=False)
+                user.rank = 'scout'
+                user.is_active = False  # Inactive until payment is verified
+                user.registration_status = 'inactive'  # Will be updated to 'active' after payment
+                user.save()
 
-            # Create PayMongo payment source
-            try:
-                paymongo = PayMongoService()
-                source_data = paymongo.create_source(
-                    amount=float(amount),
-                    description=f"Registration Payment - {user.get_full_name()}",
-                    metadata={
-                        'user_id': str(user.id),
-                        'payment_type': 'registration',
-                        'registration_payment_id': str(reg_payment.id)
-                    }
-                )
+                # Fixed registration fee (set by admin)
+                REGISTRATION_FEE = Decimal('500.00')
+                amount = REGISTRATION_FEE
                 
-                if source_data and 'data' in source_data:
-                    source = source_data['data']
-                    reg_payment.paymongo_source_id = source['id']
-                    reg_payment.save()
+                # Create RegistrationPayment record (pending PayMongo payment)
+                reg_payment = RegistrationPayment.objects.create(
+                    user=user,
+                    amount=amount,
+                    status='pending'
+                )
+
+                # Create PayMongo payment source
+                try:
+                    paymongo = PayMongoService()
+                    success, source_data = paymongo.create_source(
+                        amount=float(amount),
+                        description=f"Registration Payment - {user.get_full_name()}",
+                        redirect_success=request.build_absolute_uri('/payments/success/'),
+                        redirect_failed=request.build_absolute_uri('/payments/failed/'),
+                        metadata={
+                            'user_id': str(user.id),
+                            'payment_type': 'registration',
+                            'registration_payment_id': str(reg_payment.id)
+                        }
+                    )
                     
-                    # Get checkout URL
-                    checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
-                    
-                    if checkout_url:
-                        # Store in session for post-payment redirect
-                        request.session['pending_registration_payment_id'] = reg_payment.id
+                    if success and source_data and 'data' in source_data:
+                        source = source_data['data']
+                        reg_payment.paymongo_source_id = source['id']
+                        reg_payment.save()
                         
-                        # Notify admins
-                        admins = User.objects.filter(rank='admin')
-                        for admin in admins:
-                            send_realtime_notification(
-                                admin.id,
-                                f"New registration payment initiated: {user.get_full_name()} ({user.email})",
-                                type='registration'
-                            )
+                        # Get checkout URL
+                        checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
                         
-                        messages.success(request, 'Registration successful! Please complete your payment to activate your account.')
-                        return redirect(checkout_url)
+                        if checkout_url:
+                            # Store in session for post-payment redirect
+                            request.session['pending_registration_payment_id'] = reg_payment.id
+                            
+                            # Notify admins
+                            admins = User.objects.filter(rank='admin')
+                            for admin in admins:
+                                send_realtime_notification(
+                                    admin.id,
+                                    f"New registration payment initiated: {user.get_full_name()} ({user.email})",
+                                    type='registration'
+                                )
+                            
+                            messages.success(request, 'Registration successful! Please complete your payment to activate your account.')
+                            return redirect(checkout_url)
+                        else:
+                            messages.error(request, 'Payment gateway error. Please try again or contact support.')
+                            # Delete the user and payment record to allow retry
+                            reg_payment.delete()
+                            user.delete()
+                            return redirect('accounts:register')
                     else:
                         messages.error(request, 'Payment gateway error. Please try again or contact support.')
-                        # Delete the user and payment record to allow retry
                         reg_payment.delete()
                         user.delete()
                         return redirect('accounts:register')
-                else:
-                    messages.error(request, 'Payment gateway error. Please try again or contact support.')
+                        
+                except Exception as e:
+                    messages.error(request, f'Payment gateway error: {str(e)}. Please try again or contact support.')
                     reg_payment.delete()
                     user.delete()
                     return redirect('accounts:register')
-                    
-            except Exception as e:
-                messages.error(request, f'Payment gateway error: {str(e)}. Please try again or contact support.')
-                reg_payment.delete()
-                user.delete()
-                return redirect('accounts:register')
+            else:
+                # Form validation failed for single registration
+                # Initialize batch forms for template rendering
+                registrar_form = BatchRegistrarForm()
+                formset = BatchStudentFormSet(initial=[{}])
     else:
         form = UserRegisterForm()
+        registrar_form = BatchRegistrarForm()
+        formset = BatchStudentFormSet(initial=[{}])
     
     return render(request, 'accounts/register.html', {
         'form': form,
+        'registrar_form': registrar_form,
+        'formset': formset,
     })
 
 def admin_required(view_func):
@@ -397,18 +511,19 @@ def member_detail(request, pk):
     # Calculate registration dues
     registration_dues = user.registration_amount_remaining
     
-    # Calculate event dues (pending and partial payments)
-    event_dues = EventRegistration.objects.filter(
+    # No pending payments - calculate unpaid event registrations (full payment required)
+    unpaid_event_registrations = EventRegistration.objects.filter(
         user=user,
-        payment_status__in=['pending', 'partial']
+        payment_status='not_required',  # Not paid yet
+        event__payment_amount__gt=0
     ).select_related('event')
     
     event_dues_total = sum(
-        reg.amount_remaining for reg in event_dues
-        if reg.amount_remaining > 0
+        reg.event.payment_amount for reg in unpaid_event_registrations
+        if reg.event.payment_amount
     )
     
-    # Calculate total dues (registration + event dues)
+    # Calculate total dues (registration + unpaid event fees)
     total_dues = registration_dues + event_dues_total
     
     balance = total_paid - total_dues

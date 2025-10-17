@@ -42,13 +42,14 @@
                   </td>
                   <td>
                     <span class="badge 
-                      {% if user.registration_status == 'payment_verified' %}bg-success
-                      {% elif user.registration_status == 'payment_submitted' %}bg-warning
-                      {% elif user.registration_status == 'pending_payment' %}bg-danger
-                      {% elif user.registration_status == 'active' %}bg-primary
-                      {% elif user.registration_status == 'partial_payment' %}bg-info
+                      {% if user.registration_status == 'active' and user.is_active %}bg-success
+                      {% elif user.registration_status == 'inactive' or not user.is_active %}bg-warning
                       {% else %}bg-secondary{% endif %}">
-                      {{ user.get_registration_status_display }}
+                      {% if user.registration_status == 'active' and user.is_active %}
+                        ✓ Active
+                      {% else %}
+                        ⏳ Pending Payment
+                      {% endif %}
                     </span>
                   </td>
                   <td>{{ user.date_joined|date:"M d, Y g:i A" }}</td>
