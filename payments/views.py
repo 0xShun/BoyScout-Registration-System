@@ -698,12 +698,10 @@ def handle_payment_failed(webhook_data):
 @login_required
 def payment_success(request):
     """Handle successful payment redirect from PayMongo"""
-    messages.success(request, 'Payment submitted successfully! Please wait for confirmation.')
-    return redirect('payments:payment_list')
+    return render(request, 'payments/payment_success.html')
 
 
 @login_required
 def payment_failed(request):
     """Handle failed payment redirect from PayMongo"""
-    messages.error(request, 'Payment was cancelled or failed. Please try again.')
-    return redirect('payments:payment_list')
+    return render(request, 'payments/payment_failed.html')

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-6 col-md-8">
+    <div class="card shadow-lg border-0 mt-5">
+      <div class="card-body text-center py-5">
+        <!-- Success Icon -->
+        <div class="mb-4">
+          <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center" 
+               style="width: 100px; height: 100px;">
+            <i class="fas fa-check-circle text-white" style="font-size: 3rem;"></i>
+          </div>
+        </div>
+        
+        <h2 class="fw-bold text-success mb-3">Payment Processing!</h2>
+        
+        <p class="lead mb-4">
+          Your payment is being verified. This usually takes just a few seconds.
+        </p>
+        
+        <div class="alert alert-info mx-auto" style="max-width: 500px;">
+          <h6 class="alert-heading">
+            <i class="fas fa-info-circle"></i> What happens next?
+          </h6>
+          <ul class="list-unstyled mb-0 mt-3 text-start">
+            <li class="mb-2">
+              <i class="fas fa-check text-success"></i> 
+              <strong>Automatic Verification:</strong> Your payment will be verified automatically within seconds
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success"></i> 
+              <strong>Email Confirmation:</strong> You'll receive a confirmation email once verified
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success"></i> 
+              <strong>Instant Access:</strong> Your account/payment status will be updated immediately
+            </li>
+          </ul>
+        </div>
+        
+        <div class="mt-4">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Processing...</span>
+          </div>
+          <p class="text-muted small">
+            <i class="fas fa-clock"></i> Please wait while we confirm your payment...
+          </p>
+        </div>
+        
+        <div class="d-grid gap-2 mt-4">
+          <a href="{% url 'payments:payment_list' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-list"></i> View Payment History
+          </a>
+          <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-home"></i> Go to Dashboard
+          </a>
+        </div>
+        
+        <div class="mt-4 pt-4 border-top">
+          <p class="text-muted small mb-2">
+            <i class="fas fa-shield-alt"></i> Your payment is secured by PayMongo
+          </p>
+          <p class="text-muted small mb-0">
+            Need help? Contact your administrator if your payment is not verified within 5 minutes.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Auto-refresh after 5 seconds to check for payment verification
+  setTimeout(function() {
+    window.location.href = "{% url 'payments:payment_list' %}";
+  }, 5000);
+  
+  // Show a countdown
+  let countdown = 5;
+  setInterval(function() {
+    countdown--;
+    if (countdown > 0) {
+      const countdownEl = document.querySelector('.spinner-border').nextElementSibling;
+      if (countdownEl) {
+        countdownEl.innerHTML = '<i class="fas fa-clock"></i> Redirecting to payment history in ' + countdown + ' seconds...';
+      }
+    }
+  }, 1000);
+</script>
+{% endblock %}
