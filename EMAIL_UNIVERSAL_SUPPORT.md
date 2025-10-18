@@ -31,7 +31,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USE_TLS=True
 EMAIL_HOST_USER=shawnlovecode14@gmail.com
-EMAIL_HOST_PASSWORD=zcqwiwogkczxdfmz
+EMAIL_HOST_PASSWORD=<FLAG>
 DEFAULT_FROM_EMAIL=ScoutConnect <shawnlovecode14@gmail.com>
 ```
 
