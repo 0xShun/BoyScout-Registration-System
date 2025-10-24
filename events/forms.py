@@ -4,15 +4,23 @@ from .models import Event, EventPhoto, EventRegistration, EventPayment
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'date', 'time', 'location', 'banner', 'qr_code', 'payment_amount']
+        fields = ['title', 'description', 'date', 'time', 'location', 'banner', 'payment_amount']
         widgets = {
-            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control' }),
-            'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control' }),
-            'title': forms.TextInput(attrs={'class': 'form-control' }),
+            'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'location': forms.TextInput(attrs={'class': 'form-control' }),
-            'payment_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'qr_code': forms.ClearableFileInput(attrs={'class': 'form-control' }),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'payment_amount': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'step': '0.01', 
+                'min': '0',
+                'placeholder': 'Leave blank for free events'
+            }),
+            'banner': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        }
+        help_texts = {
+            'payment_amount': 'Enter the event fee. Leave blank or set to 0 for free events. Payments will be processed via QR PH.',
         }
 
 class EventPhotoForm(forms.ModelForm):

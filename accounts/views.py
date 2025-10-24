@@ -207,13 +207,13 @@ def register(request):
         if registration_type == 'batch':
             # Handle batch registration
             registrar_form = BatchRegistrarForm(request.POST)
-            number_of_students = int(request.POST.get('number_of_students', 1))
-            formset = BatchStudentFormSet(request.POST, initial=[{} for _ in range(number_of_students)])
             
-            if registrar_form.is_valid() and formset.is_valid():
+            if registrar_form.is_valid():
                 try:
                     with transaction.atomic():
-                        # Create BatchRegistration record
+                        number_of_students = registrar_form.cleaned_data['number_of_students']
+                        
+                        # Create BatchRegistration record (student details will be collected after payment)
                         batch_reg = BatchRegistration.objects.create(
                             registrar_name=registrar_form.cleaned_data['registrar_name'],
                             registrar_email=registrar_form.cleaned_data['registrar_email'],
@@ -244,21 +244,8 @@ def register(request):
                             batch_reg.paymongo_source_id = source['id']
                             batch_reg.save()
                             
-                            # Store student data in database
-                            for form in formset:
-                                if form.is_valid():
-                                    student_info = form.cleaned_data
-                                    BatchStudentData.objects.create(
-                                        batch_registration=batch_reg,
-                                        username=student_info['username'],
-                                        first_name=student_info['first_name'],
-                                        last_name=student_info['last_name'],
-                                        email=student_info['email'],
-                                        phone_number=student_info.get('phone_number', ''),
-                                        date_of_birth=student_info['date_of_birth'],
-                                        address=student_info['address'],
-                                        password_hash=make_password(student_info['password']),
-                                    )
+                            # Student details will be collected AFTER payment
+                            # No need to create BatchStudentData records here
                             
                             # Get checkout URL
                             checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
@@ -292,7 +279,7 @@ def register(request):
                 context = {
                     'form': UserRegisterForm(),
                     'registrar_form': registrar_form,
-                    'formset': formset,
+                    'formset': BatchStudentFormSet(initial=[{}]),
                     'registration_type': 'batch',
                 }
                 return render(request, 'accounts/register.html', context)

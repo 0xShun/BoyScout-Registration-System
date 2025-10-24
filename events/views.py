@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayment
-from .forms import EventForm, EventPhotoForm, EventRegistrationForm, EventPaymentForm
+from .forms import EventForm, EventPhotoForm, EventRegistrationForm
 from accounts.views import admin_required # Reusing the admin_required decorator
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -69,15 +69,46 @@ def send_event_notifications(event, action='created'):
 
 @login_required
 def event_list(request):
+    """
+    Display events in a calendar view.
+    Gate events for scouts until registration is verified.
+    """
     # Gate events for scouts until registration is verified
     if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
         messages.warning(request, 'Events are locked until your registration payment is verified.')
         return redirect('accounts:registration_payment', user_id=request.user.id)
-    events = Event.objects.all().order_by('-date', '-time')
-    paginator = Paginator(events, 10)
-    page = request.GET.get('page')
-    events = paginator.get_page(page)
-    return render(request, 'events/event_list.html', {'events': events})
+    
+    return render(request, 'events/event_list.html')
+
+@login_required
+def event_calendar_data(request):
+    """
+    JSON API endpoint for calendar events data.
+    Returns all events in FullCalendar JSON format.
+    """
+    # Gate events for scouts until registration is verified
+    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
+        return JsonResponse({'error': 'Events are locked until registration is verified'}, status=403)
+    
+    # Get all events
+    events = Event.objects.all().select_related('created_by')
+    
+    # Format events for FullCalendar
+    calendar_events = []
+    for event in events:
+        calendar_events.append({
+            'id': event.pk,
+            'title': event.title,
+            'start': event.date.isoformat(),  # ISO format for date
+            'url': f'/events/{event.pk}/',  # Link to event detail page
+            'extendedProps': {
+                'location': event.location,
+                'time': event.time.strftime('%I:%M %p'),
+                'description': event.description[:100] + '...' if len(event.description) > 100 else event.description,
+            }
+        })
+    
+    return JsonResponse(calendar_events, safe=False)
 
 @admin_required
 def event_create(request):
@@ -99,13 +130,20 @@ def event_create(request):
 
 @login_required
 def event_detail(request, pk):
+    """
+    Display event details and handle event registration with QR PH payment.
+    For paid events, generate PayMongo QR code instead of manual receipt upload.
+    """
     # Gate events for scouts until registration is verified
     if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
         messages.warning(request, 'Events are locked until your registration payment is verified.')
         return redirect('accounts:registration_payment', user_id=request.user.id)
+    
     event = get_object_or_404(Event, pk=pk)
     
+    # Get event photos
     photos = event.photos.all().order_by('-is_featured', '-uploaded_at')
+    
     # Attendance summary
     attendance_qs = event.attendances.select_related('user')
     present_list = [a.user for a in attendance_qs if a.status == 'present']
@@ -114,50 +152,97 @@ def event_detail(request, pk):
     absent_count = len(absent_list)
     total_scouts = present_count + absent_count
 
-    # Get QR code for payment (event-specific or fallback to general)
-    from payments.models import PaymentQRCode
-    # Use the actual event.qr_code object if it exists, otherwise get the general QR code
-    qr_code = None
-    if event.qr_code:
-        qr_code = event.qr_code
-    else:
-        qr_code = PaymentQRCode.get_active_qr_code()
-    
-    # Registration logic
+    # Check if user already registered
     registration = None
-    registration_form = None
     if request.user.is_authenticated:
         registration = EventRegistration.objects.filter(event=event, user=request.user).first()
-        if request.method == 'POST' and 'register_event' in request.POST:
-            if registration:
-                registration_form = EventRegistrationForm(request.POST, request.FILES, instance=registration, event=event)
-            else:
-                registration_form = EventRegistrationForm(request.POST, request.FILES, event=event)
-            if registration_form.is_valid():
-                reg = registration_form.save(commit=False)
-                reg.event = event
-                reg.user = request.user
+    
+    # Handle event registration with QR PH payment
+    if request.method == 'POST' and 'register_event' in request.POST and request.user.is_authenticated:
+        # Check if already registered
+        if registration:
+            messages.info(request, 'You are already registered for this event.')
+            return redirect('events:event_detail', pk=event.pk)
+        
+        # Create registration with appropriate payment status
+        payment_status = 'pending' if event.has_payment_required else 'not_required'
+        registration = EventRegistration.objects.create(
+            event=event,
+            user=request.user,
+            rsvp='yes',
+            payment_status=payment_status
+        )
+        
+        # Handle payment based on event requirements
+        if event.has_payment_required:
+            # Create PayMongo payment source for QR PH
+            from payments.services.paymongo_service import PayMongoService
+            from decimal import Decimal
+            
+            try:
+                # Initialize PayMongo service
+                paymongo = PayMongoService()
                 
-                # Handle payment status - full payment required (no pending/partial)
-                # Events with payment are handled via PayMongo webhook
-                if not event.has_payment_required:
-                    reg.payment_status = 'not_required'
-                    reg.verified = True
+                # Create payment source
+                success, response = paymongo.create_source(
+                    amount=event.payment_amount,
+                    description=f"Event Registration: {event.title}",
+                    redirect_success=request.build_absolute_uri(f'/events/{event.pk}/'),
+                    redirect_failed=request.build_absolute_uri(f'/events/{event.pk}/'),
+                    metadata={
+                        'payment_type': 'event_registration',
+                        'event_id': str(event.pk),
+                        'event_registration_id': str(registration.pk),
+                        'user_id': str(request.user.pk),
+                        'event_title': event.title,
+                    }
+                )
+                
+                if success and 'data' in response:
+                    source_data = response['data']
+                    source_id = source_data['id']
+                    checkout_url = source_data['attributes']['redirect']['checkout_url']
+                    
+                    # Create EventPayment record to track this payment
+                    event_payment = EventPayment.objects.create(
+                        registration=registration,
+                        amount=event.payment_amount,
+                        status='pending',
+                        payment_method='qr_ph',
+                        paymongo_source_id=source_id,
+                        notes=f"PayMongo QR PH payment for {event.title}"
+                    )
+                    
+                    # Log the payment initiation
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"Event payment initiated: User {request.user.username}, Event {event.title}, Source {source_id}")
+                    
+                    # Redirect to PayMongo checkout
+                    return redirect(checkout_url)
                 else:
-                    # Payment required - will be marked 'paid' by PayMongo webhook
-                    reg.payment_status = 'not_required'  # Until payment confirmed
-                    reg.verified = False
-                
-                reg.save()
-                
-                messages.success(request, 'Event registration submitted successfully!')
-                if event.has_payment_required:
-                    messages.info(request, 'Please complete the full payment to confirm your registration.')
+                    # PayMongo source creation failed
+                    messages.error(request, 'Unable to process payment at this time. Please try again later.')
+                    # Delete the registration since payment failed
+                    registration.delete()
+                    return redirect('events:event_detail', pk=event.pk)
+                    
+            except Exception as e:
+                # Handle any errors
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Event payment error: {str(e)}")
+                messages.error(request, 'An error occurred while processing your registration. Please try again.')
+                # Delete the registration since payment failed
+                registration.delete()
                 return redirect('events:event_detail', pk=event.pk)
-            else:
-                messages.error(request, 'There was an error with your registration. Please check the form.')
         else:
-            registration_form = EventRegistrationForm(instance=registration, event=event)
+            # Free event - auto-approve registration
+            registration.payment_status = 'not_required'
+            registration.verified = True
+            registration.save()
+            messages.success(request, 'You have successfully registered for this event!')
+            return redirect('events:event_detail', pk=event.pk)
 
     # Admin: see all registrations
     registrations = None
@@ -173,9 +258,7 @@ def event_detail(request, pk):
         'absent_count': absent_count,
         'total_scouts': total_scouts,
         'registration': registration,
-        'registration_form': registration_form,
         'registrations': registrations,
-        'qr_code': qr_code,
     })
 
 @admin_required
@@ -435,59 +518,6 @@ def verify_event_registration(request, event_pk, reg_pk):
     return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})
 
 @login_required
-def event_payment(request, pk):
-    """Dedicated payment page for a specific event"""
-    event = get_object_or_404(Event, pk=pk)
-    
-    # Check if user is registered for this event
-    try:
-        registration = EventRegistration.objects.get(event=event, user=request.user)
-    except EventRegistration.DoesNotExist:
-        messages.error(request, 'You must register for this event first before making a payment.')
-        return redirect('events:event_detail', pk=event.pk)
-    
-    # Check if event requires payment
-    if not event.has_payment_required:
-        messages.info(request, 'This event does not require payment.')
-        return redirect('events:event_detail', pk=event.pk)
-    
-    # Handle new payment submission
-    if request.method == 'POST':
-        form = EventPaymentForm(request.POST, request.FILES, registration=registration)
-        if form.is_valid():
-            payment = form.save(commit=False)
-            payment.registration = registration
-            payment.save()
-            
-            # Notify admins about payment submission
-            admins = User.objects.filter(rank='admin')
-            for admin in admins:
-                send_realtime_notification(
-                    admin.id, 
-                    f"Event payment submitted: {registration.user.get_full_name()} - ₱{payment.amount} for {event.title}",
-                    type='event'
-                )
-            
-            messages.success(request, f'Payment of ₱{payment.amount} submitted successfully! Your payment is pending verification.')
-            return redirect('events:event_payment', pk=event.pk)
-    else:
-        form = EventPaymentForm(registration=registration)
-    
-    # Get QR code (event-specific or general)
-    from payments.models import PaymentQRCode
-    qr_code = event.qr_code if event.qr_code else PaymentQRCode.get_active_qr_code()
-    
-    # Get payment history for this registration
-    payments = registration.payments.all().order_by('-created_at')
-    
-    return render(request, 'events/event_payment.html', {
-        'event': event,
-        'registration': registration,
-        'form': form,
-        'qr_code': qr_code,
-        'payments': payments,
-    })
-
 @admin_required
 def pending_payments(request):
     """View for admins to see all unpaid event registrations (full payment required)"""

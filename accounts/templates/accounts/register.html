@@ -13,7 +13,7 @@
           <div class="d-flex justify-content-between align-items-center">
             <div>
               <h6 class="mb-1">
-                <i class="fas fa-user me-2"></i>
+                <i class="fas fa-user me-2" id="registrationTypeIcon"></i>
                 <span id="registrationTypeLabel">Single Registration</span>
               </h6>
               <small class="text-muted" id="registrationTypeDesc">Register one student</small>
@@ -159,9 +159,13 @@
             <p class="mb-0 small">Complete payment first, then add student details to activate all accounts!</p>
           </div>
           
-          <button type="submit" class="btn btn-success w-100 py-2 mt-3">
+          <button type="submit" class="btn btn-success w-100 py-2 mt-3" id="batchSubmitBtn" disabled>
             <i class="fas fa-shopping-cart"></i> Proceed to Payment (Pay for <span id="submitStudentCount">0</span> Students)
           </button>
+          
+          <div id="batchValidationMessage" class="alert alert-warning mt-3" style="display: none;">
+            <i class="fas fa-exclamation-triangle"></i> Please enter the number of students (1-50) to proceed.
+          </div>
         </div>
       </form>
       
@@ -223,10 +227,77 @@
             });
         }
         
+        // Batch Registration - Define variables and function first
+        const numberOfStudentsInput = document.getElementById('id_number_of_students');
+        const studentCountBadge = document.getElementById('studentCount');
+        const totalStudentsSpan = document.getElementById('totalStudents');
+        const totalAmountSpan = document.getElementById('totalAmount');
+        const submitStudentCount = document.getElementById('submitStudentCount');
+        const batchSubmitBtn = document.getElementById('batchSubmitBtn');
+        const batchValidationMessage = document.getElementById('batchValidationMessage');
+        const registrationForm = document.getElementById('registrationForm');
+        
+        function updateBatchTotal() {
+            const numStudents = parseInt(numberOfStudentsInput?.value || 0);
+            if (studentCountBadge) studentCountBadge.textContent = `${numStudents} student${numStudents !== 1 ? 's' : ''}`;
+            if (totalStudentsSpan) totalStudentsSpan.textContent = numStudents;
+            if (submitStudentCount) submitStudentCount.textContent = numStudents;
+            const total = numStudents * 500;
+            if (totalAmountSpan) totalAmountSpan.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            
+            // Enable/disable submit button based on number of students
+            if (batchSubmitBtn) {
+                if (numStudents > 0 && numStudents <= 50) {
+                    batchSubmitBtn.disabled = false;
+                    batchSubmitBtn.classList.remove('btn-secondary');
+                    batchSubmitBtn.classList.add('btn-success');
+                    batchSubmitBtn.style.cursor = 'pointer';
+                    if (batchValidationMessage) batchValidationMessage.style.display = 'none';
+                } else {
+                    batchSubmitBtn.disabled = true;
+                    batchSubmitBtn.classList.remove('btn-success');
+                    batchSubmitBtn.classList.add('btn-secondary');
+                    batchSubmitBtn.style.cursor = 'not-allowed';
+                    if (batchValidationMessage) batchValidationMessage.style.display = 'block';
+                }
+            }
+        }
+        
+        // Form submission validation
+        if (registrationForm) {
+            registrationForm.addEventListener('submit', function(e) {
+                const registrationType = document.getElementById('registrationType').value;
+                
+                if (registrationType === 'batch') {
+                    const numStudents = parseInt(numberOfStudentsInput?.value || 0);
+                    
+                    if (numStudents < 1 || numStudents > 50) {
+                        e.preventDefault();
+                        if (batchValidationMessage) {
+                            batchValidationMessage.style.display = 'block';
+                            batchValidationMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                        alert('Please enter a valid number of students (1-50) before proceeding to payment.');
+                        return false;
+                    }
+                }
+            });
+        }
+        
+        if (numberOfStudentsInput) {
+            numberOfStudentsInput.addEventListener('input', updateBatchTotal);
+            numberOfStudentsInput.addEventListener('change', updateBatchTotal);
+            // Initialize on page load
+            updateBatchTotal();
+        } else {
+            console.error('Number of students input field not found!');
+        }
+        
         // Registration Type Toggle Switch
         const toggleSwitch = document.getElementById('registrationTypeSwitch');
         const registrationType = document.getElementById('registrationType');
         const typeLabel = document.getElementById('registrationTypeLabel');
+        const typeIcon = document.getElementById('registrationTypeIcon');
         const typeDesc = document.getElementById('registrationTypeDesc');
         const singleForm = document.getElementById('singleRegistrationForm');
         const batchForm = document.getElementById('batchRegistrationForm');
@@ -236,7 +307,8 @@
                 if (this.checked) {
                     // Switch to Batch Registration
                     registrationType.value = 'batch';
-                    typeLabel.innerHTML = '<i class="fas fa-users me-2"></i>Batch Registration';
+                    typeLabel.textContent = 'Batch Registration';
+                    typeIcon.className = 'fas fa-users me-2';
                     typeDesc.textContent = 'Register multiple students (Teachers)';
                     singleForm.style.display = 'none';
                     batchForm.style.display = 'block';
@@ -244,35 +316,13 @@
                 } else {
                     // Switch to Single Registration
                     registrationType.value = 'single';
-                    typeLabel.innerHTML = '<i class="fas fa-user me-2"></i>Single Registration';
+                    typeLabel.textContent = 'Single Registration';
+                    typeIcon.className = 'fas fa-user me-2';
                     typeDesc.textContent = 'Register one student';
                     singleForm.style.display = 'block';
                     batchForm.style.display = 'none';
                 }
             });
-        }
-        
-        // Batch Registration - Update total based on number of students input
-        const numberOfStudentsInput = document.getElementById('id_number_of_students');
-        const studentCountBadge = document.getElementById('studentCount');
-        const totalStudentsSpan = document.getElementById('totalStudents');
-        const totalAmountSpan = document.getElementById('totalAmount');
-        const submitStudentCount = document.getElementById('submitStudentCount');
-        
-        function updateBatchTotal() {
-            const numStudents = parseInt(numberOfStudentsInput?.value || 0);
-            if (studentCountBadge) studentCountBadge.textContent = `${numStudents} student${numStudents !== 1 ? 's' : ''}`;
-            if (totalStudentsSpan) totalStudentsSpan.textContent = numStudents;
-            if (submitStudentCount) submitStudentCount.textContent = numStudents;
-            const total = numStudents * 500;
-            if (totalAmountSpan) totalAmountSpan.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-        }
-        
-        if (numberOfStudentsInput) {
-            numberOfStudentsInput.addEventListener('input', updateBatchTotal);
-            numberOfStudentsInput.addEventListener('change', updateBatchTotal);
-            // Initialize on page load
-            updateBatchTotal();
         }
     });
 </script>

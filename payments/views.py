@@ -698,6 +698,104 @@ This is an automated message. Please do not reply to this email.
                     logger.info(f'Batch registration {batch_reg.batch_id} payment processed successfully')
                     return
         
+        # Handle event registration payment
+        if payment_type == 'event_registration':
+            from events.models import EventRegistration, EventPayment
+            
+            event_registration_id = metadata.get('event_registration_id')
+            if event_registration_id:
+                event_registration = EventRegistration.objects.filter(id=event_registration_id).first()
+                if event_registration:
+                    logger.info(f'Event registration {event_registration.id} payment confirmed')
+                    
+                    # Find and update the EventPayment record
+                    event_payment = EventPayment.objects.filter(
+                        registration=event_registration,
+                        paymongo_source_id=source_id,
+                        status='pending'
+                    ).first()
+                    
+                    if event_payment:
+                        # Update payment status
+                        event_payment.status = 'completed'
+                        event_payment.paymongo_payment_id = payment_id
+                        event_payment.verified_at = timezone.now()
+                        event_payment.notes = f'Payment confirmed via PayMongo webhook. Amount: ₱{amount}'
+                        event_payment.save()
+                        
+                        # Update event registration
+                        event_registration.total_paid = amount
+                        event_registration.payment_status = 'paid'
+                        event_registration.verified = True
+                        event_registration.save()
+                        
+                        logger.info(f'Event registration {event_registration.id} payment verified')
+                        
+                        # Send confirmation email to user
+                        user = event_registration.user
+                        event = event_registration.event
+                        
+                        event_confirmation_message = f'''
+Dear {user.first_name} {user.last_name},
+
+🎉 Your event registration payment has been confirmed!
+
+Event Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Event: {event.title}
+📍 Location: {event.location}
+🗓️ Date: {event.date.strftime('%B %d, %Y')}
+⏰ Time: {event.time.strftime('%I:%M %p')}
+
+Payment Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✓ Amount Paid: ₱{amount}
+✓ Payment Reference: {payment_id}
+✓ Payment Status: Confirmed
+✓ Registration Status: Verified
+
+You're All Set!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Your registration for "{event.title}" is now complete. We look forward to seeing you there!
+
+Event Description:
+{event.description[:200]}{'...' if len(event.description) > 200 else ''}
+
+Important Reminders:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+• Mark your calendar for {event.date.strftime('%B %d, %Y')} at {event.time.strftime('%I:%M %p')}
+• Location: {event.location}
+• Bring any required materials or documents
+• Check your dashboard for event updates
+• Contact us if you have any questions
+
+If you need to make any changes to your registration or have questions about the event, please don't hesitate to contact us.
+
+See you at the event!
+
+Best regards,
+The ScoutConnect Team
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This is an automated message. Please do not reply to this email.
+                        '''
+                        
+                        NotificationService.send_email(
+                            subject=f'Event Payment Confirmed - {event.title}',
+                            message=event_confirmation_message,
+                            recipient_list=[user.email]
+                        )
+                        
+                        # Send realtime notification to user only
+                        send_realtime_notification(
+                            user_id=user.id,
+                            message=f'Your registration for "{event.title}" is confirmed!',
+                            notification_type='event_registration_verified'
+                        )
+                        
+                        logger.info(f'Event registration {event_registration.id} payment confirmed and user notified')
+                        return
+        
         if payment_type == 'registration':
             # Handle registration payment
             reg_payment_id = metadata.get('registration_payment_id')
@@ -737,14 +835,17 @@ This is an automated message. Please do not reply to this email.
                     email_message = f'''
 Dear {user.first_name} {user.last_name},
 
-🎉 Congratulations! Your registration has been successfully completed!
+🎉 Welcome to ScoutConnect!
+
+Your registration payment has been successfully confirmed and your account is now active!
 
 Payment Details:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✓ Amount Paid: ₱{reg_payment.amount}
+✓ Payment Reference: {payment_id}
 ✓ Payment Status: Verified
 ✓ Account Status: Active
-✓ Membership: {years} year(s)
+✓ Membership Duration: {years} year(s)
 
 Your Account Information:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -752,23 +853,28 @@ Your Account Information:
 👤 Username: {user.username}
 🏅 Rank: Scout
 
-You Can Now Login!
+Login Instructions:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Visit: {login_url}
-Or go to: http://localhost:8000/accounts/login/
+1. Visit: {login_url}
+   (Or go to: http://localhost:8000/accounts/login/)
 
-Use your email ({user.email}) and the password you created during registration to login.
+2. Enter your credentials:
+   • Email: {user.email}
+   • Password: (the password you created during registration)
+
+3. Click "Login" to access your dashboard
 
 What's Next?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✓ Complete your profile
-✓ Browse upcoming events
-✓ Connect with other scouts
-✓ Check announcements
+✓ Complete your profile with additional information
+✓ Browse and register for upcoming events
+✓ Connect with fellow scouts in your troop
+✓ Check announcements for important updates
+✓ Track your event attendance and participation
 
-Welcome to the ScoutConnect community! We're excited to have you on board.
+Welcome to our scout community! We're excited to have you on board.
 
-If you have any questions, please don't hesitate to contact us.
+If you have any questions or need assistance, please don't hesitate to contact us.
 
 Best regards,
 The ScoutConnect Team
@@ -778,27 +884,19 @@ This is an automated message. Please do not reply to this email.
                     '''
                     
                     NotificationService.send_email(
-                        subject='✅ Registration Confirmed - Welcome to ScoutConnect!',
+                        subject='Registration Payment Confirmed - ScoutConnect',
                         message=email_message,
                         recipient_list=[user.email]
                     )
                     
-                    # Send realtime notification
+                    # Send realtime notification to user only
                     send_realtime_notification(
                         user_id=user.id,
                         message=f'Welcome to ScoutConnect! Your registration is confirmed.',
                         notification_type='registration_verified'
                     )
                     
-                    # Notify admins
-                    admin_users = User.objects.filter(rank='admin', is_active=True)
-                    for admin in admin_users:
-                        send_realtime_notification(
-                            user_id=admin.id,
-                            message=f'Registration payment confirmed: {user.get_full_name()} - ₱{reg_payment.amount}',
-                            notification_type='registration_verified'
-                        )
-                    
+                    logger.info(f'Registration payment {reg_payment.id} processed and user notified')
                     return
         
         # Find regular payment by source_id or payment_id

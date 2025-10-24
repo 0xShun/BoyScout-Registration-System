@@ -13,9 +13,15 @@ class Event(models.Model):
     time = models.TimeField(default=get_current_time)
     location = models.CharField(max_length=200)
     banner = models.ImageField(upload_to='event_banners/', null=True, blank=True)
-    # New fields for payment flow
-    qr_code = models.ImageField(upload_to='event_qr_codes/', null=True, blank=True, verbose_name="Payment QR Code")
-    payment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Event Fee")
+    # Payment field - QR PH integration generates dynamic QR codes
+    payment_amount = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True, 
+        verbose_name="Event Fee",
+        help_text="Set event fee amount. Leave blank for free events."
+    )
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -61,7 +67,7 @@ class Attendance(models.Model):
         return f"{self.user.get_full_name()} - {self.event.title} ({self.status})"
 
 class EventPayment(models.Model):
-    """Model to track individual payments for event registrations"""
+    """Model to track individual payments for event registrations with QR PH integration"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('verified', 'Verified'),
@@ -77,11 +83,35 @@ class EventPayment(models.Model):
     verification_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # PayMongo QR PH integration fields
+    paymongo_source_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name="PayMongo Source ID",
+        help_text="PayMongo source ID for QR PH payment"
+    )
+    paymongo_payment_id = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True,
+        verbose_name="PayMongo Payment ID",
+        help_text="PayMongo payment ID after successful payment"
+    )
+    payment_method = models.CharField(
+        max_length=50,
+        blank=True,
+        default='qr_ph',
+        verbose_name="Payment Method",
+        help_text="Method used for payment (qr_ph, manual, etc.)"
+    )
 
     class Meta:
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=["registration", "status", "created_at"]),
+            models.Index(fields=["paymongo_payment_id"]),
         ]
 
     def __str__(self):

@@ -227,8 +227,39 @@ test_output/
 # DOCUMENTATION (Keep README, ignore others)
 # ============================================
 
-# Uncomment to ignore all markdown except README
-# *.md
+# Development/Internal documentation with sensitive info
+*_GUIDE.md
+*_SETUP*.md
+*_COMPLETE.md
+*_SUMMARY.md
+*_FIX.md
+*_TESTING.md
+PHASE*.md
+DEPLOYMENT*.md
+GIT_PUSH*.md
+NOTIFICATION*.md
+PAYMONGO*.md
+QR_PH*.md
+AUTOMATIC*.md
+BATCH_REGISTRATION*.md
+EMAIL_*.md
+EVENT_*.md
+PAYMENT_*.md
+GMAIL_*.md
+QUICK_START*.md
+REGISTRATION_*.md
+USER_STATUS*.md
+IMPLEMENTATION_SUMMARY.md
+TESTING_GUIDE.md
+PRODUCTION_DEPLOYMENT_GUIDE.md
+flow.md
+
+# Research and academic documents (may contain data)
+RESEARCH_*.md
+research_metrics.json
+collect_research_metrics.py
+
+# Keep only main README
 # !README.md
 
 # Word/PDF documents (keep in docs/ if needed)
@@ -279,12 +310,29 @@ cython_debug/
 # PROJECT SPECIFIC
 # ============================================
 
-# Test files
+# Test files with potentially sensitive data
 test_*.py
 *_test.py
+setup_email.py
+test_email*.py
+test_notifications.py
+test_payment*.py
+test_registration*.py
+test_twilio*.py
+test_webhook*.py
+test_phase*.py
+test_complete*.py
 
 # Exclude test scripts but keep the main test directory
 /tests/test_*.log
+
+# Checklists and feature lists (may contain internal info)
+checklist.txt
+features.txt
+
+# Database schema files
+database_schema.dbml
+*.dbml
 
 # Local configuration
 local_config.py 
