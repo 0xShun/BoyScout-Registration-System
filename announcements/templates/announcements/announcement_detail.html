@@ -25,7 +25,6 @@
           </div>
           
           <hr>
-          
           <div class="row">
             <div class="col-md-6">
               <small class="text-muted">
@@ -40,6 +39,14 @@
               </small>
             </div>
           </div>
+          {% if request.user.is_authenticated and request.user.is_admin %}
+          <div class="mt-3 text-end">
+            <form method="post" action="{% url 'announcements:announcement_delete' announcement.pk %}" style="display:inline;">
+              {% csrf_token %}
+              <a href="{% url 'announcements:announcement_delete' announcement.pk %}" class="btn btn-danger btn-sm">Delete</a>
+            </form>
+          </div>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -303,26 +303,48 @@
         const batchForm = document.getElementById('batchRegistrationForm');
         
         if (toggleSwitch) {
-            toggleSwitch.addEventListener('change', function() {
-                if (this.checked) {
-                    // Switch to Batch Registration
-                    registrationType.value = 'batch';
-                    typeLabel.textContent = 'Batch Registration';
-                    typeIcon.className = 'fas fa-users me-2';
-                    typeDesc.textContent = 'Register multiple students (Teachers)';
-                    singleForm.style.display = 'none';
-                    batchForm.style.display = 'block';
-                    updateBatchTotal();
-                } else {
-                    // Switch to Single Registration
-                    registrationType.value = 'single';
-                    typeLabel.textContent = 'Single Registration';
-                    typeIcon.className = 'fas fa-user me-2';
-                    typeDesc.textContent = 'Register one student';
-                    singleForm.style.display = 'block';
-                    batchForm.style.display = 'none';
-                }
-            });
+      toggleSwitch.addEventListener('change', function() {
+        if (this.checked) {
+          // Switch to Batch Registration
+          registrationType.value = 'batch';
+          typeLabel.textContent = 'Batch Registration';
+          typeIcon.className = 'fas fa-users me-2';
+          typeDesc.textContent = 'Register multiple students (Teachers)';
+          singleForm.style.display = 'none';
+          batchForm.style.display = 'block';
+          // Enable all inputs in batch form
+          Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
+            el.disabled = false;
+          });
+          // Disable all inputs in single form
+          Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
+            el.disabled = true;
+          });
+          updateBatchTotal();
+        } else {
+          // Switch to Single Registration
+          registrationType.value = 'single';
+          typeLabel.textContent = 'Single Registration';
+          typeIcon.className = 'fas fa-user me-2';
+          typeDesc.textContent = 'Register one student';
+          singleForm.style.display = 'block';
+          batchForm.style.display = 'none';
+          // Enable all inputs in single form
+          Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
+            el.disabled = false;
+          });
+          // Disable all inputs in batch form
+          Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
+            el.disabled = true;
+          });
+        }
+      });
+  // On page load, ensure only visible form's fields are enabled
+  const singleForm = document.getElementById('singleRegistrationForm');
+  const batchForm = document.getElementById('batchRegistrationForm');
+  // Enable single, disable batch by default
+  if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+  if (batchForm) Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
         }
     });
 </script>

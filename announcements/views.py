@@ -1,3 +1,22 @@
+def admin_required(view_func):
+    return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
+
+from django.urls import reverse
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
+from .forms import AnnouncementForm
+from .models import Announcement
+from accounts.models import User
+from django.core.mail import send_mail
+from django.conf import settings
+import logging
+from notifications.services import NotificationService, send_realtime_notification
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
+
+from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -14,6 +33,15 @@ logger = logging.getLogger(__name__)
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
+
+@admin_required
+def announcement_delete(request, pk):
+    announcement = get_object_or_404(Announcement, pk=pk)
+    if request.method == 'POST':
+        announcement.delete()
+        messages.success(request, 'Announcement deleted successfully.')
+        return redirect('announcements:announcement_list')
+    return render(request, 'announcements/announcement_confirm_delete.html', {'announcement': announcement})
 
 @login_required
 def announcement_list(request):
