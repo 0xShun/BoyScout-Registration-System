@@ -17,6 +17,22 @@ from accounts.models import User
 from django.utils import timezone
 from notifications.services import send_realtime_notification, NotificationService
 from decimal import Decimal
+import logging
+
+# Module logger
+logger = logging.getLogger(__name__)
+
+
+def _redirect_to_event(event):
+    """Helper to safely redirect to an event detail page or fallback to event list.
+
+    Some code paths may attempt to redirect to an event before the instance has
+    a primary key (pk). Use this helper to avoid NoReverseMatch by falling back
+    to the event list when pk is missing.
+    """
+    if event is not None and getattr(event, 'pk', None):
+        return redirect('events:event_detail', pk=event.pk)
+    return redirect('events:event_list')
 
 def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
@@ -73,10 +89,13 @@ def event_list(request):
     Display events in a calendar view.
     Gate events for scouts until registration is verified.
     """
-    # Gate events for scouts until registration is verified
-    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
-        messages.warning(request, 'Events are locked until your registration payment is verified.')
-        return redirect('accounts:registration_payment', user_id=request.user.id)
+    # Force reload of user from DB to ensure latest status
+    from accounts.models import User
+    user = User.objects.get(pk=request.user.pk)
+    # Gate events for scouts until account is active
+    if hasattr(user, 'is_scout') and user.is_scout() and not user.is_active:
+        messages.warning(request, 'Events are locked until your account is activated.')
+        return redirect('accounts:registration_payment', user_id=user.id)
     
     return render(request, 'events/event_list.html')
 
@@ -86,9 +105,12 @@ def event_calendar_data(request):
     JSON API endpoint for calendar events data.
     Returns all events in FullCalendar JSON format.
     """
-    # Gate events for scouts until registration is verified
-    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
-        return JsonResponse({'error': 'Events are locked until registration is verified'}, status=403)
+    # Force reload of user from DB to ensure latest status
+    from accounts.models import User
+    user = User.objects.get(pk=request.user.pk)
+    # Gate events for scouts until account is active
+    if hasattr(user, 'is_scout') and user.is_scout() and not user.is_active:
+        return JsonResponse({'error': 'Events are locked until your account is activated.'}, status=403)
     
     # Get all events
     events = Event.objects.all().select_related('created_by')
@@ -123,7 +145,7 @@ def event_create(request):
             send_event_notifications(event, 'created')
             
             messages.success(request, 'Event created successfully.')
-            return redirect('events:event_detail', pk=event.pk)
+            return _redirect_to_event(event)
     else:
         form = EventForm()
     return render(request, 'events/event_form.html', {'form': form})
@@ -134,12 +156,62 @@ def event_detail(request, pk):
     Display event details and handle event registration with QR PH payment.
     For paid events, generate PayMongo QR code instead of manual receipt upload.
     """
-    # Gate events for scouts until registration is verified
-    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
-        messages.warning(request, 'Events are locked until your registration payment is verified.')
+    # Gate events for scouts until account is active
+    if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_active:
+        messages.warning(request, 'Events are locked until your account is activated.')
         return redirect('accounts:registration_payment', user_id=request.user.id)
     
     event = get_object_or_404(Event, pk=pk)
+
+    # If user was redirected back from PayMongo, try fallback reconciliation
+    # using a session-stored pending EventPayment id. This mirrors the
+    # behavior used for registration payments so users who are redirected
+    # back without a webhook can still have their payment finalized.
+    pending_event_payment_id = request.session.pop('pending_event_payment_id', None)
+    if pending_event_payment_id:
+        try:
+            from payments.services.paymongo_service import PayMongoService
+            ep = EventPayment.objects.filter(id=pending_event_payment_id).first()
+            if ep and ep.status != 'verified' and ep.paymongo_source_id:
+                paymongo = PayMongoService()
+                found, payment_obj = paymongo.find_payment_by_source(ep.paymongo_source_id)
+                if found and payment_obj:
+                    payment_id = payment_obj.get('id') or payment_obj.get('attributes', {}).get('id')
+                    source = payment_obj.get('attributes', {}).get('source', {})
+                    source_id = source.get('id') if isinstance(source, dict) else ep.paymongo_source_id
+
+                    # Finalize the EventPayment
+                    ep.status = 'verified'
+                    if not ep.paymongo_payment_id:
+                        ep.paymongo_payment_id = payment_id
+                    ep.verification_date = timezone.now()
+                    ep.save()
+
+                    # Update the registration
+                    reg = ep.registration
+                    try:
+                        reg.total_paid = (reg.total_paid or 0) + ep.amount
+                    except Exception:
+                        from decimal import Decimal
+                        reg.total_paid = Decimal(str(getattr(reg, 'total_paid', 0))) + Decimal(str(ep.amount))
+
+                    reg.payment_status = 'paid'
+                    reg.verified = True
+                    reg.verification_date = timezone.now()
+                    reg.save()
+
+                    # Notify the user
+                    try:
+                        NotificationService.send_email(
+                            subject=f'Event Payment Confirmed - {reg.event.title}',
+                            message=f"Dear {reg.user.first_name} {reg.user.last_name},\n\nYour payment for '{reg.event.title}' has been confirmed.\n\nThank you!",
+                            recipient_list=[reg.user.email]
+                        )
+                    except Exception:
+                        logger.exception('Failed to send event payment confirmation email in fallback')
+
+        except Exception:
+            logger.exception('Fallback reconciliation for pending event payment failed')
     
     # Get event photos
     photos = event.photos.all().order_by('-is_featured', '-uploaded_at')
@@ -162,7 +234,7 @@ def event_detail(request, pk):
         # Check if already registered
         if registration:
             messages.info(request, 'You are already registered for this event.')
-            return redirect('events:event_detail', pk=event.pk)
+            return _redirect_to_event(event)
         
         # Create registration with appropriate payment status
         payment_status = 'pending' if event.has_payment_required else 'not_required'
@@ -212,6 +284,11 @@ def event_detail(request, pk):
                         paymongo_source_id=source_id,
                         notes=f"PayMongo QR PH payment for {event.title}"
                     )
+                    # Remember this pending event payment in session so that
+                    # when the user is redirected back we can attempt a
+                    # fallback reconciliation if the webhook hasn't arrived.
+                    request.session['pending_event_payment_id'] = event_payment.id
+                    request.session.modified = True
                     
                     # Log the payment initiation
                     import logging
@@ -225,7 +302,7 @@ def event_detail(request, pk):
                     messages.error(request, 'Unable to process payment at this time. Please try again later.')
                     # Delete the registration since payment failed
                     registration.delete()
-                    return redirect('events:event_detail', pk=event.pk)
+                    return _redirect_to_event(event)
                     
             except Exception as e:
                 # Handle any errors
@@ -235,14 +312,14 @@ def event_detail(request, pk):
                 messages.error(request, 'An error occurred while processing your registration. Please try again.')
                 # Delete the registration since payment failed
                 registration.delete()
-                return redirect('events:event_detail', pk=event.pk)
+                return _redirect_to_event(event)
         else:
             # Free event - auto-approve registration
             registration.payment_status = 'not_required'
             registration.verified = True
             registration.save()
             messages.success(request, 'You have successfully registered for this event!')
-            return redirect('events:event_detail', pk=event.pk)
+            return _redirect_to_event(event)
 
     # Admin: see all registrations
     registrations = None
@@ -273,10 +350,75 @@ def event_edit(request, pk):
             send_event_notifications(event, 'updated')
             
             messages.success(request, 'Event updated successfully.')
-            return redirect('events:event_detail', pk=event.pk)
+            return _redirect_to_event(event)
     else:
         form = EventForm(instance=event)
     return render(request, 'events/event_form.html', {'form': form})
+
+
+@login_required
+def send_event_payment_confirmation_ajax(request, pk):
+    """AJAX endpoint called from the event detail page to send a payment confirmation
+    email when a registration shows as Fully Paid or Verified. Uses session key to
+    avoid duplicate sends in the same user session.
+    """
+    if request.method != 'POST' or request.headers.get('X-Requested-With') != 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+    try:
+        logger.info('send_event_payment_confirmation_ajax called', extra={'user_id': request.user.id if request.user.is_authenticated else None, 'event_id': pk})
+        # Find the registration for this user and event
+        registration = EventRegistration.objects.filter(event_id=pk, user=request.user).first()
+        if not registration:
+            return JsonResponse({'success': False, 'error': 'Registration not found'}, status=404)
+
+        # Determine if payment is in a completed state
+        paid = registration.payment_status == 'paid' or registration.verified or registration.total_paid >= registration.amount_required
+        any_verified_payment = registration.payments.filter(status='verified').exists()
+        if not (paid or any_verified_payment):
+            return JsonResponse({'success': False, 'error': 'Registration not paid/verified'}, status=400)
+
+        session_key = f'sent_event_email_{registration.pk}'
+        if request.session.get(session_key):
+            return JsonResponse({'success': True, 'sent': False, 'reason': 'already_sent_in_session'})
+
+        # Build and send the same confirmation email used in server-side flows
+        try:
+            logger.info('Sending event payment confirmation email', extra={'registration_id': registration.pk, 'user': registration.user.email})
+            subject = f'Event Payment Confirmed - {registration.event.title}'
+            message = f"Dear {registration.user.first_name} {registration.user.last_name},\n\n"
+            message += f"Your payment for the event '{registration.event.title}' has been confirmed.\n\n"
+            message += "Thank you and see you at the event!"
+
+            NotificationService.send_email(
+                subject=subject,
+                message=message,
+                recipient_list=[registration.user.email]
+            )
+            logger.info('Event payment confirmation email sent', extra={'registration_id': registration.pk, 'recipient': registration.user.email})
+
+            # Optionally send a realtime notification
+            try:
+                send_realtime_notification(
+                    user_id=registration.user.id,
+                    message=f'Your payment for "{registration.event.title}" has been confirmed.',
+                    notification_type='event_payment_confirmed'
+                )
+            except Exception:
+                logger.exception('Failed to send realtime notification after sending event payment email')
+
+            # Mark as sent in session to avoid duplicates
+            request.session[session_key] = True
+            request.session.modified = True
+
+            return JsonResponse({'success': True, 'sent': True})
+        except Exception:
+            logger.exception('Failed to send event payment confirmation email')
+            return JsonResponse({'success': False, 'error': 'email_failed'}, status=500)
+
+    except Exception:
+        logger.exception('Error in send_event_payment_confirmation_ajax')
+        return JsonResponse({'success': False, 'error': 'server_error'}, status=500)
 
 @admin_required
 def event_delete(request, pk):
@@ -299,17 +441,17 @@ def photo_upload(request, event_pk):
                 image = request.FILES['image']
                 if image.size > settings.MAX_UPLOAD_SIZE:  # e.g., 5MB
                     messages.error(request, 'Image size must be less than 5MB.')
-                    return redirect('events:event_detail', pk=event.pk)
+                    return _redirect_to_event(event)
                 
                 # Validate image format
                 try:
                     img = Image.open(image)
                     if img.format.lower() not in ['jpeg', 'jpg', 'png', 'gif']:
                         messages.error(request, 'Invalid image format. Please upload JPG, PNG, or GIF.')
-                        return redirect('events:event_detail', pk=event.pk)
+                        return _redirect_to_event(event)
                 except Exception as e:
                     messages.error(request, 'Invalid image file.')
-                    return redirect('events:event_detail', pk=event.pk)
+                    return _redirect_to_event(event)
 
                 # Create photo instance
                 photo = form.save(commit=False)
@@ -323,11 +465,11 @@ def photo_upload(request, event_pk):
                 
                 photo.save()
                 messages.success(request, 'Photo uploaded successfully.')
-                return redirect('events:event_detail', pk=event.pk)
+                return _redirect_to_event(event)
                 
             except Exception as e:
-                messages.error(request, f'Error uploading photo: {str(e)}')
-                return redirect('events:event_detail', pk=event.pk)
+                    messages.error(request, f'Error uploading photo: {str(e)}')
+                    return _redirect_to_event(event)
     else:
         form = EventPhotoForm()
     return render(request, 'events/photo_upload.html', {
@@ -365,7 +507,7 @@ def photo_delete(request, photo_pk):
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
-    return redirect('events:event_detail', pk=photo.event.pk)
+    return _redirect_to_event(photo.event)
 
 @admin_required
 def photo_toggle_featured(request, photo_pk):
@@ -383,7 +525,7 @@ def photo_toggle_featured(request, photo_pk):
         except Exception as e:
             messages.error(request, f'Error updating photo: {str(e)}')
     
-    return redirect('events:event_detail', pk=photo.event.pk)
+    return _redirect_to_event(photo.event)
 
 @admin_required
 def event_attendance(request, pk):
@@ -513,8 +655,13 @@ def verify_event_registration(request, event_pk, reg_pk):
                 send_realtime_notification(registration.user.id, f"Your payment for '{registration.event.title}' has been rejected.", type='event')
                 messages.warning(request, 'Registration payment rejected.')
             
-        return redirect('events:event_detail', pk=event_pk)
-    
+    # Safely redirect to the event detail page (if it exists) or fallback to the list
+    # After processing POST we redirect back to the event
+    if request.method == 'POST':
+        return _redirect_to_event(Event.objects.filter(pk=event_pk).first())
+
+    # For GET requests, render the verification page so an admin can
+    # click Verify Payment and enter amount/notes.
     return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})
 
 @login_required
@@ -522,10 +669,108 @@ def verify_event_registration(request, event_pk, reg_pk):
 def pending_payments(request):
     """View for admins to see all unpaid event registrations (full payment required)"""
     unpaid_registrations = EventRegistration.objects.filter(
-        payment_status='not_required',  # Not paid yet
+        payment_status='pending',  # Unpaid registrations awaiting verification
         event__payment_amount__gt=0  # Only events that require payment
     ).select_related('user', 'event').prefetch_related('payments').order_by('-registered_at')
     
     return render(request, 'events/pending_payments.html', {
         'pending_registrations': unpaid_registrations,  # Keep template variable name for compatibility
     })
+
+
+@login_required
+@admin_required
+def verify_event_registration_ajax(request):
+    """AJAX endpoint for admins to verify/reject event payments inline from pending list."""
+    if request.method != 'POST' or not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+    try:
+        reg_id = request.POST.get('registration_id')
+        payment_id = request.POST.get('payment_id')
+        action = request.POST.get('action')
+        payment_amount = request.POST.get('payment_amount')
+
+        registration = EventRegistration.objects.filter(id=reg_id).first()
+        if not registration:
+            return JsonResponse({'success': False, 'error': 'Registration not found'}, status=404)
+
+        if payment_id:
+            payment = EventPayment.objects.filter(id=payment_id, registration=registration).first()
+            if not payment:
+                return JsonResponse({'success': False, 'error': 'Payment not found'}, status=404)
+
+            if action == 'verify':
+                # Validate amount
+                if not payment_amount:
+                    return JsonResponse({'success': False, 'error': 'Missing payment amount'}, status=400)
+                try:
+                    amount = Decimal(payment_amount)
+                except Exception:
+                    return JsonResponse({'success': False, 'error': 'Invalid amount'}, status=400)
+
+                payment.status = 'verified'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = request.POST.get('notes', '')
+                payment.amount = amount
+                payment.save()
+
+                # Update registration
+                registration.total_paid += payment.amount
+                registration.update_payment_status()
+                registration.save()
+
+                # Notifications
+                try:
+                    NotificationService.send_email(
+                        subject=f'Event Payment Verified: {registration.event.title}',
+                        message=f'Your payment of ₱{payment.amount} for event "{registration.event.title}" has been verified.',
+                        recipient_list=[registration.user.email]
+                    )
+                except Exception:
+                    logger.exception('Failed to send verification email')
+
+                return JsonResponse({'success': True, 'status': 'verified', 'amount_paid': str(registration.total_paid)})
+
+            elif action == 'reject':
+                payment.status = 'rejected'
+                payment.verified_by = request.user
+                payment.verification_date = timezone.now()
+                payment.notes = request.POST.get('notes', '')
+                payment.save()
+                return JsonResponse({'success': True, 'status': 'rejected'})
+
+        else:
+            # Legacy verification (no EventPayment)
+            if action == 'verify':
+                registration.verified = True
+                registration.payment_status = 'paid'
+                registration.verified_by = request.user
+                registration.verification_date = timezone.now()
+                registration.payment_notes = request.POST.get('notes', '')
+                registration.total_paid = registration.amount_required
+                registration.save()
+                try:
+                    NotificationService.send_email(
+                        subject=f'Event Registration Payment Verified: {registration.event.title}',
+                        message=f'Your payment for event "{registration.event.title}" has been verified.',
+                        recipient_list=[registration.user.email]
+                    )
+                except Exception:
+                    logger.exception('Failed to send verification email')
+                return JsonResponse({'success': True, 'status': 'verified', 'amount_paid': str(registration.total_paid)})
+            elif action == 'reject':
+                registration.verified = False
+                registration.payment_status = 'rejected'
+                registration.verified_by = request.user
+                registration.verification_date = timezone.now()
+                registration.payment_notes = request.POST.get('notes', '')
+                registration.save()
+                return JsonResponse({'success': True, 'status': 'rejected'})
+
+        return JsonResponse({'success': False, 'error': 'Unsupported action'}, status=400)
+
+    except Exception as e:
+        logger.exception('AJAX verification error')
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)

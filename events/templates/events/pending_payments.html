@@ -61,9 +61,12 @@
                   </td>
                   <td>{{ registration.registered_at|date:"M d, Y g:i A" }}</td>
                   <td>
-                    <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary">
-                      <i class="fas fa-check"></i> Verify Payment
-                    </a>
+                      <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary me-1">
+                        <i class="fas fa-check"></i> Verify Payment
+                      </a>
+                      <button type="button" class="btn btn-sm btn-outline-success ajax-verify-btn" data-registration-id="{{ registration.pk }}" data-amount-remaining="{{ registration.amount_remaining }}">
+                        <i class="fas fa-bolt"></i> Verify (AJAX)
+                      </button>
                   </td>
                 </tr>
               {% endfor %}
@@ -83,4 +86,103 @@
     </div>
   {% endif %}
 </div>
+<script>
+// Inline AJAX verify for admins on pending payments list
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      // Does this cookie string begin with the name we want?
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
+    }
+  }
+  return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const buttons = document.querySelectorAll('.ajax-verify-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', async function(e) {
+      const regId = this.dataset.registrationId;
+      const amountRemaining = this.dataset.amountRemaining || '0.00';
+      const amount = prompt('Enter amount received (₱):', amountRemaining);
+      if (amount === null) return; // cancelled
+      const confirmVerify = confirm('Mark this registration as verified with amount ₱' + amount + '?');
+      if (!confirmVerify) return;
+
+      const url = "{% url 'events:pending_payments_verify_ajax' %}";
+      const csrftoken = getCookie('csrftoken');
+
+      const params = new URLSearchParams();
+      params.append('registration_id', regId);
+      params.append('action', 'verify');
+      params.append('payment_amount', amount);
+
+      try {
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrftoken,
+            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+          },
+          body: params.toString()
+        });
+
+        const data = await resp.json();
+        if (!resp.ok || !data.success) {
+          alert('Verification failed: ' + (data.error || resp.statusText));
+          return;
+        }
+
+        // Update UI: find the table row for this registration
+        const row = btn.closest('tr');
+        if (row) {
+          const statusBadge = row.querySelector('td:nth-child(3) .badge');
+          const paidBadge = row.querySelector('td:nth-child(5) .badge');
+          const remainingBadge = row.querySelector('td:nth-child(6) .badge');
+          if (statusBadge) {
+            statusBadge.textContent = 'Paid';
+            statusBadge.classList.remove('bg-warning');
+            statusBadge.classList.add('bg-success');
+          }
+          if (paidBadge && data.amount_paid !== undefined) {
+            paidBadge.textContent = '₱' + data.amount_paid;
+          }
+          if (remainingBadge) {
+            // compute remaining = amount_required - amount_paid if possible
+            try {
+              const reqText = row.querySelector('td:nth-child(4) .badge').textContent.replace('₱','').trim();
+              const req = parseFloat(reqText) || 0;
+              const paid = parseFloat((data.amount_paid||'0').toString()) || 0;
+              const rem = Math.max(0, req - paid).toFixed(2);
+              remainingBadge.textContent = '₱' + rem;
+              if (parseFloat(rem) > 0) {
+                remainingBadge.classList.remove('bg-success');
+                remainingBadge.classList.add('bg-warning');
+              } else {
+                remainingBadge.classList.remove('bg-warning');
+                remainingBadge.classList.add('bg-success');
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+
+        alert('Registration verified successfully.');
+
+      } catch (err) {
+        console.error(err);
+        alert('An unexpected error occurred during verification.');
+      }
+    });
+  });
+});
+</script>
 {% endblock %} 

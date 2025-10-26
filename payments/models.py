@@ -128,3 +128,19 @@ class Payment(models.Model):
         if not self.expiry_date:
             self.expiry_date = timezone.now() + timedelta(days=7)
         super().save(*args, **kwargs)
+
+
+class WebhookLog(models.Model):
+    """Store raw webhook payloads and related metadata for replay/debugging."""
+    received_at = models.DateTimeField(auto_now_add=True)
+    source_ip = models.CharField(max_length=100, blank=True, null=True)
+    headers = models.JSONField(null=True, blank=True)
+    body = models.TextField(blank=True)
+    processed = models.BooleanField(default=False)
+    processing_error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-received_at']
+
+    def __str__(self):
+        return f"WebhookLog {self.id} received_at={self.received_at} processed={self.processed}"

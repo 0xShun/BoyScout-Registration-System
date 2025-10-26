@@ -2,8 +2,10 @@
 
 {% block content %}
 <div class="container-fluid py-4 position-relative">
-  {# Access Control Overlay for Scouts without Registration #}
-  {% if user.is_authenticated and user.registration_status == 'active' and user.rank != 'admin' %}
+  {# Access Control Overlay for scouts without completed/paid registration #}
+  {% if user.is_authenticated and user.rank != 'admin' %}
+    {% if user.is_scout %}
+      {% if not user.is_registration_complete or not user.is_registration_fully_paid %}
     <div id="event-blur-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; backdrop-filter: blur(6px) brightness(0.8); background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;">
       <div class="text-center">
         <div style="font-size: 4rem; color: #888;"><i class="fas fa-lock"></i></div>
@@ -12,6 +14,8 @@
         <p class="text-muted">Please complete your payment and wait for admin approval to unlock this feature.</p>
       </div>
     </div>
+      {% endif %}
+    {% endif %}
   {% endif %}
 
   {# Header Section #}
@@ -148,14 +152,18 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {# Conditional CSS for Access Control #}
-{% if user.is_authenticated and user.registration_status == 'active' and user.rank != 'admin' %}
-<style>
-.container-fluid.py-4 > *:not(#event-blur-overlay) {
-  filter: blur(6px) brightness(0.8);
-  pointer-events: none;
-  user-select: none;
-}
-</style>
+{% if user.is_authenticated and user.rank != 'admin' %}
+  {% if user.is_scout %}
+    {% if not user.is_registration_complete or not user.is_registration_fully_paid %}
+      <style>
+      .container-fluid.py-4 > *:not(#event-blur-overlay) {
+        filter: blur(6px) brightness(0.8);
+        pointer-events: none;
+        user-select: none;
+      }
+      </style>
+    {% endif %}
+  {% endif %}
 {% endif %}
 
 <style>

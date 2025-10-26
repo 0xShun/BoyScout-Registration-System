@@ -167,6 +167,9 @@
                     <td>
                       {% if payment.type == 'registration' or payment.payment_type == 'registration' %}
                         <span class="badge bg-primary">Registration Fee</span>
+                      {% elif payment.type == 'event' %}
+                        <span class="badge bg-info">Event Payment</span>
+                        <br><small class="text-muted">{{ payment.event_title }}</small>
                       {% else %}
                         <span class="badge bg-secondary">Other</span>
                       {% endif %}
@@ -192,6 +195,10 @@
                         </a>
                       {% elif payment.gcash_receipt_image %}
                         <a href="{{ payment.gcash_receipt_image.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                          <i class="fas fa-eye"></i> View
+                        </a>
+                      {% elif payment.type == 'event' and payment.receipt %}
+                        <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-info">
                           <i class="fas fa-eye"></i> View
                         </a>
                       {% else %}

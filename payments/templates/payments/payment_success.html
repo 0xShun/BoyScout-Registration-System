@@ -70,6 +70,12 @@
   </div>
 </div>
 
+{% if user_activated %}
+  <div class="alert alert-success mt-4">
+    <i class="fas fa-user-check"></i> Your account ({{ user_email }}) is now active! You can now <a href="{% url 'accounts:login' %}">log in</a>.
+  </div>
+{% endif %}
+
 <script>
   // Auto-refresh after 5 seconds to check for payment verification
   setTimeout(function() {

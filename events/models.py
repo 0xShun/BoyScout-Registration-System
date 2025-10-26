@@ -126,6 +126,7 @@ class EventRegistration(models.Model):
     
     PAYMENT_STATUS_CHOICES = [
         ('not_required', 'Payment Not Required'),
+        ('pending', 'Pending'),
         ('paid', 'Paid'),
         ('rejected', 'Payment Rejected'),
     ]
@@ -168,15 +169,18 @@ class EventRegistration(models.Model):
         elif self.total_paid >= self.amount_required:
             self.payment_status = 'paid'
         else:
-            # Not paid yet - no partial payments allowed
-            self.payment_status = 'not_required'
+            # Not fully paid yet — show explicit pending state so UI reflects
+            # that payment is required and outstanding.
+            self.payment_status = 'pending'
         self.save()
 
     def save(self, *args, **kwargs):
         # Auto-set payment status based on event requirements
         if not self.pk:  # Only on creation
             if self.event.has_payment_required:
-                self.payment_status = 'not_required'  # Until full payment confirmed
+                # For events that require payment, registrations start in
+                # 'pending' until payment is fully confirmed.
+                self.payment_status = 'pending'
                 self.amount_required = self.event.payment_amount
             else:
                 self.payment_status = 'not_required'

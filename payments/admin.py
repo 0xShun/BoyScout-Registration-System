@@ -4,6 +4,11 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 import json
 from .models import Payment, PaymentQRCode
+from .models import WebhookLog
+from django.urls import path
+from django.contrib import messages
+from django.shortcuts import redirect, get_object_or_404
+from django.urls import reverse
 
 
 @admin.register(Payment)
@@ -204,3 +209,166 @@ class PaymentQRCodeAdmin(admin.ModelAdmin):
             )
         return '-'
     qr_code_preview.short_description = 'QR Code Preview'
+
+
+@admin.register(WebhookLog)
+class WebhookLogAdmin(admin.ModelAdmin):
+    """Admin view for raw webhook logs."""
+    list_display = ('id', 'received_at', 'source_ip', 'processed', 'short_body')
+    list_filter = ('processed', 'received_at')
+    search_fields = ('source_ip', 'body')
+    readonly_fields = ('received_at', 'source_ip', 'headers_pretty', 'body', 'processing_error', 'processed')
+    ordering = ('-received_at',)
+    actions = ['mark_as_processed', 'mark_as_unprocessed']
+
+    def short_body(self, obj):
+        b = obj.body or ''
+        if len(b) > 120:
+            return b[:120] + '...'
+        return b
+    short_body.short_description = 'Body (truncated)'
+
+    def headers_pretty(self, obj):
+        try:
+            import json
+            return format_html('<pre style="max-height:300px; overflow:auto;">{}</pre>', json.dumps(obj.headers or {}, indent=2))
+        except Exception:
+            return obj.headers
+    headers_pretty.short_description = 'Headers'
+
+    def mark_as_processed(self, request, queryset):
+        updated = queryset.update(processed=True)
+        self.message_user(request, f'{updated} webhook(s) marked as processed.')
+    mark_as_processed.short_description = 'Mark selected as processed'
+
+    def mark_as_unprocessed(self, request, queryset):
+        updated = queryset.update(processed=False)
+        self.message_user(request, f'{updated} webhook(s) marked as unprocessed.')
+    mark_as_unprocessed.short_description = 'Mark selected as unprocessed'
+
+    def replay_webhooks(self, request, queryset):
+        """Admin action: re-invoke the webhook handler for selected WebhookLog rows.
+
+        This action constructs a Django test request with the original body and
+        headers and calls the `payment_webhook` view directly. It marks each
+        log `processed=True` on 2xx responses, and writes the response or
+        exception into `processing_error` on failure.
+        """
+        from django.test import RequestFactory
+        try:
+            from .views import payment_webhook
+        except Exception:
+            # Avoid import-time circular import issues by importing locally
+            from payments.views import payment_webhook
+
+        rf = RequestFactory()
+        results = []
+        for log in queryset:
+            try:
+                meta = {}
+                # Reconstruct HTTP_ META headers from stored headers
+                if log.headers:
+                    for k, v in (log.headers.items()):
+                        # Normalize header name to HTTP_HEADER_NAME
+                        meta_key = 'HTTP_' + k.upper().replace('-', '_')
+                        meta[meta_key] = v
+                if log.source_ip:
+                    meta['REMOTE_ADDR'] = log.source_ip
+
+                # Build a POST request using the original raw body
+                body_bytes = (log.body or '').encode('utf-8')
+                req = rf.post('/payments/webhook/', data=body_bytes, content_type='application/json', **meta)
+
+                # Call the view and capture result
+                resp = payment_webhook(req)
+                status = getattr(resp, 'status_code', None)
+                content = getattr(resp, 'content', b'')
+                if isinstance(content, bytes):
+                    try:
+                        content = content.decode('utf-8')
+                    except Exception:
+                        content = str(content)
+
+                if status and 200 <= int(status) < 300:
+                    log.processed = True
+                    log.processing_error = ''
+                    log.save()
+                    results.append((log.id, 'ok'))
+                else:
+                    log.processed = False
+                    log.processing_error = f'Status {status}: {content}'
+                    log.save()
+                    results.append((log.id, f'error:{status}'))
+
+            except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
+                log.processed = False
+                log.processing_error = tb
+                log.save()
+                results.append((log.id, 'exception'))
+
+        summary = ', '.join(f'{r[0]}={r[1]}' for r in results)
+        self.message_user(request, f'Replayed {len(queryset)} webhook(s): {summary}')
+    replay_webhooks.short_description = 'Replay selected webhook logs (safe reprocess)'
+
+    actions = ['mark_as_processed', 'mark_as_unprocessed', 'replay_webhooks']
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('<int:pk>/replay/', self.admin_site.admin_view(self.replay_view), name='payments_webhooklog_replay'),
+        ]
+        return custom_urls + urls
+
+    def replay_view(self, request, pk):
+        """Admin view to replay a single webhook log (invokes payment_webhook)."""
+        log = get_object_or_404(WebhookLog, pk=pk)
+        from django.test import RequestFactory
+        try:
+            from payments.views import payment_webhook
+        except Exception:
+            from .views import payment_webhook
+
+        rf = RequestFactory()
+        meta = {}
+        if log.headers:
+            for k, v in (log.headers.items()):
+                meta_key = 'HTTP_' + k.upper().replace('-', '_')
+                meta[meta_key] = v
+        if log.source_ip:
+            meta['REMOTE_ADDR'] = log.source_ip
+
+        body_bytes = (log.body or '').encode('utf-8')
+        req = rf.post('/payments/webhook/', data=body_bytes, content_type='application/json', **meta)
+
+        try:
+            resp = payment_webhook(req)
+            status = getattr(resp, 'status_code', None)
+            content = getattr(resp, 'content', b'')
+            if isinstance(content, bytes):
+                try:
+                    content = content.decode('utf-8')
+                except Exception:
+                    content = str(content)
+
+            if status and 200 <= int(status) < 300:
+                log.processed = True
+                log.processing_error = ''
+                log.save()
+                messages.success(request, f'Webhook {log.id} replayed successfully (status {status}).')
+            else:
+                log.processed = False
+                log.processing_error = f'Status {status}: {content}'
+                log.save()
+                messages.error(request, f'Webhook {log.id} replay failed: status {status}.')
+
+        except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            log.processed = False
+            log.processing_error = tb
+            log.save()
+            messages.error(request, f'Webhook {log.id} replay raised exception. See processing_error for details.')
+
+        return redirect(reverse('admin:payments_webhooklog_change', args=[log.id]))

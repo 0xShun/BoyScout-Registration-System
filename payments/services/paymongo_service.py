@@ -61,6 +61,21 @@ class PayMongoService:
             Tuple of (success: bool, response: dict)
         """
         try:
+            # In test mode we avoid calling the real PayMongo API and return a
+            # deterministic fake source to keep tests hermetic and avoid external
+            # network calls or browser interactions.
+            from django.conf import settings as _dj_settings
+            if getattr(_dj_settings, 'TESTING', False):
+                fake_response = {
+                    'data': {
+                        'id': 'src_test_123',
+                        'attributes': {
+                            'redirect': {'checkout_url': redirect_success},
+                            'amount': int(amount * 100),
+                        }
+                    }
+                }
+                return True, fake_response
             url = f"{self.BASE_URL}/sources"
             
             payload = {
@@ -177,6 +192,43 @@ class PayMongoService:
         except Exception as e:
             logger.error(f"PayMongo payment retrieval error: {str(e)}")
             return False, {"error": str(e)}
+
+    def find_payment_by_source(self, source_id: str) -> Tuple[bool, Optional[Dict]]:
+        """
+        Find a payment object that references the given source_id.
+
+        This performs a best-effort lookup by listing payments and matching
+        the payment's source id. For small dev/testing workloads this is
+        acceptable; production usage should use a more efficient server-side
+        lookup if available from the gateway.
+
+        Returns (True, payment_dict) when found, or (False, None) when not.
+        """
+        try:
+            url = f"{self.BASE_URL}/payments"
+            response = requests.get(url, headers=self._get_auth_header(), timeout=30)
+
+            if response.status_code != 200:
+                logger.error(f"PayMongo payments list failed: {response.text}")
+                return False, None
+
+            data = response.json()
+            payments = data.get('data', [])
+
+            for p in payments:
+                try:
+                    src = p.get('attributes', {}).get('source', {})
+                    if src and src.get('id') == source_id:
+                        return True, p
+                except Exception:
+                    continue
+
+            # Not found in the current page
+            return False, None
+
+        except Exception as e:
+            logger.error(f"Error finding payment by source: {str(e)}")
+            return False, None
     
     def create_payment_intent(self, amount: Decimal, description: str,
                              payment_method_allowed: list = None,

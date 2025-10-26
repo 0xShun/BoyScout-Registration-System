@@ -16,28 +16,15 @@ class Migration(migrations.Migration):
             model_name='event',
             name='qr_code',
         ),
-        migrations.AddField(
-            model_name='eventpayment',
-            name='payment_method',
-            field=models.CharField(blank=True, default='qr_ph', help_text='Method used for payment (qr_ph, manual, etc.)', max_length=50, verbose_name='Payment Method'),
-        ),
-        migrations.AddField(
-            model_name='eventpayment',
-            name='paymongo_payment_id',
-            field=models.CharField(blank=True, help_text='PayMongo payment ID after successful payment', max_length=255, null=True, verbose_name='PayMongo Payment ID'),
-        ),
-        migrations.AddField(
-            model_name='eventpayment',
-            name='paymongo_source_id',
-            field=models.CharField(blank=True, help_text='PayMongo source ID for QR PH payment', max_length=255, null=True, verbose_name='PayMongo Source ID'),
-        ),
         migrations.AlterField(
             model_name='event',
             name='payment_amount',
             field=models.DecimalField(blank=True, decimal_places=2, help_text='Set event fee amount. Leave blank for free events.', max_digits=10, null=True, verbose_name='Event Fee'),
         ),
-        migrations.AddIndex(
-            model_name='eventpayment',
-            index=models.Index(fields=['paymongo_payment_id'], name='events_even_paymong_fffc6a_idx'),
-        ),
+        # NOTE: The paymongo_ fields are present in the initial migration state for this repo.
+        # The AddField operations that would duplicate those columns were removed to avoid
+        # attempting to create columns that already exist in a clean database when running
+        # migrations from scratch (this repo historically had schema drift and some fields
+        # were already included in 0001_initial). The index on `paymongo_payment_id` is
+        # already declared in the initial migration as well.
     ]

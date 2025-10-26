@@ -143,8 +143,8 @@
             <a href="{% url 'accounts:member_list' %}" class="nav-link {% if request.resolver_match.url_name == 'member_list' %}active{% endif %}"><i class="fas fa-users"></i> Members</a>
             <a href="{% url 'payments:payment_list' %}" class="nav-link {% if request.resolver_match.url_name == 'payment_list' %}active{% endif %}"><i class="fas fa-money-bill-wave"></i> Payments</a>
             <a href="{% url 'announcements:announcement_list' %}" class="nav-link {% if request.resolver_match.url_name == 'announcement_list' %}active{% endif %}"><i class="fas fa-bullhorn"></i> Announcements
-              {% if unread_notifications_count %}
-                <span class="badge bg-primary ms-auto">{{ unread_notifications_count }}</span>
+              {% if unread_announcements_count %}
+                <span class="badge bg-primary ms-auto">{{ unread_announcements_count }}</span>
               {% endif %}
             </a>
             {% if user.is_registration_complete %}
@@ -158,8 +158,8 @@
             <a href="{% url 'accounts:profile' %}" class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}"><i class="fas fa-user"></i> Profile</a>
             <a href="{% url 'payments:payment_list' %}" class="nav-link {% if request.resolver_match.url_name == 'payment_list' %}active{% endif %}"><i class="fas fa-money-bill-wave"></i> My Payments</a>
             <a href="{% url 'announcements:announcement_list' %}" class="nav-link {% if request.resolver_match.url_name == 'announcement_list' %}active{% endif %}"><i class="fas fa-bullhorn"></i> Announcements
-              {% if unread_notifications_count %}
-                <span class="badge bg-primary ms-auto">{{ unread_notifications_count }}</span>
+              {% if unread_announcements_count %}
+                <span class="badge bg-primary ms-auto">{{ unread_announcements_count }}</span>
               {% endif %}
             </a>
             <a href="{% url 'events:event_list' %}" class="nav-link {% if request.resolver_match.url_name == 'event_list' %}active{% endif %}"><i class="fas fa-calendar-alt"></i> Events & Activities</a>

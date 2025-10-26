@@ -1,0 +1,14 @@
+{% extends "admin/change_form.html" %}
+
+{% load i18n %}
+
+{% block object-tools %}
+    {{ block.super }}
+    {% if change and original %}
+        <li>
+            <a class="historylink" href="{% url 'admin:payments_webhooklog_replay' original.pk %}">
+                {% trans "Replay webhook" %}
+            </a>
+        </li>
+    {% endif %}
+{% endblock %}

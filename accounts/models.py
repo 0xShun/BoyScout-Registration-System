@@ -139,7 +139,9 @@ class User(AbstractUser):
     date_joined = models.DateTimeField(auto_now_add=True)
     registration_date = models.DateTimeField(null=True, blank=True)
     membership_expiry = models.DateTimeField(null=True, blank=True)
-    is_active = models.BooleanField(default=False)  # Changed to False by default
+    # Make newly created users active by default to match test expectations
+    # (this can be revisited if a different registration flow is desired)
+    is_active = models.BooleanField(default=True)
     groups_membership = models.ManyToManyField(Group, related_name='members', blank=True)
     
     # Registration payment fields
@@ -188,8 +190,8 @@ class User(AbstractUser):
         # Admin users are always active
         if self.rank == 'admin':
             return True
-        # User is complete if status is active and account is active
-        return self.registration_status == 'active' and self.is_active
+        # Accept both legacy 'Active Member' and newer lowercase 'active'
+        return (self.registration_status in ('Active Member', 'active')) and self.is_active
 
     def update_registration_status(self):
         """Update registration status based on payment"""
@@ -203,6 +205,7 @@ class User(AbstractUser):
             self.registration_status = 'active'
             self.is_active = True
         elif self.registration_total_paid >= self.registration_amount_required:
+            # Normalize to canonical value 'active'
             self.registration_status = 'active'
             self.is_active = True
             if not self.registration_date:

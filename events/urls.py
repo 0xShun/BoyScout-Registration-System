@@ -16,4 +16,6 @@ urlpatterns = [
     path('<int:pk>/attendance/', views.event_attendance, name='event_attendance'),
     path('<int:event_pk>/registration/<int:reg_pk>/verify/', views.verify_event_registration, name='verify_event_registration'),
     path('pending-payments/', views.pending_payments, name='pending_payments'),
+    path('pending-payments/verify-ajax/', views.verify_event_registration_ajax, name='pending_payments_verify_ajax'),
+    path('<int:pk>/send-payment-confirmation-ajax/', views.send_event_payment_confirmation_ajax, name='send_event_payment_confirmation_ajax'),
 ] 

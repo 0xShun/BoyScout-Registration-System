@@ -92,15 +92,23 @@ class NotificationService:
             print(f"SMS sending failed: {str(e)}")
             return False
 
-def send_realtime_notification(user_id, message, type='info'):
+def send_realtime_notification(user_id, message, type='info', notification_type=None):
+    """Send an in-app realtime notification.
+
+    Backwards-compatible: callers may pass either `type` or the older
+    `notification_type` keyword. The latter takes precedence when provided.
+    """
+    # Determine the effective notification type (accept legacy kwarg)
+    effective_type = notification_type if notification_type is not None else type
+
     # Create a Notification record
-    Notification.objects.create(user_id=user_id, message=message, type=type)
+    Notification.objects.create(user_id=user_id, message=message, type=effective_type)
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
         f'user_{user_id}',
         {
             'type': 'send_notification',
             'message': message,
-            'type': type,
+            'type': effective_type,
         }
-    ) 
+    )

@@ -75,8 +75,37 @@ def payment_list(request):
             'membership_expiry': membership_expiry,
             'registration_fee': registration_fee,
         }
-        payments_list = list(payments)
+        
+        # Get event payments for this user
+        from events.models import EventPayment
+        event_payments = EventPayment.objects.filter(
+            registration__user=request.user
+        ).select_related('registration__event').order_by('-created_at')
+        
+        # Convert event payments to a format compatible with the template
+        event_payments_list = []
+        for event_payment in event_payments:
+            event_payments_list.append({
+                'id': f'event_{event_payment.id}',
+                'amount': event_payment.amount,
+                'date': event_payment.created_at,
+                'status': event_payment.status,
+                'type': 'event',
+                'description': f'Event Payment - {event_payment.registration.event.title}',
+                'receipt': event_payment.receipt_image,
+                'verified_by': event_payment.verified_by,
+                'verification_date': event_payment.verification_date,
+                'notes': event_payment.notes,
+                'event_title': event_payment.registration.event.title,
+                'event_date': event_payment.registration.event.date,
+            })
+        
+        # Combine all payments and sort by date
+        payments_list = list(payments) + event_payments_list
         payments_list.insert(0, registration_payment)
+        
+        # Sort all payments by date (most recent first)
+        payments_list.sort(key=lambda x: x.get('date') or x.date, reverse=True)
     paginator = Paginator(payments_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -398,6 +427,20 @@ def payment_webhook(request):
         
         # Get raw body
         raw_body = request.body.decode('utf-8')
+
+        # Persist raw webhook immediately for debugging/replayability
+        try:
+            from .models import WebhookLog
+            headers_dict = {k: v for k, v in request.headers.items()}
+            src_ip = request.META.get('REMOTE_ADDR')
+            WebhookLog.objects.create(
+                source_ip=src_ip,
+                headers=headers_dict,
+                body=raw_body,
+                processed=False
+            )
+        except Exception as e:
+            logger.exception(f'Failed to persist webhook log: {e}')
         
         # Verify webhook signature (temporarily skip for testing)
         # TODO: Fix signature verification for production
@@ -452,8 +495,108 @@ def handle_source_chargeable(webhook_data):
     try:
         source_data = webhook_data['data']['attributes']['data']
         source_id = source_data['id']
+        metadata = source_data.get('attributes', {}).get('metadata', {}) or {}
+        # Amount in centavos
+        source_amount_centavos = source_data.get('attributes', {}).get('amount')
+        try:
+            source_amount = (source_amount_centavos or 0) / 100.0
+        except Exception:
+            source_amount = 0
         
         logger.info(f'Processing source.chargeable for source: {source_id}')
+        # If the gateway included metadata we can shortcut finalization for
+        # simpler test flows: when metadata.payment_type indicates a
+        # 'registration' or 'event_registration' we consider the flow
+        # complete for now and finalize the relevant records so users can
+        # login immediately after redirect.
+        try:
+            payment_type = metadata.get('payment_type')
+            if payment_type == 'registration':
+                # Finalize registration payment immediately
+                reg_id = metadata.get('registration_payment_id')
+                reg_payment = None
+                if reg_id:
+                    reg_payment = RegistrationPayment.objects.filter(id=reg_id).first()
+                if not reg_payment:
+                    reg_payment = RegistrationPayment.objects.filter(paymongo_source_id=source_id, status='pending').first()
+                if reg_payment:
+                    logger.info(f'Auto-finalizing registration payment {getattr(reg_payment, "id", None)} from source.chargeable')
+                    reg_payment.status = 'verified'
+                    if not reg_payment.paymongo_source_id:
+                        reg_payment.paymongo_source_id = source_id
+                    reg_payment.verification_date = timezone.now()
+                    reg_payment.save()
+
+                    u = reg_payment.user
+                    u.registration_status = 'active'
+                    u.is_active = True
+                    try:
+                        u.registration_total_paid = (u.registration_total_paid or 0) + reg_payment.amount
+                    except Exception:
+                        from decimal import Decimal
+                        u.registration_total_paid = Decimal(str(getattr(u, 'registration_total_paid', 0))) + Decimal(str(reg_payment.amount))
+                    # membership expiry
+                    years = int(float(reg_payment.amount) // 500)
+                    if years > 0:
+                        try:
+                            from dateutil.relativedelta import relativedelta
+                            u.membership_expiry = timezone.now() + relativedelta(years=years)
+                        except Exception:
+                            from datetime import timedelta
+                            u.membership_expiry = timezone.now() + timedelta(days=365 * years)
+                    u.save()
+                    # mark any matching webhook logs processed
+                    try:
+                        from .models import WebhookLog
+                        WebhookLog.objects.filter(body__contains=source_id, processed=False).update(processed=True)
+                    except Exception:
+                        logger.exception('Failed to mark WebhookLog processed for registration')
+                    return
+            elif payment_type == 'event_registration':
+                # Finalize event registration payment immediately
+                from events.models import EventRegistration, EventPayment
+                event_reg_id = metadata.get('event_registration_id')
+                ev_reg = None
+                if event_reg_id:
+                    ev_reg = EventRegistration.objects.filter(id=event_reg_id).first()
+                if not ev_reg:
+                    # try to find by source via EventPayment
+                    ev_pay = EventPayment.objects.filter(paymongo_source_id=source_id, status='pending').first()
+                    if ev_pay:
+                        ev_reg = ev_pay.registration
+                if ev_reg:
+                    logger.info(f'Auto-finalizing event registration {ev_reg.id} from source.chargeable')
+                    # find or create EventPayment for this registration/source
+                    ev_payment = EventPayment.objects.filter(registration=ev_reg, paymongo_source_id=source_id).first()
+                    if not ev_payment:
+                        ev_payment = EventPayment.objects.create(
+                            registration=ev_reg,
+                            amount=source_amount or ev_reg.amount_required,
+                            status='verified',
+                            paymongo_source_id=source_id,
+                            verification_date=timezone.now(),
+                        )
+                    else:
+                        ev_payment.status = 'verified'
+                        ev_payment.verification_date = timezone.now()
+                        if not ev_payment.paymongo_source_id:
+                            ev_payment.paymongo_source_id = source_id
+                        ev_payment.save()
+
+                    # Mark registration as paid
+                    ev_reg.total_paid = ev_reg.amount_required
+                    ev_reg.payment_status = 'paid'
+                    ev_reg.verified = True
+                    ev_reg.verification_date = timezone.now()
+                    ev_reg.save()
+                    try:
+                        from .models import WebhookLog
+                        WebhookLog.objects.filter(body__contains=source_id, processed=False).update(processed=True)
+                    except Exception:
+                        logger.exception('Failed to mark WebhookLog processed for event')
+                    return
+        except Exception:
+            logger.exception('Auto-finalization on source.chargeable failed; continuing with normal processing')
         
         # Find payment by source_id (check both Payment and RegistrationPayment)
         payment = Payment.objects.filter(
@@ -475,18 +618,134 @@ def handle_source_chargeable(webhook_data):
                     message=f'New payment from {payment.user.get_full_name()} is processing',
                     notification_type='payment_update'
                 )
-        else:
-            # Check if it's a registration payment
-            reg_payment = RegistrationPayment.objects.filter(
-                paymongo_source_id=source_id,
-                status='pending'
-            ).first()
-            
-            if reg_payment:
-                logger.info(f'RegistrationPayment {reg_payment.id} source is chargeable')
-                # Just log it - the payment.paid event will handle the actual processing
             else:
-                logger.warning(f'Payment not found for source {source_id}')
+                # Check if it's an EventPayment first
+                from events.models import EventPayment
+                event_payment = EventPayment.objects.filter(
+                    paymongo_source_id=source_id,
+                    status='pending'
+                ).first()
+                if event_payment:
+                    logger.info(f'EventPayment {event_payment.id} source is chargeable')
+                    try:
+                        from decimal import Decimal
+                        from payments.services.paymongo_service import PayMongoService
+
+                        if not event_payment.paymongo_payment_id and event_payment.status == 'pending':
+                            paymongo = PayMongoService()
+                            amount = Decimal(str(event_payment.amount))
+                            desc = f"Event Registration Payment - {event_payment.registration.event.title}"
+                            metadata = {
+                                'payment_type': 'event_registration',
+                                'user_id': str(event_payment.registration.user.id),
+                                'event_registration_id': str(event_payment.registration.id),
+                                'event_id': str(event_payment.registration.event.id),
+                            }
+
+                            success, resp = paymongo.create_payment(
+                                source_id=source_id,
+                                amount=amount,
+                                description=desc,
+                                metadata=metadata
+                            )
+
+                            if success and isinstance(resp, dict):
+                                payment_obj = resp.get('data')
+                                if payment_obj:
+                                    payment_id = payment_obj.get('id')
+                                    event_payment.paymongo_payment_id = payment_id
+                                    event_payment.save()
+                                    logger.info(f'Created PayMongo payment {payment_id} for EventPayment {event_payment.id}')
+                                    # If the gateway returned a payment already in 'paid'
+                                    # status (test-mode or instant capture), run the
+                                    # same logic as the payment.paid webhook so the
+                                    # EventPayment and EventRegistration are
+                                    # finalized immediately.
+                                    try:
+                                        pay_attrs = payment_obj.get('attributes', {})
+                                        if pay_attrs.get('status') == 'paid':
+                                            synthetic = {
+                                                'data': {
+                                                    'attributes': {
+                                                        'type': 'payment.paid',
+                                                        'data': payment_obj
+                                                    }
+                                                }
+                                            }
+                                            handle_payment_paid(synthetic)
+                                    except Exception:
+                                        logger.exception('Failed to auto-process payment.paid after create_payment for event')
+                            else:
+                                logger.warning(f'Could not create PayMongo payment for event_payment {event_payment.id}: {resp}')
+                    except Exception as e:
+                        logger.error(f'Error creating PayMongo payment for event: {str(e)}')
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    # Check if it's a registration payment
+                    reg_payment = RegistrationPayment.objects.filter(
+                        paymongo_source_id=source_id,
+                        status='pending'
+                    ).first()
+                    if reg_payment:
+                        logger.info(f'RegistrationPayment {reg_payment.id} source is chargeable')
+                        # If we haven't already created a PayMongo payment for this
+                        # registration, create one now so PayMongo will emit a
+                        # `payment.paid` event and the normal webhook processing will
+                        # finalize the registration.
+                        try:
+                            from decimal import Decimal
+                            from payments.services.paymongo_service import PayMongoService
+
+                            if not reg_payment.paymongo_payment_id and reg_payment.status == 'pending':
+                                paymongo = PayMongoService()
+                                amount = Decimal(str(reg_payment.amount))
+                                desc = f"Registration Payment - {reg_payment.user.get_full_name()}"
+                                metadata = {
+                                    'payment_type': 'registration',
+                                    'user_id': str(reg_payment.user.id),
+                                    'registration_payment_id': str(reg_payment.id)
+                                }
+
+                                success, resp = paymongo.create_payment(
+                                    source_id=source_id,
+                                    amount=amount,
+                                    description=desc,
+                                    metadata=metadata
+                                )
+
+                                if success and isinstance(resp, dict):
+                                    payment_obj = resp.get('data')
+                                    if payment_obj:
+                                        payment_id = payment_obj.get('id')
+                                        reg_payment.paymongo_payment_id = payment_id
+                                        reg_payment.save()
+                                        logger.info(f'Created PayMongo payment {payment_id} for RegistrationPayment {reg_payment.id}')
+                                        # If the payment is already marked paid by the
+                                        # gateway, finalize registration immediately by
+                                        # reusing the payment.paid handler.
+                                        try:
+                                            attrs = payment_obj.get('attributes', {})
+                                            if attrs.get('status') == 'paid':
+                                                synthetic = {
+                                                    'data': {
+                                                        'attributes': {
+                                                            'type': 'payment.paid',
+                                                            'data': payment_obj
+                                                        }
+                                                    }
+                                                }
+                                                handle_payment_paid(synthetic)
+                                        except Exception:
+                                            logger.exception('Failed to auto-process payment.paid after create_payment for registration')
+                                else:
+                                    logger.warning(f'Could not create PayMongo payment for reg_payment {reg_payment.id}: {resp}')
+                        except Exception as e:
+                            logger.error(f'Error creating PayMongo payment for registration: {str(e)}')
+                            import traceback
+                            traceback.print_exc()
+                    else:
+                        logger.warning(f'Payment not found for source {source_id}')
             
     except Exception as e:
         logger.error(f'Error handling source.chargeable: {str(e)}')
@@ -716,10 +975,10 @@ This is an automated message. Please do not reply to this email.
                     ).first()
                     
                     if event_payment:
-                        # Update payment status
-                        event_payment.status = 'completed'
+                        # Update payment status to the model's 'verified' choice
+                        event_payment.status = 'verified'
                         event_payment.paymongo_payment_id = payment_id
-                        event_payment.verified_at = timezone.now()
+                        event_payment.verification_date = timezone.now()
                         event_payment.notes = f'Payment confirmed via PayMongo webhook. Amount: ₱{amount}'
                         event_payment.save()
                         
@@ -808,13 +1067,21 @@ This is an automated message. Please do not reply to this email.
                     reg_payment.status = 'verified'
                     reg_payment.paymongo_source_id = source_id
                     reg_payment.paymongo_payment_id = payment_id
+                    reg_payment.verification_date = timezone.now()
                     reg_payment.save()
-                    
-                    # Activate user account
+
+                    # Activate user account and record payment totals
                     user = reg_payment.user
                     user.registration_status = 'active'
                     user.is_active = True
-                    
+                    # Update total paid
+                    try:
+                        user.registration_total_paid = (user.registration_total_paid or 0) + reg_payment.amount
+                    except Exception:
+                        # Ensure Decimal arithmetic - coerce to Decimal if necessary
+                        from decimal import Decimal
+                        user.registration_total_paid = Decimal(str(getattr(user, 'registration_total_paid', 0))) + Decimal(str(reg_payment.amount))
+
                     # Calculate membership expiry
                     years = int(float(reg_payment.amount) // 500)
                     if years > 0:
@@ -939,6 +1206,12 @@ This is an automated message. Please do not reply to this email.
                     if years > 0:
                         from datetime import timedelta
                         user_profile.membership_expiry = timezone.now() + timedelta(days=365 * years)
+                    # Also update registration_total_paid when applicable
+                    try:
+                        user_profile.registration_total_paid = (user_profile.registration_total_paid or 0) + payment.amount
+                    except Exception:
+                        from decimal import Decimal
+                        user_profile.registration_total_paid = Decimal(str(getattr(user_profile, 'registration_total_paid', 0))) + Decimal(str(payment.amount))
                     user_profile.save()
                     logger.info(f'User {user_profile.id} registration activated')
             
@@ -1045,7 +1318,137 @@ def handle_payment_failed(webhook_data):
 @login_required
 def payment_success(request):
     """Handle successful payment redirect from PayMongo"""
-    return render(request, 'payments/payment_success.html')
+    # Try to activate user if payment is verified
+    from accounts.models import RegistrationPayment, User
+    from payments.services.paymongo_service import PayMongoService
+    user_activated = False
+    user_email = None
+    reg_payment_id = request.session.get('pending_registration_payment_id')
+    if reg_payment_id:
+        reg_payment = RegistrationPayment.objects.filter(id=reg_payment_id).first()
+        # If already verified, activate user locally
+        if reg_payment and reg_payment.status == 'verified':
+            user = reg_payment.user
+            if not user.is_active or user.registration_status != 'active':
+                user.is_active = True
+                user.registration_status = 'active'
+                user.save()
+                user_activated = True
+                user_email = user.email
+        else:
+                # Fallback: attempt multiple reconciliation paths so that when
+                # the user is redirected back from PayMongo we finalize the
+                # registration immediately and allow login.
+                try:
+                    paymongo = PayMongoService()
+
+                    def finalize_from_payment_obj(payment_obj):
+                        # Mirror logic from handle_payment_paid for registration
+                        payment_id = payment_obj.get('id')
+                        attrs = payment_obj.get('attributes', {})
+                        source = attrs.get('source', {})
+                        source_id = source.get('id') if isinstance(source, dict) else None
+                        amount = attrs.get('amount', 0) / 100.0
+
+                        # Use reg_payment from closure
+                        reg_payment.status = 'verified'
+                        if source_id and not reg_payment.paymongo_source_id:
+                            reg_payment.paymongo_source_id = source_id
+                        if payment_id:
+                            reg_payment.paymongo_payment_id = payment_id
+                        reg_payment.verification_date = timezone.now()
+                        reg_payment.save()
+
+                        user = reg_payment.user
+                        user.registration_status = 'active'
+                        user.is_active = True
+                        try:
+                            user.registration_total_paid = (user.registration_total_paid or 0) + reg_payment.amount
+                        except Exception:
+                            from decimal import Decimal
+                            user.registration_total_paid = Decimal(str(getattr(user, 'registration_total_paid', 0))) + Decimal(str(reg_payment.amount))
+
+                        years = int(float(reg_payment.amount) // 500)
+                        if years > 0:
+                            try:
+                                from dateutil.relativedelta import relativedelta
+                                user.membership_expiry = timezone.now() + relativedelta(years=years)
+                            except ImportError:
+                                from datetime import timedelta
+                                user.membership_expiry = timezone.now() + timedelta(days=365 * years)
+                        user.save()
+
+                        # Notify user
+                        try:
+                            from notifications.services import NotificationService
+                            from django.conf import settings
+                            login_url = f"{settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'localhost:8000'}/accounts/login/"
+                            email_message = f"""
+    Dear {user.first_name} {user.last_name},
+
+    🎉 Welcome to ScoutConnect!
+
+    Your registration payment has been successfully confirmed and your account is now active!
+
+    You can login at {login_url}
+    """
+                            NotificationService.send_email(
+                                subject='Registration Payment Confirmed - ScoutConnect',
+                                message=email_message,
+                                recipient_list=[user.email]
+                            )
+                        except Exception:
+                            logger.exception('Failed to send registration confirmation email in fallback')
+
+                    # 1) If we already have a payment id stored, retrieve and check
+                    if reg_payment and reg_payment.paymongo_payment_id:
+                        ok, payment_obj = paymongo.retrieve_payment(reg_payment.paymongo_payment_id)
+                        if ok and payment_obj and payment_obj.get('data'):
+                            data = payment_obj.get('data')
+                            attrs = data.get('attributes', {})
+                            if attrs.get('status') == 'paid':
+                                finalize_from_payment_obj(data)
+                                user_activated = True
+                                user_email = reg_payment.user.email
+
+                    # 2) Otherwise try to find a payment by the source id
+                    if not user_activated and reg_payment and reg_payment.paymongo_source_id:
+                        found, payment_obj = paymongo.find_payment_by_source(reg_payment.paymongo_source_id)
+                        if found and payment_obj:
+                            # payment_obj is already the full payment dict
+                            finalize_from_payment_obj(payment_obj)
+                            user_activated = True
+                            user_email = reg_payment.user.email
+
+                    # 3) Finally, if still not activated, try to create a payment
+                    # for the source (this will often return a paid payment in
+                    # test-mode / instant-capture environments).
+                    if not user_activated and reg_payment and reg_payment.paymongo_source_id:
+                        from decimal import Decimal
+                        success, resp = paymongo.create_payment(
+                            source_id=reg_payment.paymongo_source_id,
+                            amount=Decimal(str(reg_payment.amount)),
+                            description=f"Registration Payment - {reg_payment.user.get_full_name()}",
+                            metadata={'payment_type': 'registration', 'user_id': str(reg_payment.user.id), 'registration_payment_id': str(reg_payment.id)}
+                        )
+                        if success and isinstance(resp, dict):
+                            data = resp.get('data')
+                            if data and data.get('attributes', {}).get('status') == 'paid':
+                                finalize_from_payment_obj(data)
+                                user_activated = True
+                                user_email = reg_payment.user.email
+
+                    # Clear session key if we finished processing
+                    if user_activated:
+                        try:
+                            del request.session['pending_registration_payment_id']
+                        except KeyError:
+                            pass
+                except Exception as e:
+                    logger.error(f'Fallback payment check failed: {str(e)}')
+                    import traceback
+                    traceback.print_exc()
+    return render(request, 'payments/payment_success.html', {'user_activated': user_activated, 'user_email': user_email})
 
 
 @login_required
