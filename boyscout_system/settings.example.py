@@ -19,13 +19,44 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+
+# Try to load environment variables from a .env file. Prefer python-dotenv if
+# available, but fall back to a minimal parser so the example settings file is
+# safe to use even if python-dotenv isn't installed yet.
+try:
+    from dotenv import load_dotenv
+    _USE_DOTENV = True
+except Exception:
+    _USE_DOTENV = False
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment variables from .env file
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+# Load environment variables from .env file if present.
+env_path = os.path.join(BASE_DIR, '.env')
+if _USE_DOTENV:
+    try:
+        load_dotenv(env_path)
+    except Exception:
+        _USE_DOTENV = False
+
+if not _USE_DOTENV:
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, 'r') as f:
+                for raw in f:
+                    line = raw.strip()
+                    if not line or line.startswith('#'):
+                        continue
+                    if '=' not in line:
+                        continue
+                    key, val = line.split('=', 1)
+                    key = key.strip()
+                    val = val.strip().strip('\"\'')
+                    if key and key not in os.environ:
+                        os.environ[key] = val
+        except Exception:
+            pass
 
 
 # Quick-start development settings - unsuitable for production
