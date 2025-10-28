@@ -1,3 +1,10 @@
+# Authentication backends: allow login with email as username
+AUTHENTICATION_BACKENDS = [
+    # Try our tolerant backend first (allows username OR email), then fall back
+    # to Django's default ModelBackend.
+    'accounts.auth_backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 """
 Django settings for boyscout_system project.
 
@@ -12,9 +19,13 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env file
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 
 # Quick-start development settings - unsuitable for production
@@ -27,6 +38,16 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+a#&-n(nrg5%@tu^o!k(d
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+
+# Add ngrok hostname for development testing
+if DEBUG:
+    ALLOWED_HOSTS.extend([
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        '.ngrok-free.dev',  # Allow all ngrok subdomains
+        'adelia-unsentimentalised-uncalamitously.ngrok-free.dev',
+    ])
 
 
 # Application definition
@@ -74,6 +95,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'notifications.context_processors.notifications_unread',
+                'announcements.context_processors.announcements_unread',
             ],
         },
     },
@@ -224,3 +246,7 @@ CHANNEL_LAYERS = {
 
 # Phone number field
 PHONENUMBER_DEFAULT_REGION = os.environ.get('PHONENUMBER_DEFAULT_REGION', 'PH')
+
+# Testing flag detected when running Django tests (manage.py test) or pytest
+import sys
+TESTING = any('test' in arg for arg in sys.argv)

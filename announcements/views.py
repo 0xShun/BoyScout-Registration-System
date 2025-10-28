@@ -73,11 +73,44 @@ def announcement_create(request):
                     recipients = User.objects.all()
             announcement.recipients.set(recipients)
             # Send notifications
+            email_recipients = []
             for user in recipients:
+                # Send SMS if phone number exists
                 if hasattr(user, 'phone_number') and user.phone_number:
                     NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
+                
+                # Send realtime notification
                 send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
-            messages.success(request, 'Announcement created and sent to selected recipients.')
+                
+                # Collect email addresses for bulk email
+                if user.email:
+                    email_recipients.append(user.email)
+            
+            # Send email to all recipients
+            if email_recipients:
+                try:
+                    subject = f"📢 ScoutConnect Announcement: {announcement.title}"
+                    message = f"""
+Dear ScoutConnect Member,
+
+{announcement.message}
+
+Posted on: {announcement.date_posted.strftime('%B %d, %Y at %I:%M %p')}
+
+Best regards,
+The ScoutConnect Team
+
+---
+This is an automated message from ScoutConnect. Please do not reply to this email.
+                    """.strip()
+                    
+                    NotificationService.send_email(subject, message, email_recipients)
+                    logger.info(f"Announcement email sent to {len(email_recipients)} recipients")
+                except Exception as e:
+                    logger.error(f"Failed to send announcement emails: {str(e)}")
+                    messages.warning(request, f'Announcement created but email sending failed: {str(e)}')
+            
+            messages.success(request, f'Announcement created and sent to {len(recipients)} recipients via SMS, email, and notifications.')
             return redirect('announcements:announcement_list')
     else:
         form = AnnouncementForm()
