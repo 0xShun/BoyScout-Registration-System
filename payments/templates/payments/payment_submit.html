@@ -1,115 +1,194 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
-      <h2 class="mb-4">
-        <i class="fas fa-mobile-alt"></i> Submit Payment via QR PH
-      </h2>
-      
-      <!-- Payment Method Info -->
-      <div class="card shadow-sm mb-4 border-primary">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0">
-            <i class="fas fa-bolt"></i> Instant Payment - GCash, PayMaya, GrabPay
-          </h5>
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <!-- Page Header -->
+        <div class="page-header">
+          <h2><i class="fas fa-mobile-alt"></i> Submit Payment</h2>
+          <p>Make secure payments using GCash, PayMaya, or GrabPay</p>
         </div>
-        <div class="card-body">
-          <div class="row align-items-center">
-            <div class="col-md-8">
-              <p class="mb-3"><strong>Pay instantly and get automatic verification!</strong></p>
-              <ul class="list-unstyled mb-3">
-                <li class="mb-2"><i class="fas fa-check text-success"></i> Instant confirmation</li>
-                <li class="mb-2"><i class="fas fa-check text-success"></i> No receipt upload needed</li>
-                <li class="mb-2"><i class="fas fa-check text-success"></i> Secure & convenient</li>
-                <li class="mb-2"><i class="fas fa-check text-success"></i> Works with all QR PH apps</li>
-              </ul>
+        
+        <!-- Payment Method Info Card -->
+        <div class="enhanced-card mb-4" style="border-left: 4px solid #10b981;">
+          <div class="enhanced-card-header" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%);">
+            <h5><i class="fas fa-bolt me-2"></i> Instant Payment with QR PH</h5>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-8">
+                <p class="mb-3 fw-semibold text-primary"><i class="fas fa-star me-2" style="color: #fbbf24;"></i>Pay instantly and get automatic verification!</p>
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="mb-3" style="background: #f0fdf4; padding: 1rem; border-radius: 8px; border-left: 3px solid #10b981;">
+                      <i class="fas fa-check-circle text-success"></i> <strong>Instant Confirmation</strong>
+                      <p class="mb-0 small text-muted mt-1">Payment verified in seconds</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3" style="background: #f0f9ff; padding: 1rem; border-radius: 8px; border-left: 3px solid #3b82f6;">
+                      <i class="fas fa-shield-alt text-primary"></i> <strong>Secure & Safe</strong>
+                      <p class="mb-0 small text-muted mt-1">Bank-level encryption</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3" style="background: #fef3c7; padding: 1rem; border-radius: 8px; border-left: 3px solid #fbbf24;">
+                      <i class="fas fa-receipt text-warning"></i> <strong>No Receipt Upload</strong>
+                      <p class="mb-0 small text-muted mt-1">Fully automated process</p>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="mb-3" style="background: #ede9fe; padding: 1rem; border-radius: 8px; border-left: 3px solid #8b5cf6;">
+                      <i class="fas fa-clock" style="color: #8b5cf6;"></i> <strong>24/7 Available</strong>
+                      <p class="mb-0 small text-muted mt-1">Pay anytime, anywhere</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-4 text-center">
+                <div style="background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                  <p class="fw-bold mb-3 text-primary">Supported Apps</p>
+                  <div class="d-flex flex-column gap-2">
+                    <img src="https://assets.paymongo.com/payment-method-icons/gcash.png" alt="GCash" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EGCash%3C/svg%3E'">
+                    <img src="https://assets.paymongo.com/payment-method-icons/paymaya.png" alt="PayMaya" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EPayMaya%3C/svg%3E'">
+                    <img src="https://assets.paymongo.com/payment-method-icons/grab_pay.png" alt="GrabPay" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EGrabPay%3C/svg%3E'">
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="col-md-4 text-center">
-              <div class="d-flex flex-column gap-2">
-                <img src="https://assets.paymongo.com/payment-method-icons/gcash.png" alt="GCash" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EGCash%3C/svg%3E'">
-                <img src="https://assets.paymongo.com/payment-method-icons/paymaya.png" alt="PayMaya" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EPayMaya%3C/svg%3E'">
-                <img src="https://assets.paymongo.com/payment-method-icons/grab_pay.png" alt="GrabPay" height="40" class="img-fluid" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%22 height=%2240%22%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22%3EGrabPay%3C/svg%3E'">
+          </div>
+        </div>
+        
+        <!-- Payment Form Card -->
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-file-invoice-dollar me-2"></i> Payment Details</h5>
+          </div>
+          <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="payment-form">
+              {% csrf_token %}
+              
+              <!-- Amount Field -->
+              <div class="form-section">
+                <div class="form-section-title"><i class="fas fa-coins"></i> Payment Amount</div>
+                <label for="{{ form.amount.id_for_label }}" class="enhanced-form-label">
+                  <i class="fas fa-peso-sign"></i> Amount (PHP)
+                </label>
+                {{ form.amount }}
+                {% if form.amount.help_text %}
+                  <div class="form-text mt-2">
+                    <i class="fas fa-info-circle"></i> {{ form.amount.help_text }}
+                  </div>
+                {% endif %}
+                {% for error in form.amount.errors %}
+                  <div class="alert-enhanced alert-enhanced-danger mt-2">{{ error }}</div>
+                {% endfor %}
+              </div>
+              
+              <!-- Payment Method (read-only) -->
+              <div class="form-section">
+                <div class="form-section-title"><i class="fas fa-credit-card"></i> Payment Method</div>
+                <div style="background: linear-gradient(135deg, #dbeafe 0%, #f0f9ff 100%); padding: 1.25rem; border-radius: 12px; border: 2px solid #3b82f6;">
+                  <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                      <p class="mb-1 fw-bold text-primary"><i class="fas fa-qrcode me-2"></i> QR PH Payment</p>
+                      <small class="text-muted">GCash, PayMaya, or GrabPay</small>
+                    </div>
+                    <i class="fas fa-mobile-alt fa-2x text-primary"></i>
+                  </div>
+                </div>
+                <input type="hidden" name="payment_method" value="qr_ph">
+                <input type="hidden" name="use_paymongo" value="yes">
+              </div>
+              
+              <!-- How It Works -->
+              <div class="alert-enhanced alert-enhanced-info">
+                <h6 class="fw-bold mb-3"><i class="fas fa-lightbulb me-2"></i> How It Works:</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start gap-2">
+                      <div style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">1</div>
+                      <div>
+                        <strong>Click Payment Button</strong>
+                        <p class="mb-0 small text-muted">You'll be redirected to PayMongo</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start gap-2">
+                      <div style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">2</div>
+                      <div>
+                        <strong>Choose E-Wallet</strong>
+                        <p class="mb-0 small text-muted">Select GCash, PayMaya, or GrabPay</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start gap-2">
+                      <div style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">3</div>
+                      <div>
+                        <strong>Scan QR Code</strong>
+                        <p class="mb-0 small text-muted">Use your e-wallet app to scan</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6 mb-2">
+                    <div class="d-flex align-items-start gap-2">
+                      <div style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0;">4</div>
+                      <div>
+                        <strong>Complete & Return</strong>
+                        <p class="mb-0 small text-muted">Payment auto-verified instantly!</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="action-buttons mt-4">
+                <button type="submit" class="btn-enhanced-success" style="flex: 1;">
+                  <i class="fas fa-mobile-alt me-2"></i> Pay with GCash/PayMaya/GrabPay
+                </button>
+                <a href="{% url 'payments:payment_list' %}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600;">
+                  <i class="fas fa-times me-2"></i> Cancel
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+        
+        <!-- Help Section -->
+        <div class="enhanced-card mt-4">
+          <div class="card-body">
+            <h6 class="fw-bold mb-3"><i class="fas fa-question-circle me-2 text-primary"></i> Need Help?</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; border-left: 3px solid #3b82f6;">
+                  <p class="mb-2 fw-semibold"><i class="fas fa-download me-2 text-primary"></i> Don't have an E-Wallet?</p>
+                  <ul class="mb-0 small text-muted ps-3">
+                    <li><strong>GCash:</strong> Download from Play Store or App Store</li>
+                    <li><strong>PayMaya:</strong> Download from Play Store or App Store</li>
+                    <li><strong>GrabPay:</strong> Part of the Grab app</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; border-left: 3px solid #dc2626;">
+                  <p class="mb-2 fw-semibold"><i class="fas fa-headset me-2 text-danger"></i> Payment Issues?</p>
+                  <p class="mb-0 small text-muted">
+                    Contact your admin or email support for assistance with payment problems.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-      
-      <!-- Payment Form -->
-      <div class="card shadow-sm">
-        <div class="card-header">
-          <h5 class="mb-0">
-            <i class="fas fa-file-invoice-dollar"></i> Payment Details
-          </h5>
-        </div>
-        <div class="card-body">
-          <form method="post" enctype="multipart/form-data" id="payment-form">
-            {% csrf_token %}
-            
-            <!-- Amount Field -->
-            <div class="mb-3">
-              <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
-                {{ form.amount.label }}
-              </label>
-              {{ form.amount }}
-              {% if form.amount.help_text %}
-                <div class="form-text">{{ form.amount.help_text }}</div>
-              {% endif %}
-              {% for error in form.amount.errors %}
-                <div class="text-danger">{{ error }}</div>
-              {% endfor %}
-            </div>
-            
-            <!-- Payment Method (read-only, always QR PH) -->
-            <div class="mb-3">
-              <label class="form-label fw-bold">Payment Method</label>
-              <input type="text" class="form-control" value="QR PH (GCash/PayMaya/GrabPay)" readonly>
-              <input type="hidden" name="payment_method" value="qr_ph">
-            </div>
-            
-            <input type="hidden" name="use_paymongo" value="yes">
-            
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i> <strong>How it works:</strong>
-              <ol class="mb-0 mt-2 ps-3">
-                <li>Click the button below</li>
-                <li>You'll be redirected to PayMongo</li>
-                <li>Choose your e-wallet (GCash/PayMaya/GrabPay)</li>
-                <li>Scan the QR code with your e-wallet app</li>
-                <li>Complete the payment</li>
-                <li>Return here - payment will be automatically verified!</li>
-              </ol>
-            </div>
-            
-            <div class="d-grid gap-2">
-              <button type="submit" class="btn btn-primary btn-lg">
-                <i class="fas fa-mobile-alt"></i> Pay with GCash/PayMaya/GrabPay
-              </button>
-              <a href="{% url 'payments:payment_list' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left"></i> Cancel
-              </a>
-            </div>
-          </form>
-        </div>
-      </div>
-      
-      <!-- Help Section -->
-      <div class="card shadow-sm mt-4">
-        <div class="card-body">
-          <h6><i class="fas fa-question-circle"></i> Need Help?</h6>
-          <p class="mb-2 text-muted">
-            <strong>Don't have GCash, PayMaya, or GrabPay?</strong> You can download these apps:
-          </p>
-          <ul class="mb-2 text-muted">
-            <li><strong>GCash:</strong> Available on Google Play Store and Apple App Store</li>
-            <li><strong>PayMaya:</strong> Available on Google Play Store and Apple App Store</li>
-            <li><strong>GrabPay:</strong> Part of the Grab app</li>
-          </ul>
-          <p class="mb-0 text-muted small">
-            For payment issues, contact your admin or email support.
-          </p>
-        </div>
-      </div>
     </div>
   </div>
-{% endblock %} 
+{% endblock %}

@@ -1,223 +1,617 @@
 {% extends 'base_sidebar.html' %}
 {% load static %}
+{% block extra_css %}
+<style>
+  /* Welcome Banner */
+  .welcome-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 20px;
+    color: white;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+  .welcome-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+  .welcome-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 4px solid white;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .scout-rank-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 600;
+    backdrop-filter: blur(10px);
+  }
+  
+  /* Quick Stats Cards */
+  .stat-card {
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 0;
+    height: 100%;
+  }
+  .stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  }
+  .stat-card .stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.25rem;
+  }
+  .stat-card .stat-label {
+    font-size: 0.9rem;
+    opacity: 0.85;
+    font-weight: 500;
+  }
+  .stat-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+  .stat-success { background: linear-gradient(135deg, #16a34a 0%, #059669 100%); color: white; }
+  .stat-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+  .stat-info { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); color: white; }
+  
+  /* Progress Card */
+  .progress-card {
+    border-radius: 16px;
+    border: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  }
+  .progress-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .progress-item:last-child {
+    border-bottom: none;
+  }
+  .progress-bar-custom {
+    height: 12px;
+    border-radius: 20px;
+    background: #e5e7eb;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.5s ease;
+  }
+  
+  /* Dashboard Cards */
+  .dashboard-card {
+    border-radius: 16px;
+    border: 0;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+    transition: box-shadow 0.2s;
+    height: 100%;
+  }
+  .dashboard-card:hover {
+    box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+  }
+  .card-header-custom {
+    background: transparent;
+    border-bottom: 2px solid #f1f5f9;
+    padding: 1.25rem 1.5rem;
+  }
+  .card-title-custom {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .count-badge {
+    background: #667eea;
+    color: white;
+    border-radius: 12px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: auto;
+  }
+  
+  /* List Items */
+  .item-card {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+  }
+  .item-card:hover {
+    background: #e3f2fd;
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+  .item-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+  }
+  .item-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  /* Countdown Timer */
+  .countdown-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  .countdown-item {
+    text-align: center;
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    min-width: 70px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .countdown-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: #667eea;
+    display: block;
+  }
+  .countdown-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  
+  /* Achievement Badges */
+  .achievement-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 1rem;
+  }
+  .achievement-badge {
+    text-align: center;
+    padding: 1rem 0.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .achievement-badge:hover {
+    background: #e3f2fd;
+    transform: scale(1.05);
+  }
+  .achievement-badge.earned {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: white;
+  }
+  .achievement-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  .achievement-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  @media (max-width: 768px) {
+    .welcome-banner { padding: 1.5rem; }
+    .welcome-avatar { width: 60px; height: 60px; }
+    .stat-card .stat-value { font-size: 1.5rem; }
+    .countdown-container { gap: 0.5rem; }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-  <style>
-    .dashboard-card {
-      border-radius: 18px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      background: #fff;
-      margin-bottom: 2rem;
-      transition: box-shadow 0.2s;
-    }
-    .dashboard-card:hover {
-      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
-    }
-    .dashboard-section-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .dashboard-badge {
-      background: #1976d2;
-      color: #fff;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      padding: 0.2rem 0.7rem;
-      margin-left: 0.5rem;
-      font-weight: 600;
-    }
-    .dashboard-list-item {
-      border-radius: 12px;
-      margin-bottom: 1rem;
-      background: #f8fafc;
-      box-shadow: 0 1px 4px rgba(25, 118, 210, 0.07);
-      padding: 1.1rem 1.2rem;
-      transition: background 0.2s, box-shadow 0.2s;
-      display: flex;
-      align-items: flex-start;
-      gap: 1rem;
-      position: relative;
-    }
-    .dashboard-list-item:hover {
-      background: #e3f2fd;
-      box-shadow: 0 4px 16px rgba(25, 118, 210, 0.13);
-    }
-    .dashboard-list-item .item-icon {
-      font-size: 1.7rem;
-      color: #1976d2;
-      flex-shrink: 0;
-      margin-top: 0.1rem;
-    }
-    .dashboard-list-item .item-content {
-      flex: 1;
-    }
-    .dashboard-list-item .item-title {
-      font-weight: 600;
-      font-size: 1.08rem;
-      margin-bottom: 0.1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .dashboard-list-item .item-badge {
-      background: #43a047;
-      color: #fff;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      padding: 0.1rem 0.5rem;
-      margin-left: 0.4rem;
-      font-weight: 500;
-    }
-    .dashboard-list-item .item-date {
-      font-size: 0.92rem;
-      color: #888;
-      margin-bottom: 0.2rem;
-    }
-    .dashboard-list-item .item-desc {
-      font-size: 0.98rem;
-      color: #222;
-      margin-bottom: 0.2rem;
-    }
-    .dashboard-list-item .item-link {
-      font-size: 0.95rem;
-      color: #1976d2;
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .dashboard-list-item .item-link:hover {
-      text-decoration: underline;
-    }
-    @media (max-width: 991px) {
-      .dashboard-list-item { flex-direction: column; gap: 0.5rem; }
-      .dashboard-list-item .item-icon { margin-bottom: 0.5rem; }
-    }
-  </style>
-  <div class="container-fluid py-4">
-    {% if profile_incomplete %}
+<div class="container-fluid py-4">
+  <!-- Welcome Banner with Avatar -->
+  <div class="welcome-banner">
+    <div class="row align-items-center">
+      <div class="col-auto">
+        <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'img/placeholder-avatar.png' %}{% endif %}" 
+             alt="Profile" class="welcome-avatar">
+      </div>
+      <div class="col">
+        <h3 class="mb-2">Welcome back, {{ user.first_name }}!</h3>
+        <p class="mb-2 opacity-90">Ready for your next adventure?</p>
+        <div class="d-flex gap-2 flex-wrap">
+          {% if user.scout_rank %}
+            <span class="scout-rank-badge">
+              <i class="fas fa-medal"></i> {{ user.get_scout_rank_display }}
+            </span>
+          {% endif %}
+          {% if user.is_active %}
+            <span class="scout-rank-badge">
+              <i class="fas fa-check-circle"></i> Active Member
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      {% if next_event %}
+        <div class="col-lg-4 text-end d-none d-lg-block">
+          <small class="d-block opacity-75">Next Event</small>
+          <strong>{{ next_event.title }}</strong>
+          <div class="countdown-container" id="eventCountdown" data-event-date="{{ next_event.date|date:'Y-m-d' }}">
+            <div class="countdown-item">
+              <span class="countdown-value" id="days">00</span>
+              <span class="countdown-label">Days</span>
+            </div>
+            <div class="countdown-item">
+              <span class="countdown-value" id="hours">00</span>
+              <span class="countdown-label">Hours</span>
+            </div>
+            <div class="countdown-item">
+              <span class="countdown-value" id="minutes">00</span>
+              <span class="countdown-label">Mins</span>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Profile Completion Alert -->
+  {% if profile_incomplete %}
     <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
-      <strong>Complete your profile!</strong> Please update the following missing info: {{ incomplete_fields|join:', ' }}.
-      <a href="{% url 'accounts:profile_edit' %}" class="alert-link">Update now</a>.
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    {% endif %}
-  <h2 class="mb-4">Scout Dashboard</h2>
-    <div class="row g-4">
-      <div class="col-lg-6">
-        <div class="dashboard-card card h-100">
-          <div class="card-body">
-            <div class="dashboard-section-title"><i class="fas fa-bullhorn"></i>Current Announcements {% if latest_announcements %}<span class="dashboard-badge">{{ latest_announcements|length }}</span>{% endif %}</div>
-            {% if latest_announcements %}
-              <div>
-                {% for announcement in latest_announcements %}
-                  <div class="dashboard-list-item">
-                    <span class="item-icon"><i class="fas fa-bullhorn"></i></span>
-                    <div class="item-content">
-                      <div class="item-title">
-                        {{ announcement.title }}
-                        {% if announcement.date_posted|date:'Y-m-d' == today %}<span class="item-badge">New</span>{% endif %}
-                      </div>
-                      <div class="item-date">{{ announcement.date_posted|date:"M d, Y" }}</div>
-                      <div class="item-desc">{{ announcement.message|truncatechars:100 }}</div>
-                      <a href="{% url 'announcements:announcement_detail' announcement.pk %}" class="item-link">Read more</a>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-              <div class="text-end mt-2">
-                <a href="{% url 'announcements:announcement_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
-              </div>
-            {% else %}
-              <div class="alert alert-info mt-3">No recent announcements.</div>
-            {% endif %}
-          </div>
+      <div class="d-flex align-items-center">
+        <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+        <div>
+          <strong>Complete your profile!</strong>
+          <p class="mb-0">Missing: {{ incomplete_fields|join:', ' }}. 
+            <a href="{% url 'accounts:profile_edit' %}" class="alert-link">Update now</a>
+          </p>
         </div>
       </div>
-      <div class="col-lg-6">
-        <div class="dashboard-card card h-100">
-          <div class="card-body">
-            <div class="dashboard-section-title"><i class="fas fa-calendar-alt"></i>Events & Activities {% if upcoming_events %}<span class="dashboard-badge">{{ upcoming_events|length }}</span>{% endif %}</div>
-            {% if upcoming_events %}
-              <div>
-                {% for event in upcoming_events %}
-                  <div class="dashboard-list-item">
-                    <span class="item-icon"><i class="fas fa-calendar-alt"></i></span>
-                    <div class="item-content">
-                      <div class="item-title">
-                        {{ event.title }}
-                        {% if event.date == today %}<span class="item-badge" style="background:#ffb300;color:#222;">Today</span>{% endif %}
-                        {% if event.date > today %}<span class="item-badge">Upcoming</span>{% endif %}
-                      </div>
-                      <div class="item-date">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"P" }}{% endif %}</div>
-                      <div class="item-desc">{{ event.description|truncatechars:100 }}</div>
-                      <a href="{% url 'events:event_list' %}" class="item-link">View details</a>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
-              <div class="text-end mt-2">
-                <a href="{% url 'events:event_list' %}" class="btn btn-outline-primary btn-sm">View All</a>
-              </div>
-            {% else %}
-              <div class="alert alert-info mt-3">No upcoming activities.</div>
-            {% endif %}
-          </div>
-        </div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endif %}
+
+  <!-- Quick Stats Row -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="card stat-card stat-primary">
+        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+        <div class="stat-value">{{ events_attended|default:0 }}</div>
+        <div class="stat-label">Events Attended</div>
       </div>
     </div>
-    
-    <!-- Unpaid Event Registrations Row -->
-    {% if unpaid_event_registrations %}
-      <div class="row mt-4">
-        <div class="col-12">
-          <div class="dashboard-card card">
-            <div class="card-body">
-              <div class="dashboard-section-title">
-                <i class="fas fa-credit-card text-warning"></i>
-                Unpaid Event Registrations 
-                <span class="dashboard-badge" style="background:#ff6f00;">{{ unpaid_event_registrations|length }}</span>
-              </div>
-              <div class="alert alert-warning">
-                <strong><i class="fas fa-exclamation-triangle"></i> Action Required:</strong> 
-                You have unpaid event registrations. Complete full payment to secure your spot.
-              </div>
-              <div class="row">
-                {% for registration in unpaid_event_registrations %}
-                  <div class="col-md-6 col-lg-4 mb-3">
-                    <div class="card border-warning">
-                      <div class="card-body">
-                        <h6 class="card-title">{{ registration.event.title }}</h6>
-                        <p class="card-text">
-                          <small class="text-muted">
-                            <i class="fas fa-calendar"></i> {{ registration.event.date|date:"M d, Y" }}
-                            <br>
-                            <i class="fas fa-clock"></i> {{ registration.event.time|time:"g:i A" }}
-                            <br>
-                            <i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}
-                          </small>
-                        </p>
-                        <div class="d-flex justify-content-between align-items-center">
-                          <span class="badge bg-warning text-dark">₱{{ registration.event.payment_amount }}</span>
-                          <span class="badge bg-secondary">
-                            Unpaid - Full Payment Required
-                          </span>
-                        </div>
-                        <div class="mt-2">
-                          <a href="{% url 'events:event_detail' registration.event.pk %}" class="btn btn-success btn-sm w-100">
-                            <i class="fas fa-credit-card"></i> Pay Full Amount / Register
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card stat-card stat-success">
+        <div class="stat-icon"><i class="fas fa-coins"></i></div>
+        <div class="stat-value">₱{{ total_paid|default:0 }}</div>
+        <div class="stat-label">Total Contributions</div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card stat-card stat-warning">
+        <div class="stat-icon"><i class="fas fa-trophy"></i></div>
+        <div class="stat-value">{{ achievements_earned|default:0 }}/{{ total_achievements|default:6 }}</div>
+        <div class="stat-label">Achievements Earned</div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card stat-card stat-info">
+        <div class="stat-icon"><i class="fas fa-star"></i></div>
+        <div class="stat-value">{{ attendance_rate|default:0 }}%</div>
+        <div class="stat-label">Attendance Rate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Indicators Row -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-8">
+      <div class="card progress-card">
+        <div class="card-header-custom">
+          <h5 class="card-title-custom">
+            <i class="fas fa-chart-line text-primary"></i> Your Progress
+          </h5>
+        </div>
+        <div class="card-body">
+          <!-- Profile Completion -->
+          <div class="progress-item">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-bold">Profile Completion</span>
+              <span class="text-muted">{{ profile_completion }}%</span>
+            </div>
+            <div class="progress-bar-custom">
+              <div class="progress-fill bg-primary" style="width: {{ profile_completion }}%"></div>
+            </div>
+          </div>
+          
+          <!-- Registration Payment -->
+          <div class="progress-item">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-bold">Registration Payment</span>
+              <span class="text-muted">₱{{ registration_paid|default:0 }} / ₱500</span>
+            </div>
+            <div class="progress-bar-custom">
+              <div class="progress-fill bg-success" style="width: {{ registration_progress }}%"></div>
+            </div>
+          </div>
+          
+          <!-- Event Participation -->
+          <div class="progress-item">
+            <div class="d-flex justify-content-between mb-2">
+              <span class="fw-bold">Event Participation (This Month)</span>
+              <span class="text-muted">{{ events_this_month }} events</span>
+            </div>
+            <div class="progress-bar-custom">
+              <div class="progress-fill bg-info" style="width: {{ event_participation_progress }}%"></div>
             </div>
           </div>
         </div>
       </div>
-    {% endif %}
+    </div>
+
+    <!-- Achievement Badges -->
+    <div class="col-lg-4">
+      <div class="card progress-card">
+        <div class="card-header-custom">
+          <h5 class="card-title-custom">
+            <i class="fas fa-trophy text-warning"></i> Achievements
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="achievement-grid">
+            <div class="achievement-badge {% if events_attended >= 1 %}earned{% endif %}" 
+                 title="Attend your first event">
+              <div class="achievement-icon"><i class="fas fa-star"></i></div>
+              <div class="achievement-name">First Step</div>
+            </div>
+            <div class="achievement-badge {% if events_attended >= 5 %}earned{% endif %}"
+                 title="Attend 5 events">
+              <div class="achievement-icon"><i class="fas fa-fire"></i></div>
+              <div class="achievement-name">Active</div>
+            </div>
+            <div class="achievement-badge {% if events_attended >= 10 %}earned{% endif %}"
+                 title="Attend 10 events">
+              <div class="achievement-icon"><i class="fas fa-gem"></i></div>
+              <div class="achievement-name">Dedicated</div>
+            </div>
+            <div class="achievement-badge {% if profile_completion == 100 %}earned{% endif %}"
+                 title="Complete your profile">
+              <div class="achievement-icon"><i class="fas fa-user-check"></i></div>
+              <div class="achievement-name">Complete</div>
+            </div>
+            <div class="achievement-badge {% if total_paid >= 1000 %}earned{% endif %}"
+                 title="Contribute ₱1000+">
+              <div class="achievement-icon"><i class="fas fa-hand-holding-heart"></i></div>
+              <div class="achievement-name">Supporter</div>
+            </div>
+            <div class="achievement-badge {% if attendance_rate >= 90 %}earned{% endif %}"
+                 title="90%+ attendance">
+              <div class="achievement-icon"><i class="fas fa-medal"></i></div>
+              <div class="achievement-name">Perfect</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-{% endblock %} 
+
+  <!-- Announcements & Events Row -->
+  <div class="row g-4 mb-4">
+    <!-- Announcements -->
+    <div class="col-lg-6">
+      <div class="card dashboard-card">
+        <div class="card-header-custom">
+          <h5 class="card-title-custom">
+            <i class="fas fa-bullhorn text-primary"></i> Latest Announcements
+            {% if latest_announcements %}
+              <span class="count-badge">{{ latest_announcements|length }}</span>
+            {% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if latest_announcements %}
+            {% for announcement in latest_announcements %}
+              <div class="item-card">
+                <div class="d-flex align-items-start gap-3">
+                  <div class="item-icon-circle bg-primary text-white">
+                    <i class="fas fa-bullhorn"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                      <h6 class="mb-0 fw-bold">{{ announcement.title }}</h6>
+                      {% if announcement.date_posted|date:'Y-m-d' == today %}
+                        <span class="item-badge bg-success text-white">New</span>
+                      {% endif %}
+                    </div>
+                    <small class="text-muted d-block mb-2">{{ announcement.date_posted|date:"M d, Y" }}</small>
+                    <p class="mb-2 text-muted">{{ announcement.message|truncatechars:120 }}</p>
+                    <a href="{% url 'announcements:announcement_detail' announcement.pk %}" 
+                       class="btn btn-sm btn-outline-primary">
+                      <i class="fas fa-arrow-right me-1"></i> Read More
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+            <div class="text-center mt-3">
+              <a href="{% url 'announcements:announcement_list' %}" class="btn btn-primary">
+                View All Announcements
+              </a>
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+              <p>No announcements yet</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Upcoming Events -->
+    <div class="col-lg-6">
+      <div class="card dashboard-card">
+        <div class="card-header-custom">
+          <h5 class="card-title-custom">
+            <i class="fas fa-calendar-alt text-success"></i> Upcoming Events
+            {% if upcoming_events %}
+              <span class="count-badge">{{ upcoming_events|length }}</span>
+            {% endif %}
+          </h5>
+        </div>
+        <div class="card-body">
+          {% if upcoming_events %}
+            {% for event in upcoming_events %}
+              <div class="item-card">
+                <div class="d-flex align-items-start gap-3">
+                  <div class="item-icon-circle bg-success text-white">
+                    <i class="fas fa-calendar-alt"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                      <h6 class="mb-0 fw-bold">{{ event.title }}</h6>
+                      {% if event.date|date:'Y-m-d' == today %}
+                        <span class="item-badge" style="background: #fbbf24; color: #000;">Today</span>
+                      {% elif event.date|date:'Y-m-d' > today %}
+                        <span class="item-badge bg-info text-white">Upcoming</span>
+                      {% endif %}
+                    </div>
+                    <small class="text-muted d-block mb-2">
+                      <i class="fas fa-calendar me-1"></i>{{ event.date|date:"M d, Y" }}
+                      {% if event.time %}
+                        <i class="fas fa-clock ms-2 me-1"></i>{{ event.time|time:"g:i A" }}
+                      {% endif %}
+                    </small>
+                    <p class="mb-2 text-muted">{{ event.description|truncatechars:120 }}</p>
+                    <a href="{% url 'events:event_list' %}" class="btn btn-sm btn-outline-success">
+                      <i class="fas fa-arrow-right me-1"></i> View Details
+                    </a>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+            <div class="text-center mt-3">
+              <a href="{% url 'events:event_list' %}" class="btn btn-success">
+                View Event Calendar
+              </a>
+            </div>
+          {% else %}
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-calendar-times fa-3x mb-3 opacity-50"></i>
+              <p>No upcoming events</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Unpaid Registrations Alert -->
+  {% if unpaid_event_registrations %}
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card border-warning">
+          <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Unpaid Event Registrations ({{ unpaid_event_registrations|length }})
+            </h5>
+          </div>
+          <div class="card-body">
+            <p class="mb-3">Complete payment for these events to secure your spot:</p>
+            <div class="row g-3">
+              {% for registration in unpaid_event_registrations %}
+                <div class="col-md-4">
+                  <div class="card border-warning h-100">
+                    <div class="card-body">
+                      <h6 class="card-title">{{ registration.event.title }}</h6>
+                      <p class="card-text small text-muted">
+                        <i class="fas fa-calendar"></i> {{ registration.event.date|date:"M d, Y" }}<br>
+                        <i class="fas fa-map-marker-alt"></i> {{ registration.event.location }}
+                      </p>
+                      <div class="d-flex justify-content-between align-items-center">
+                        <strong class="text-warning">₱{{ registration.event.payment_amount }}</strong>
+                        <a href="{% url 'events:event_detail' registration.event.pk %}" 
+                           class="btn btn-warning btn-sm">Pay Now</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+</div>
+
+<!-- Countdown Timer Script -->
+<script>
+{% if next_event %}
+function updateCountdown() {
+  const eventDateStr = document.getElementById('eventCountdown').dataset.eventDate;
+  const eventDate = new Date(eventDateStr + 'T00:00:00').getTime();
+  const now = new Date().getTime();
+  const distance = eventDate - now;
+  
+  if (distance < 0) {
+    document.getElementById('days').textContent = '00';
+    document.getElementById('hours').textContent = '00';
+    document.getElementById('minutes').textContent = '00';
+    return;
+  }
+  
+  const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+  
+  document.getElementById('days').textContent = String(days).padStart(2, '0');
+  document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+}
+
+// Update every minute
+updateCountdown();
+setInterval(updateCountdown, 60000);
+{% endif %}
+
+// Progress bar animation on load
+document.addEventListener('DOMContentLoaded', function() {
+  const progressBars = document.querySelectorAll('.progress-fill');
+  progressBars.forEach(bar => {
+    const width = bar.style.width;
+    bar.style.width = '0';
+    setTimeout(() => {
+      bar.style.width = width;
+    }, 100);
+  });
+});
+</script>
+{% endblock %}

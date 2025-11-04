@@ -1,7 +1,43 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Group, Badge, UserBadge, RegistrationPayment, BatchRegistration, BatchStudentData
+from .models import User, Group, Badge, UserBadge, RegistrationPayment, BatchRegistration, BatchStudentData, SystemSettings
 from django.utils.html import format_html
+
+
+@admin.register(SystemSettings)
+class SystemSettingsAdmin(admin.ModelAdmin):
+    """
+    Admin interface for system-wide settings.
+    Admins can change the platform registration fee here.
+    """
+    list_display = ['registration_fee_display']
+    
+    fieldsets = (
+        ('Platform Registration Fee', {
+            'fields': ('registration_fee',),
+            'description': (
+                '<p style="color: #666; font-size: 14px;">'
+                '<strong>This is the default registration fee for ALL new users.</strong><br>'
+                'All users will pay this amount when registering on the platform.<br><br>'
+                '<strong>Note:</strong> This is different from event fees, which can be set per event.<br>'
+                'Changes to this fee will apply to all NEW registrations immediately.<br>'
+                'Existing pending payments will keep their original amount.'
+                '</p>'
+            )
+        }),
+    )
+    
+    def registration_fee_display(self, obj):
+        return format_html('<strong style="font-size: 16px; color: #28a745;">₱{:.2f}</strong>', obj.registration_fee)
+    registration_fee_display.short_description = 'Current Registration Fee'
+    
+    def has_add_permission(self, request):
+        # Only allow one instance
+        return not SystemSettings.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        # Don't allow deletion of settings
+        return False
 
 @admin.register(BatchRegistration)
 class BatchRegistrationAdmin(admin.ModelAdmin):
@@ -131,25 +167,30 @@ class BatchStudentDataAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['email', 'first_name', 'last_name', 'rank', 'registration_status', 'is_active', 'date_joined']
-    list_filter = ['rank', 'registration_status', 'is_active', 'date_joined']
+    list_display = ['email', 'first_name', 'last_name', 'role', 'scout_rank', 'registration_status', 'is_active', 'date_joined']
+    list_filter = ['role', 'scout_rank', 'registration_status', 'is_active', 'date_joined']
     search_fields = ['email', 'first_name', 'last_name']
     ordering = ['-date_joined']
     
     actions = ['activate_users', 'deactivate_users']
     
     fieldsets = UserAdmin.fieldsets + (
-        ('Scout Information', {
-            'fields': ('rank', 'date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies', 'groups_membership')
+        ('Role & Permissions', {
+            'fields': ('role', 'scout_rank'),
+            'description': 'Role determines system access level. Scout Rank is for merit advancement (optional).'
         }),
-        ('Registration & Status', {
-            'fields': ('registration_status', 'registration_payment_amount', 'registration_total_paid', 'registration_amount_required', 'registration_receipt', 'registration_verified_by', 'registration_verification_date', 'registration_notes', 'membership_expiry')
+        ('Scout Information', {
+            'fields': ('date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies', 'groups_membership')
+        }),
+        ('Registration & Payment Status', {
+            'fields': ('registration_status', 'registration_payment_amount', 'registration_total_paid', 'registration_amount_required', 'registration_receipt', 'registration_verified_by', 'registration_verification_date', 'registration_notes', 'membership_expiry'),
+            'description': 'Admins and Leaders are auto-activated (no payment required). Scouts must complete payment.'
         }),
     )
     
     add_fieldsets = UserAdmin.add_fieldsets + (
-        ('Scout Information', {
-            'fields': ('rank', 'date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies')
+        ('Role & Information', {
+            'fields': ('role', 'scout_rank', 'date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies')
         }),
     )
     
@@ -160,9 +201,9 @@ class CustomUserAdmin(UserAdmin):
     activate_users.short_description = "✅ Activate selected users"
     
     def deactivate_users(self, request, queryset):
-        """Admin action to deactivate selected users (except admins)"""
-        # Don't deactivate admin users
-        queryset = queryset.exclude(rank='admin')
+        """Admin action to deactivate selected users (except admins and leaders)"""
+        # Don't deactivate admin users or leaders
+        queryset = queryset.exclude(role__in=['admin', 'leader'])
         updated = queryset.update(is_active=False, registration_status='inactive')
         self.message_user(request, f'{updated} user(s) deactivated successfully.')
     deactivate_users.short_description = "❌ Deactivate selected users"

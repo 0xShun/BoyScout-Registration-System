@@ -10,6 +10,7 @@ urlpatterns = [
     path('registration-payment/<int:user_id>/', views.registration_payment, name='registration_payment'),
     path('login/', views.MyLoginView.as_view(), name='login'),
     path('logout/', views.MyLogoutView.as_view(), name='logout'),
+    path('dashboard/', views.dashboard, name='dashboard'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('scout-dashboard/', views.scout_dashboard, name='scout_dashboard'),
     path('quick-announcement/', views.quick_announcement, name='quick_announcement'),

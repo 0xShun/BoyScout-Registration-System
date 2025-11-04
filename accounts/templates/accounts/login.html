@@ -2,17 +2,17 @@
 {% load static %}
 
 {% block content %}
-  <div class="container-fluid vh-100 d-flex align-items-center justify-content-center ">
-    <div class="row w-100 rounded shadow-lg" style="max-width: 1000px; background-color: #fff;">
+  <div class="container-fluid vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+    <div class="row w-100 rounded-4 shadow-lg overflow-hidden" style="max-width: 1100px; background-color: #fff;">
       
       <!-- Left Section: Login Form -->
-      <div class="col-md-6 d-flex flex-column p-4">
-        <div class="text-start mb-4">
-          <img src="{% static 'img/logo1.png' %}" alt="ScoutConnect Logo" style="height: 40px;">
-          <span class="fw-bold ms-2" style="font-size: 1.5rem;">ScoutConnect</span>
+      <div class="col-md-6 d-flex flex-column p-5">
+        <div class="text-start mb-4 d-flex align-items-center">
+          <img src="{% static 'img/logo1.png' %}" alt="ScoutConnect Logo" style="height: 50px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
+          <span class="fw-bold ms-3" style="font-size: 1.8rem; color: #1e3a8a;">ScoutConnect</span>
         </div>
-        <h2 class="fw-bold mb-2">Welcome Back!</h2>
-        <p class="text-muted mb-4">Please enter log in details below</p>
+        <h2 class="fw-bold mb-2" style="color: #1f2937; font-size: 2rem;">Welcome Back!</h2>
+        <p class="text-muted mb-4" style="font-size: 1.05rem;">Sign in to continue your scout journey</p>
         
         <form method="post">
           {% csrf_token %}
@@ -38,65 +38,140 @@
               {% endif %}
             </div>
           {% endfor %}
-          <div class="text-end mb-4">
-            <a href="{% url 'accounts:password_reset' %}" class="text-decoration-none">Forgot password?</a>
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="rememberMe">
+              <label class="form-check-label text-muted" for="rememberMe">
+                Remember me
+              </label>
+            </div>
+            <a href="{% url 'accounts:password_reset' %}" class="text-decoration-none" style="color: #1e3a8a; font-weight: 600;">Forgot password?</a>
           </div>
-          <button type="submit" class="btn btn-dark w-100 py-3 rounded-pill">Sign in</button>
+          <button type="submit" class="btn btn-login w-100 py-3 rounded-pill fw-bold">
+            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+          </button>
         </form>
         
-        <div class="text-center mt-3">
-          <a href="{% url 'accounts:register' %}" class="text-decoration-none text-muted">Don't have an account? <span class="fw-bold">Sign Up</span></a>
+        <div class="text-center mt-4">
+          <p class="text-muted mb-2">Don't have an account?</p>
+          <a href="{% url 'accounts:register' %}" class="btn btn-outline-primary rounded-pill px-4 py-2">
+            <i class="fas fa-user-plus me-2"></i>Create Account
+          </a>
+        </div>
+        
+        <div class="text-center mt-4">
+          <a href="/" class="text-muted text-decoration-none">
+            <i class="fas fa-arrow-left me-2"></i>Back to Home
+          </a>
         </div>
       </div>
       
-      <!-- Right Section: Image and Marketing Message -->
-      <div class="col-md-6 d-none d-md-flex flex-column justify-content-end align-items-center p-5 rounded-end" style="background: linear-gradient(to bottom right, #2a2a2a, #000000); color: white;">
-        <img src="{% static 'img/logo2.png' %}" alt="Manage your Money Anywhere" class="img-fluid mb-4" style="max-height: 70%; object-fit: contain;">
-        <h3 class="fw-bold text-center mb-2">Manage your Money Anywhere</h3>
-        <p class="text-center mb-5" style="color: white;">you can Manage your Money on the go with Quicken on the web</p>
-        <div class="d-flex justify-content-center mb-3">
-          <span class="dot active me-2"></span>
-          <span class="dot me-2"></span>
-          <span class="dot"></span>
+      <!-- Right Section: Scout Branding -->
+      <div class="col-md-6 d-none d-md-flex flex-column justify-content-center align-items-center p-5 rounded-end position-relative" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #1e40af 100%); color: white; overflow: hidden;">
+        <div class="position-absolute top-0 start-0 w-100 h-100" style="opacity: 0.1;">
+          <div style="position: absolute; top: -20%; right: -10%; width: 400px; height: 400px; background: white; border-radius: 50%;"></div>
+          <div style="position: absolute; bottom: -20%; left: -10%; width: 350px; height: 350px; background: white; border-radius: 50%;"></div>
+        </div>
+        <div class="position-relative text-center">
+          <img src="{% static 'img/logo2.png' %}" alt="Boy Scouts Logo" class="img-fluid mb-4" style="max-height: 350px; object-fit: contain; filter: drop-shadow(0 10px 30px rgba(0,0,0,0.3));">
+          <h3 class="fw-bold mb-3" style="font-size: 2rem;">Scout Management System</h3>
+          <p class="mb-4" style="font-size: 1.1rem; opacity: 0.95;">Manage announcements, events, payments, and track your progress all in one place.</p>
+          <div class="d-flex justify-content-center gap-3 mb-4">
+            <div class="feature-badge">
+              <i class="fas fa-bullhorn fa-2x mb-2"></i>
+              <p class="mb-0 small">Announcements</p>
+            </div>
+            <div class="feature-badge">
+              <i class="fas fa-calendar-check fa-2x mb-2"></i>
+              <p class="mb-0 small">Events</p>
+            </div>
+            <div class="feature-badge">
+              <i class="fas fa-trophy fa-2x mb-2"></i>
+              <p class="mb-0 small">Achievements</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <style>
-    body {
-      background-color: #f0f2f5;
-    }
-
-    .rounded-pill {
-      border-radius: 50rem !important;
+    .rounded-4 {
+      border-radius: 1.5rem !important;
     }
 
     .form-control {
-      border-radius: 0.5rem;
-      padding: 0.75rem 1rem;
-      border: 1px solid #dee2e6;
+      border-radius: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      border: 2px solid #e5e7eb;
+      font-size: 1rem;
+      transition: all 0.3s ease;
     }
 
     .form-control:focus {
-      border-color: #0d6efd;
-      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: #f0f9ff;
     }
 
-    .dot {
-      height: 10px;
-      width: 10px;
-      background-color: rgba(255, 255, 255, 0.5);
-      border-radius: 50%;
-      display: inline-block;
+    .btn-login {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
     }
 
-    .dot.active {
-      background-color: white;
+    .btn-login:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30, 58, 138, 0.4);
+      color: white;
+    }
+
+    .btn-outline-primary {
+      border: 2px solid #3b82f6;
+      color: #1e3a8a;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover {
+      background: #3b82f6;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
 
     .alert {
-      border-radius: 0.5rem;
+      border-radius: 0.75rem;
+      border-left: 4px solid #dc2626;
+    }
+
+    .form-check-input:checked {
+      background-color: #3b82f6;
+      border-color: #3b82f6;
+    }
+
+    .feature-badge {
+      background: rgba(255, 255, 255, 0.15);
+      padding: 1.5rem 1rem;
+      border-radius: 1rem;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      min-width: 100px;
+    }
+
+    .feature-badge:hover {
+      background: rgba(255, 255, 255, 0.25);
+      transform: translateY(-5px);
+    }
+
+    @media (max-width: 768px) {
+      .container-fluid > .row {
+        max-width: 500px !important;
+      }
     }
   </style>
 {% endblock %} 

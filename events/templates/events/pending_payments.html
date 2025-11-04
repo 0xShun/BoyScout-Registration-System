@@ -1,21 +1,71 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Pending Payment Verifications</h2>
-    <a href="{% url 'events:event_list' %}" class="btn btn-secondary">Back to Events</a>
+  {# Page Header #}
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2><i class="fas fa-hourglass-half"></i> Pending Payment Verifications</h2>
+        <p>Review and verify pending event registration payments</p>
+      </div>
+      <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left me-2"></i> Back to Events
+      </a>
+    </div>
   </div>
 
   {% if pending_registrations %}
-    <div class="card shadow-sm">
-      <div class="card-header">
-        <h5 class="mb-0">Registrations Awaiting Payment Verification</h5>
-        <small class="text-muted">Click "Verify Payment" to enter the actual amount paid by the user</small>
+    {# Summary Cards #}
+    <div class="row g-4 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card-enhanced" style="border-left-color: #fbbf24;">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #92400e 0%, #fbbf24 100%);">
+            <i class="fas fa-clock"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ pending_registrations|length }}</div>
+            <div class="stat-label">Pending Verifications</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card-enhanced" style="border-left-color: #3b82f6;">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ pending_registrations|length }}</div>
+            <div class="stat-label">Events with Pending Payments</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card-enhanced" style="border-left-color: #10b981;">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%);">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value">{{ pending_registrations|length }}</div>
+            <div class="stat-label">Total Scouts</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    {# Pending Payments Table #}
+    <div class="enhanced-card">
+      <div class="enhanced-card-header">
+        <h5><i class="fas fa-list me-2"></i> Registrations Awaiting Payment Verification</h5>
+        <small class="text-muted d-block mt-1">Click "Verify Payment" to enter the actual amount paid by the user</small>
       </div>
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-striped">
+          <table class="table enhanced-table">
             <thead>
               <tr>
                 <th>User</th>
@@ -41,7 +91,7 @@
                     <small class="text-muted">{{ registration.event.date|date:"M d, Y" }}</small>
                   </td>
                   <td>
-                    <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                    <span class="status-badge {% if registration.payment_status == 'paid' %}status-verified{% elif registration.payment_status == 'partial' %}status-pending{% elif registration.payment_status == 'pending' %}status-pending{% elif registration.payment_status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
                       {{ registration.get_payment_status_display }}
                     </span>
                   </td>
@@ -55,17 +105,17 @@
                     <span class="badge {% if registration.amount_remaining > 0 %}bg-warning{% else %}bg-success{% endif %}">₱{{ registration.amount_remaining }}</span>
                   </td>
                   <td>
-                    <span class="badge {% if registration.rsvp == 'yes' %}bg-success{% elif registration.rsvp == 'no' %}bg-danger{% else %}bg-warning{% endif %}">
+                    <span class="status-badge {% if registration.rsvp == 'yes' %}status-verified{% elif registration.rsvp == 'no' %}status-rejected{% else %}status-pending{% endif %}">
                       {{ registration.get_rsvp_display }}
                     </span>
                   </td>
                   <td>{{ registration.registered_at|date:"M d, Y g:i A" }}</td>
                   <td>
-                      <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary me-1">
-                        <i class="fas fa-check"></i> Verify Payment
+                      <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-sm btn-primary me-1 mb-1">
+                        <i class="fas fa-check me-1"></i> Verify Payment
                       </a>
-                      <button type="button" class="btn btn-sm btn-outline-success ajax-verify-btn" data-registration-id="{{ registration.pk }}" data-amount-remaining="{{ registration.amount_remaining }}">
-                        <i class="fas fa-bolt"></i> Verify (AJAX)
+                      <button type="button" class="btn btn-sm btn-outline-success ajax-verify-btn mb-1" data-registration-id="{{ registration.pk }}" data-amount-remaining="{{ registration.amount_remaining }}">
+                        <i class="fas fa-bolt me-1"></i> Quick Verify
                       </button>
                   </td>
                 </tr>
@@ -76,16 +126,18 @@
       </div>
     </div>
   {% else %}
-    <div class="card shadow-sm">
-      <div class="card-body text-center py-5">
-        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-        <h4 class="mt-3">No Pending Payments</h4>
-        <p class="text-muted">All event registrations have been processed.</p>
-        <a href="{% url 'events:event_list' %}" class="btn btn-primary">View All Events</a>
-      </div>
+    {# Empty State #}
+    <div class="empty-state">
+      <i class="fas fa-check-circle"></i>
+      <h4>No Pending Payments</h4>
+      <p class="text-muted mb-4">All event registrations have been processed and verified.</p>
+      <a href="{% url 'events:event_list' %}" class="btn-enhanced-primary">
+        <i class="fas fa-calendar-alt me-2"></i> View All Events
+      </a>
     </div>
   {% endif %}
 </div>
+
 <script>
 // Inline AJAX verify for admins on pending payments list
 function getCookie(name) {
@@ -94,7 +146,6 @@ function getCookie(name) {
     const cookies = document.cookie.split(';');
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
-      // Does this cookie string begin with the name we want?
       if (cookie.substring(0, name.length + 1) === (name + '=')) {
         cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
         break;
@@ -140,22 +191,22 @@ document.addEventListener('DOMContentLoaded', function() {
           return;
         }
 
-        // Update UI: find the table row for this registration
+        // Update UI
         const row = btn.closest('tr');
         if (row) {
-          const statusBadge = row.querySelector('td:nth-child(3) .badge');
+          const statusBadge = row.querySelector('td:nth-child(3) .status-badge');
           const paidBadge = row.querySelector('td:nth-child(5) .badge');
           const remainingBadge = row.querySelector('td:nth-child(6) .badge');
+          
           if (statusBadge) {
             statusBadge.textContent = 'Paid';
-            statusBadge.classList.remove('bg-warning');
-            statusBadge.classList.add('bg-success');
+            statusBadge.classList.remove('status-pending');
+            statusBadge.classList.add('status-verified');
           }
           if (paidBadge && data.amount_paid !== undefined) {
             paidBadge.textContent = '₱' + data.amount_paid;
           }
           if (remainingBadge) {
-            // compute remaining = amount_required - amount_paid if possible
             try {
               const reqText = row.querySelector('td:nth-child(4) .badge').textContent.replace('₱','').trim();
               const req = parseFloat(reqText) || 0;
@@ -185,4 +236,4 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
-{% endblock %} 
+{% endblock %}

@@ -13,7 +13,7 @@ user = User.objects.get(email='admin@test.com')
 
 # Fix all the issues
 user.is_active = True
-user.rank = 'admin'
+user.role = 'admin'
 user.registration_status = 'active'
 user.save()
 
@@ -22,7 +22,7 @@ print('=' * 60)
 print(f'Username: {user.username}')
 print(f'Email: {user.email}')
 print(f'Is active: {user.is_active}')
-print(f'Rank: {user.rank}')
+print(f'Rank: {user.role}')
 print(f'Is superuser: {user.is_superuser}')
 print(f'Registration complete: {user.is_registration_complete}')
 print(f'Registration status: {user.registration_status}')

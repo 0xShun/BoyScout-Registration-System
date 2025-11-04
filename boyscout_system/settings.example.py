@@ -21,8 +21,9 @@ from pathlib import Path
 import os
 
 # Try to load environment variables from a .env file. Prefer python-dotenv if
-# available, but fall back to a minimal parser so the example settings file is
-# safe to use even if python-dotenv isn't installed yet.
+# available, but fall back to a minimal parser so the app won't crash if the
+# package isn't installed (useful on fresh PythonAnywhere setups before pip
+# install finishes).
 try:
     from dotenv import load_dotenv
     _USE_DOTENV = True
@@ -38,9 +39,11 @@ if _USE_DOTENV:
     try:
         load_dotenv(env_path)
     except Exception:
+        # If python-dotenv fails for any reason, fall through to fallback loader
         _USE_DOTENV = False
 
 if not _USE_DOTENV:
+    # Minimal .env parser: KEY=VALUE lines, ignore comments and blank lines.
     if os.path.exists(env_path):
         try:
             with open(env_path, 'r') as f:
@@ -53,9 +56,11 @@ if not _USE_DOTENV:
                     key, val = line.split('=', 1)
                     key = key.strip()
                     val = val.strip().strip('\"\'')
+                    # Do not overwrite existing environment variables
                     if key and key not in os.environ:
                         os.environ[key] = val
         except Exception:
+            # Best-effort loader: if reading/parsing fails, continue without failing
             pass
 
 

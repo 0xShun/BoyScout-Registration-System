@@ -1,95 +1,107 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
   <div class="container-fluid py-4">
-    <h2 class="mb-4">{% if user.is_admin %}All Payments (excluding yours){% else %}My Payments{% endif %}</h2>
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-wallet"></i> {% if user.is_admin %}Payment Management{% else %}My Payments{% endif %}</h2>
+      <p>{% if user.is_admin %}Track and verify all member payments{% else %}View your payment history and status{% endif %}</p>
+    </div>
     
-    <!-- Payment Summary Dashboard -->
+    <!-- Payment Summary Dashboard (For Scouts) -->
     {% if payment_summary and not user.is_admin %}
       <div class="row mb-4 g-3">
-        <!-- Registration Payment -->
+        <!-- Registration Payment Card -->
         <div class="col-md-4">
-          <div class="card text-center shadow-sm h-100 {% if payment_summary.registration.is_paid %}border-success{% else %}border-warning{% endif %}">
-            <div class="card-body">
-              <h6 class="card-title">
-                <i class="fas fa-user-plus"></i> Registration Fee
-              </h6>
-              <p class="display-6 fw-bold {% if payment_summary.registration.is_paid %}text-success{% else %}text-warning{% endif %}">
-                ₱{{ payment_summary.registration.amount }}
-              </p>
-              <span class="badge {% if payment_summary.registration.is_paid %}bg-success{% else %}bg-warning{% endif %}">
-                {{ payment_summary.registration.status|title }}
+          <div class="stat-card-enhanced" style="border-left-color: {% if payment_summary.registration.is_paid %}#10b981{% else %}#fbbf24{% endif %};">
+            <div class="stat-icon {% if payment_summary.registration.is_paid %}stat-icon-success{% else %}stat-icon-warning{% endif %}">
+              <i class="fas fa-user-plus"></i>
+            </div>
+            <div class="stat-value" style="color: {% if payment_summary.registration.is_paid %}#10b981{% else %}#fbbf24{% endif %};">
+              ₱{{ payment_summary.registration.amount }}
+            </div>
+            <div class="stat-label">Registration Fee</div>
+            <span class="status-badge {% if payment_summary.registration.is_paid %}status-verified{% else %}status-pending{% endif %} mt-2">
+              <i class="fas fa-{% if payment_summary.registration.is_paid %}check-circle{% else %}clock{% endif %}"></i>
+              {{ payment_summary.registration.status|title }}
+            </span>
+          </div>
+        </div>
+        
+        <!-- Event Payments Card -->
+        <div class="col-md-4">
+          <div class="stat-card-enhanced" style="border-left-color: #3b82f6;">
+            <div class="stat-icon stat-icon-primary">
+              <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-value">{{ payment_summary.events.paid_events }}/{{ payment_summary.events.total_events }}</div>
+            <div class="stat-label">Event Payments</div>
+            <div class="mt-2">
+              <small class="text-muted fw-semibold">₱{{ payment_summary.events.paid_amount }} of ₱{{ payment_summary.events.total_amount }} paid</small>
+            </div>
+            {% if payment_summary.events.unpaid_events > 0 %}
+              <span class="status-badge status-pending mt-2">
+                <i class="fas fa-exclamation-circle"></i> {{ payment_summary.events.unpaid_events }} Unpaid
               </span>
-            </div>
+            {% endif %}
           </div>
         </div>
         
-        <!-- Event Payments -->
+        <!-- General Payments Card -->
         <div class="col-md-4">
-          <div class="card text-center shadow-sm h-100">
-            <div class="card-body">
-              <h6 class="card-title">
-                <i class="fas fa-calendar-alt"></i> Event Payments
-              </h6>
-              <p class="display-6 fw-bold text-info">
-                {{ payment_summary.events.paid_events }}/{{ payment_summary.events.total_events }}
-              </p>
-              <small class="text-muted">
-                ₱{{ payment_summary.events.paid_amount }} of ₱{{ payment_summary.events.total_amount }} paid
-              </small>
-              {% if payment_summary.events.unpaid_events > 0 %}
-                <br><span class="badge bg-warning mt-1">{{ payment_summary.events.unpaid_events }} Unpaid</span>
-              {% endif %}
+          <div class="stat-card-enhanced" style="border-left-color: #1e3a8a;">
+            <div class="stat-icon stat-icon-primary">
+              <i class="fas fa-receipt"></i>
             </div>
-          </div>
-        </div>
-        
-        <!-- General Payments -->
-        <div class="col-md-4">
-          <div class="card text-center shadow-sm h-100">
-            <div class="card-body">
-              <h6 class="card-title">
-                <i class="fas fa-receipt"></i> Other Payments
-              </h6>
-              <p class="display-6 fw-bold text-primary">
-                ₱{{ payment_summary.general.total_paid }}
-              </p>
-              <small class="text-muted">{{ payment_summary.general.total_payments }} transactions</small>
-              {% if payment_summary.general.pending_amount > 0 %}
-                <br><span class="badge bg-info mt-1">₱{{ payment_summary.general.pending_amount }} Pending</span>
-              {% endif %}
+            <div class="stat-value">₱{{ payment_summary.general.total_paid }}</div>
+            <div class="stat-label">Other Payments</div>
+            <div class="mt-2">
+              <small class="text-muted fw-semibold">{{ payment_summary.general.total_payments }} transactions</small>
             </div>
+            {% if payment_summary.general.pending_amount > 0 %}
+              <span class="status-badge status-pending mt-2">
+                <i class="fas fa-hourglass-half"></i> ₱{{ payment_summary.general.pending_amount }} Pending
+              </span>
+            {% endif %}
           </div>
         </div>
       </div>
     {% endif %}
     
-    <!-- General Payment QR Code for Scouts -->
-  {% if not user.is_admin %}
-      {% load static %}
+    <!-- General Payment QR Code Card (For Scouts) -->
+    {% if not user.is_admin %}
       {% with active_qr_code=active_qr_code|default:None %}
         {% if active_qr_code %}
-          <div class="card shadow-sm mb-4">
-            <div class="card-header">
-              <h5 class="mb-0">
-                <i class="fas fa-qrcode"></i> General Payment QR Code
-              </h5>
+          <div class="enhanced-card mb-4" style="border-left: 4px solid #fbbf24;">
+            <div class="enhanced-card-header" style="background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);">
+              <h5><i class="fas fa-qrcode me-2"></i> Quick Payment - Scan QR Code</h5>
             </div>
             <div class="card-body">
               <div class="row align-items-center">
                 <div class="col-md-4 text-center">
-                  <img src="{{ active_qr_code.qr_code.url }}" alt="{{ active_qr_code.title }}" class="img-fluid" style="max-width: 200px;">
+                  <div style="background: white; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: inline-block;">
+                    <img src="{{ active_qr_code.qr_code.url }}" alt="{{ active_qr_code.title }}" class="img-fluid" style="max-width: 200px; border-radius: 8px;">
+                  </div>
                 </div>
                 <div class="col-md-8">
-                  <h6>{{ active_qr_code.title }}</h6>
+                  <h5 class="fw-bold text-primary mb-3">{{ active_qr_code.title }}</h5>
                   {% if active_qr_code.description %}
-                    <p class="text-muted">{{ active_qr_code.description }}</p>
+                    <p class="text-muted mb-3">{{ active_qr_code.description }}</p>
                   {% endif %}
-                  <p class="mb-2">
-                    <strong>Instructions:</strong> Scan this QR code to make a general payment. 
-                    After payment, upload your receipt using the "Submit Payment" button below.
-                  </p>
-                  <a href="{% url 'payments:payment_submit' %}" class="btn btn-primary">
-                    <i class="fas fa-upload"></i> Submit Payment
+                  <div class="alert-enhanced alert-enhanced-info mb-3">
+                    <strong><i class="fas fa-info-circle me-2"></i>How to pay:</strong>
+                    <ol class="mb-0 mt-2 ps-3">
+                      <li>Scan this QR code with your e-wallet app</li>
+                      <li>Complete the payment</li>
+                      <li>Upload your receipt using the button below</li>
+                    </ol>
+                  </div>
+                  <a href="{% url 'payments:payment_submit' %}" class="btn-enhanced-primary">
+                    <i class="fas fa-upload me-2"></i> Submit Payment Receipt
                   </a>
                 </div>
               </div>
@@ -99,12 +111,12 @@
       {% endwith %}
     {% endif %}
     
-    <!-- Registration Payment Status Alert -->
+    <!-- Registration Payment Status Alert (For Scouts) -->
     {% if not user.is_admin %}
       {% for payment in page_obj %}
         {% if payment.type == 'registration' %}
-          <div class="alert {% if payment.status == 'active' %}alert-success{% elif payment.status == 'payment_submitted' %}alert-info{% elif payment.status == 'pending_payment' %}alert-warning{% else %}alert-secondary{% endif %} mb-4">
-            <h5 class="alert-heading">
+          <div class="alert-enhanced {% if payment.status == 'active' %}alert-enhanced-success{% elif payment.status == 'payment_submitted' %}alert-enhanced-info{% elif payment.status == 'pending_payment' %}alert-enhanced-warning{% else %}alert-enhanced-info{% endif %} mb-4">
+            <h5 class="fw-bold mb-2">
               {% if payment.status == 'active' %}
                 <i class="fas fa-check-circle"></i> Registration Payment Verified
               {% elif payment.status == 'payment_submitted' %}
@@ -127,8 +139,8 @@
               {% endif %}
             </p>
             {% if payment.status == 'pending_payment' %}
-              <a href="{% url 'accounts:registration_payment' user.id %}" class="btn btn-primary">
-                <i class="fas fa-upload"></i> Submit Registration Payment
+              <a href="{% url 'accounts:registration_payment' user.id %}" class="btn-enhanced-warning mt-2">
+                <i class="fas fa-upload me-2"></i> Submit Registration Payment
               </a>
             {% endif %}
           </div>
@@ -136,20 +148,24 @@
       {% endfor %}
     {% endif %}
     
-    <div class="card shadow-sm">
+    <!-- Payment History Table -->
+    <div class="enhanced-card">
+      <div class="enhanced-card-header">
+        <h5><i class="fas fa-history me-2"></i> Payment History</h5>
+      </div>
       <div class="card-body">
         {% if page_obj %}
           <div class="table-responsive">
-            <table class="table table-hover align-middle">
+            <table class="table enhanced-table">
               <thead>
                 <tr>
-                  {% if user.is_admin %}<th>Member</th>{% endif %}
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Receipt</th>
-                  <th>Actions</th>
+                  {% if user.is_admin %}<th><i class="fas fa-user me-1"></i> Member</th>{% endif %}
+                  <th><i class="fas fa-calendar me-1"></i> Date</th>
+                  <th><i class="fas fa-tag me-1"></i> Type</th>
+                  <th><i class="fas fa-coins me-1"></i> Amount</th>
+                  <th><i class="fas fa-info-circle me-1"></i> Status</th>
+                  <th><i class="fas fa-file-image me-1"></i> Receipt</th>
+                  <th><i class="fas fa-cog me-1"></i> Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -159,46 +175,46 @@
                       <td>
                         <div class="d-flex align-items-center gap-2">
                           <span class="fw-semibold">{{ payment.user.get_full_name|default:payment.user.email }}</span>
-                          <small class="text-muted">({{ payment.user.get_rank_display }})</small>
+                          <span class="badge bg-secondary" style="font-size: 0.75rem;">{{ payment.user.get_role_display }}</span>
                         </div>
                       </td>
                     {% endif %}
-                    <td>{{ payment.date|date:"M d, Y" }}</td>
+                    <td class="fw-semibold">{{ payment.date|date:"M d, Y" }}</td>
                     <td>
                       {% if payment.type == 'registration' or payment.payment_type == 'registration' %}
-                        <span class="badge bg-primary">Registration Fee</span>
+                        <span class="status-badge status-active"><i class="fas fa-user-plus"></i> Registration</span>
                       {% elif payment.type == 'event' %}
-                        <span class="badge bg-info">Event Payment</span>
-                        <br><small class="text-muted">{{ payment.event_title }}</small>
+                        <span class="status-badge" style="background: #dbeafe; color: #1e40af;"><i class="fas fa-calendar"></i> Event</span>
+                        {% if payment.event_title %}<br><small class="text-muted">{{ payment.event_title }}</small>{% endif %}
                       {% else %}
-                        <span class="badge bg-secondary">Other</span>
+                        <span class="status-badge" style="background: #e5e7eb; color: #374151;"><i class="fas fa-receipt"></i> Other</span>
                       {% endif %}
                     </td>
-                    <td>₱{{ payment.amount }}</td>
+                    <td><span class="fw-bold" style="color: #d97706; font-size: 1.1rem;">₱{{ payment.amount }}</span></td>
                     <td>
                       {% if payment.status == 'verified' or payment.status == 'payment_verified' %}
-                        <span class="badge bg-success">Verified</span>
+                        <span class="status-badge status-verified"><i class="fas fa-check-circle"></i> Verified</span>
                       {% elif payment.status == 'pending' or payment.status == 'payment_submitted' %}
-                        <span class="badge bg-warning text-dark">Pending</span>
+                        <span class="status-badge status-pending"><i class="fas fa-clock"></i> Pending</span>
                       {% elif payment.status == 'rejected' %}
-                        <span class="badge bg-danger">Rejected</span>
+                        <span class="status-badge status-rejected"><i class="fas fa-times-circle"></i> Rejected</span>
                       {% elif payment.status == 'pending_payment' %}
-                        <span class="badge bg-secondary">Payment Required</span>
+                        <span class="status-badge" style="background: #f3f4f6; color: #6b7280;"><i class="fas fa-hourglass"></i> Required</span>
                       {% else %}
-                        <span class="badge bg-secondary">{{ payment.status|capfirst }}</span>
+                        <span class="status-badge" style="background: #f3f4f6; color: #6b7280;">{{ payment.status|capfirst }}</span>
                       {% endif %}
                     </td>
                     <td>
                       {% if payment.receipt %}
-                        <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                        <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
                           <i class="fas fa-eye"></i> View
                         </a>
                       {% elif payment.gcash_receipt_image %}
-                        <a href="{{ payment.gcash_receipt_image.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                        <a href="{{ payment.gcash_receipt_image.url }}" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
                           <i class="fas fa-eye"></i> View
                         </a>
                       {% elif payment.type == 'event' and payment.receipt %}
-                        <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                        <a href="{{ payment.receipt.url }}" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px;">
                           <i class="fas fa-eye"></i> View
                         </a>
                       {% else %}
@@ -207,16 +223,16 @@
                     </td>
                     <td>
                       {% if not user.is_admin and payment.type == 'registration' and payment.status == 'pending_payment' %}
-                        <a href="{% url 'accounts:registration_payment' user.id %}" class="btn btn-sm btn-primary">
-                          <i class="fas fa-upload"></i> Submit Receipt
+                        <a href="{% url 'accounts:registration_payment' user.id %}" class="btn btn-sm btn-primary" style="border-radius: 8px; font-weight: 600;">
+                          <i class="fas fa-upload"></i> Submit
                         </a>
                       {% elif not user.is_admin and payment.type == 'registration' and payment.status == 'payment_submitted' %}
-                        <span class="text-muted">Awaiting verification</span>
+                        <span class="text-muted"><i class="fas fa-clock"></i> Pending</span>
                       {% elif payment.status == 'verified' or payment.status == 'active' %}
-                        <span class="text-success">
+                        <span class="text-success fw-semibold">
                           <i class="fas fa-check"></i> Verified
                           {% if payment.verified_by %}
-                            by {{ payment.verified_by.get_full_name }}
+                            <br><small class="text-muted">by {{ payment.verified_by.get_full_name }}</small>
                           {% endif %}
                         </span>
                       {% else %}
@@ -232,10 +248,12 @@
           <!-- Pagination -->
           {% if page_obj.has_other_pages %}
             <nav aria-label="Payment pagination" class="mt-4">
-              <ul class="pagination justify-content-center">
+              <ul class="pagination pagination-enhanced justify-content-center">
                 {% if page_obj.has_previous %}
                   <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                      <i class="fas fa-chevron-left"></i> Previous
+                    </a>
                   </li>
                 {% endif %}
                 
@@ -253,26 +271,33 @@
                 
                 {% if page_obj.has_next %}
                   <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                      Next <i class="fas fa-chevron-right"></i>
+                    </a>
                   </li>
                 {% endif %}
               </ul>
             </nav>
           {% endif %}
         {% else %}
-          <div class="alert alert-info">
-            <h5 class="alert-heading">No payment history found.</h5>
-            <p class="mb-0">
+          <div class="empty-state-enhanced">
+            <i class="fas fa-wallet"></i>
+            <h4>No Payment History</h4>
+            <p>
               {% if not user.is_registration_complete %}
-                You need to complete your registration payment to access the platform. 
-                <a href="{% url 'accounts:registration_payment' user.id %}" class="alert-link">Click here to submit your registration payment.</a>
+                You need to complete your registration payment to access the platform.
               {% else %}
                 You haven't made any payments yet.
               {% endif %}
             </p>
+            {% if not user.is_registration_complete %}
+              <a href="{% url 'accounts:registration_payment' user.id %}" class="btn-enhanced-primary mt-3">
+                <i class="fas fa-upload me-2"></i> Submit Registration Payment
+              </a>
+            {% endif %}
           </div>
         {% endif %}
       </div>
     </div>
   </div>
-{% endblock %} 
+{% endblock %}

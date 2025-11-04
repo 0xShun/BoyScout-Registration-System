@@ -165,6 +165,67 @@ class PayMongoService:
             logger.error(f"PayMongo payment creation error: {str(e)}")
             return False, {"error": str(e)}
     
+    def charge_source(self, source_id: str, amount: Decimal, description: str, 
+                     metadata: Optional[Dict] = None) -> Tuple[bool, Dict]:
+        """
+        Charge a source that has become chargeable (e.g., after QR code scan)
+        This is the method to call when receiving source.chargeable webhook event.
+        
+        Args:
+            source_id: ID of the chargeable source
+            amount: Payment amount in PHP
+            description: Payment description
+            metadata: Additional metadata
+            
+        Returns:
+            Tuple of (success: bool, payment_data: dict)
+            On success, payment_data contains the payment object with:
+                - id: Payment ID
+                - attributes.status: Payment status (paid/failed)
+                - attributes.amount: Amount in centavos
+        """
+        try:
+            logger.info(f"Charging source {source_id} for ₱{amount}")
+            
+            url = f"{self.BASE_URL}/payments"
+            
+            payload = {
+                "data": {
+                    "attributes": {
+                        "amount": int(amount * 100),  # Convert to centavos
+                        "source": {
+                            "id": source_id,
+                            "type": "source"
+                        },
+                        "currency": "PHP",
+                        "description": description,
+                        "statement_descriptor": "ScoutConnect",
+                        "metadata": metadata or {}
+                    }
+                }
+            }
+            
+            response = requests.post(
+                url,
+                json=payload,
+                headers=self._get_auth_header(),
+                timeout=30
+            )
+            
+            if response.status_code in [200, 201]:
+                payment_data = response.json()
+                payment_status = payment_data.get('data', {}).get('attributes', {}).get('status')
+                logger.info(f"Source charged successfully. Payment status: {payment_status}")
+                return True, payment_data
+            else:
+                error_data = response.json()
+                logger.error(f"Source charge failed: {response.status_code} - {error_data}")
+                return False, error_data
+                
+        except Exception as e:
+            logger.error(f"Source charge error: {str(e)}")
+            return False, {"error": str(e)}
+    
     def retrieve_payment(self, payment_id: str) -> Tuple[bool, Dict]:
         """
         Retrieve payment details

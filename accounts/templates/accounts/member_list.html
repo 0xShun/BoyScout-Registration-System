@@ -1,107 +1,171 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
   <div class="container-fluid py-4">
-    <h2 class="mb-4">All Members</h2>
-    <form method="get" class="mb-3 d-flex align-items-center flex-wrap gap-2">
-      <input type="text" name="q" class="form-control me-2" placeholder="Search by name or email" value="{{ query }}" style="max-width: 300px;">
-      <select name="rank" class="form-select me-2" style="max-width: 200px;">
-        <option value="">All Ranks</option>
-        {% for value, label in rank_choices %}
-          <option value="{{ value }}" {% if filter_rank == value %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <button type="submit" class="btn btn-outline-primary">Filter</button>
-    </form>
-    <div class="card shadow-sm">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-users"></i> Member Management</h2>
+      <p>View, search, and manage all scout members</p>
+    </div>
+    
+    <!-- Search and Filter Card -->
+    <div class="enhanced-card mb-4">
       <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Rank</th>
-                <th>Registration Status</th>
-                <th>Phone</th>
-                <th>Join Date</th>
-                <th>Total Paid</th>
-                <th>Dues</th>
-                <th>Balance</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for member in members %}
-              <tr>
-                <td><a href="{% url 'accounts:member_detail' member.pk %}">{{ member.get_full_name }}</a></td>
-                <td>{{ member.email }}</td>
-                <td>{{ member.get_rank_display }}</td>
-                <td>
-                  <span class="badge 
-                    {% if member.registration_status == 'active' and member.is_active %}bg-success
-                    {% elif member.registration_status == 'inactive' or not member.is_active %}bg-secondary
-                    {% else %}bg-secondary{% endif %}">
-                    {% if member.registration_status == 'active' and member.is_active %}
-                      ✓ Active Member
-                    {% else %}
-                      ✗ Inactive
-                    {% endif %}
-                  </span>
-                </td>
-                <td>{{ member.phone_number|default:"-" }}</td>
-                <td>{{ member.join_date|date:"M d, Y" }}</td>
-                <td>
-                  {% if member.balance_info %}
-                    <div class="small">
-                      <div class="text-success">₱{{ member.balance_info.total_paid }}</div>
-                      {% if member.balance_info.registration_payments > 0 %}
-                        <div class="text-muted">Reg: ₱{{ member.balance_info.registration_payments }}</div>
-                      {% endif %}
-                      {% if member.balance_info.event_payments > 0 %}
-                        <div class="text-muted">Events: ₱{{ member.balance_info.event_payments }}</div>
-                      {% endif %}
-                      {% if member.balance_info.general_payments > 0 %}
-                        <div class="text-muted">Other: ₱{{ member.balance_info.general_payments }}</div>
-                      {% endif %}
-                    </div>
-                  {% else %}
-                    <span class="text-muted">₱0</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if member.balance_info %}
-                    <div class="small">
-                      <div class="text-info">₱{{ member.balance_info.total_dues }}</div>
-                      {% if member.balance_info.registration_dues > 0 %}
-                        <div class="text-warning">Registration: ₱{{ member.balance_info.registration_dues }}</div>
-                      {% endif %}
-                      {% if member.balance_info.event_dues > 0 %}
-                        <div class="text-warning">Events: ₱{{ member.balance_info.event_dues }}</div>
-                      {% endif %}
-                    </div>
-                  {% else %}
-                    <span class="text-muted">₱500</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if member.balance_info %}
-                    <span class="fw-bold {% if member.balance_info.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ member.balance_info.balance }}</span>
-                  {% else %}
-                    <span class="text-danger">₱-500</span>
-                  {% endif %}
-                </td>
-                <td>
-                  <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                  <a href="{% url 'accounts:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="10" class="text-center">No members found.</td></tr>
+        <form method="get" class="row g-3 align-items-end">
+          <!-- Search Input -->
+          <div class="col-md-5">
+            <label class="enhanced-form-label">
+              <i class="fas fa-search"></i> Search Members
+            </label>
+            <div class="search-enhanced">
+              <i class="fas fa-search"></i>
+              <input type="text" name="q" class="form-control enhanced-form-control" placeholder="Search by name or email..." value="{{ query }}" style="padding-left: 3rem;">
+            </div>
+          </div>
+          
+          <!-- Role Filter -->
+          <div class="col-md-4">
+            <label class="enhanced-form-label">
+              <i class="fas fa-filter"></i> Filter by Role
+            </label>
+            <select name="rank" class="form-control enhanced-form-control">
+              <option value="">All Roles</option>
+              {% for value, label in role_choices %}
+                <option value="{{ value }}" {% if filter_rank == value %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
-            </tbody>
-          </table>
-        </div>
+            </select>
+          </div>
+          
+          <!-- Filter Button -->
+          <div class="col-md-3">
+            <button type="submit" class="btn-enhanced-primary w-100">
+              <i class="fas fa-search me-2"></i> Apply Filters
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+    
+    <!-- Members Table Card -->
+    <div class="enhanced-card">
+      <div class="enhanced-card-header">
+        <h5><i class="fas fa-table me-2"></i> All Members ({{ members|length }})</h5>
+      </div>
+      <div class="card-body">
+        {% if members %}
+          <div class="table-responsive">
+            <table class="table enhanced-table">
+              <thead>
+                <tr>
+                  <th><i class="fas fa-user me-1"></i> Name</th>
+                  <th><i class="fas fa-envelope me-1"></i> Email</th>
+                  <th><i class="fas fa-id-badge me-1"></i> Role</th>
+                  <th><i class="fas fa-shield-alt me-1"></i> Status</th>
+                  <th><i class="fas fa-phone me-1"></i> Phone</th>
+                  <th><i class="fas fa-calendar me-1"></i> Joined</th>
+                  <th><i class="fas fa-money-bill-wave me-1"></i> Payments</th>
+                  <th><i class="fas fa-cog me-1"></i> Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for member in members %}
+                <tr>
+                  <!-- Name with Link -->
+                  <td>
+                    <a href="{% url 'accounts:member_detail' member.pk %}" class="fw-semibold text-decoration-none" style="color: #1e3a8a;">
+                      <i class="fas fa-user-circle me-1"></i> {{ member.get_full_name }}
+                    </a>
+                  </td>
+                  
+                  <!-- Email -->
+                  <td class="text-muted">{{ member.email }}</td>
+                  
+                  <!-- Role Badge -->
+                  <td>
+                    <span class="status-badge status-active">
+                      <i class="fas fa-user-tag"></i> {{ member.get_role_display }}
+                    </span>
+                  </td>
+                  
+                  <!-- Registration Status -->
+                  <td>
+                    {% if member.registration_status == 'active' and member.is_active %}
+                      <span class="status-badge status-verified">
+                        <i class="fas fa-check-circle"></i> Active
+                      </span>
+                    {% else %}
+                      <span class="status-badge" style="background: #f3f4f6; color: #6b7280;">
+                        <i class="fas fa-times-circle"></i> Inactive
+                      </span>
+                    {% endif %}
+                  </td>
+                  
+                  <!-- Phone -->
+                  <td class="text-muted">{{ member.phone_number|default:"-" }}</td>
+                  
+                  <!-- Join Date -->
+                  <td>{{ member.join_date|date:"M d, Y" }}</td>
+                  
+                  <!-- Payment Summary -->
+                  <td>
+                    {% if member.balance_info %}
+                      <div class="small">
+                        <div class="mb-1">
+                          <strong style="color: #10b981;">Paid:</strong> 
+                          <span class="fw-bold" style="color: #d97706;">₱{{ member.balance_info.total_paid }}</span>
+                        </div>
+                        <div class="mb-1">
+                          <strong style="color: #3b82f6;">Dues:</strong> 
+                          <span class="fw-bold" style="color: #dc2626;">₱{{ member.balance_info.total_dues }}</span>
+                        </div>
+                        <div>
+                          <strong>Balance:</strong> 
+                          <span class="fw-bold {% if member.balance_info.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            ₱{{ member.balance_info.balance }}
+                          </span>
+                        </div>
+                      </div>
+                    {% else %}
+                      <span class="text-muted small">No payments</span>
+                    {% endif %}
+                  </td>
+                  
+                  <!-- Actions -->
+                  <td>
+                    <div class="action-buttons">
+                      <a href="{% url 'accounts:member_detail' member.pk %}" class="btn btn-sm btn-outline-primary action-btn" style="border-radius: 8px;">
+                        <i class="fas fa-eye"></i> View
+                      </a>
+                      <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-sm btn-outline-secondary action-btn" style="border-radius: 8px;">
+                        <i class="fas fa-edit"></i> Edit
+                      </a>
+                      <a href="{% url 'accounts:member_delete' member.pk %}" class="btn btn-sm btn-outline-danger action-btn" style="border-radius: 8px;">
+                        <i class="fas fa-trash"></i> Delete
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <div class="empty-state-enhanced">
+            <i class="fas fa-users-slash"></i>
+            <h4>No Members Found</h4>
+            <p>{% if query %}No members match your search criteria. Try different keywords.{% else %}There are no members in the system yet.{% endif %}</p>
+            {% if query %}
+              <a href="{% url 'accounts:member_list' %}" class="btn-enhanced-primary mt-3">
+                <i class="fas fa-times me-2"></i> Clear Filters
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
       </div>
     </div>
   </div>
-{% endblock %} 
+{% endblock %}

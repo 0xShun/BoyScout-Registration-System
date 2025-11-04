@@ -1,78 +1,188 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+<style>
+    @keyframes pulseWarning {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .warning-icon-animated {
+        animation: pulseWarning 2s ease-in-out infinite;
+        font-size: 5rem;
+        color: #dc2626;
+        margin-bottom: 1.5rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container py-4">
+  {# Page Header #}
+  <div class="page-header" style="background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 50%, #ef4444 100%);">
+    <h2><i class="fas fa-exclamation-triangle"></i> Confirm Event Deletion</h2>
+    <p>This action is permanent and cannot be undone</p>
+  </div>
+  
   <div class="row justify-content-center">
     <div class="col-lg-8">
-      <div class="card shadow-sm border-danger">
-        <div class="card-header bg-danger text-white">
-          <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirm Event Deletion</h4>
+      {# Warning Card #}
+      <div class="enhanced-card mb-4">
+        <div class="card-body text-center py-5">
+          <div class="warning-icon-animated">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <h3 class="fw-bold mb-3" style="color: #dc2626;">
+            Are You Absolutely Sure?
+          </h3>
+          <p class="lead mb-0">
+            You are about to permanently delete this event and all associated data.
+          </p>
+        </div>
+      </div>
+      
+      {# Event Preview Card #}
+      <div class="enhanced-card mb-4">
+        <div class="enhanced-card-header" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-bottom: 2px solid #dc2626;">
+          <h5 style="color: #7f1d1d;">
+            <i class="fas fa-calendar-alt me-2"></i> Event to be Deleted
+          </h5>
         </div>
         <div class="card-body">
-          <div class="alert alert-danger">
-            <h5 class="alert-heading"><i class="fas fa-warning"></i> Warning: This action cannot be undone!</h5>
-            <p class="mb-0">Deleting this event will permanently remove:</p>
-            <ul class="mt-2">
-              <li>All event information</li>
-              <li>All registrations for this event</li>
-              <li>All payments associated with this event</li>
-              <li>All uploaded photos</li>
-              <li>Attendance records</li>
-            </ul>
-          </div>
-
-          <div class="card mb-4">
-            <div class="card-body">
-              <h5 class="card-title">{{ event.title }}</h5>
-              <p class="card-text">
-                <i class="fas fa-calendar"></i> <strong>Date:</strong> {{ event.date|date:"F d, Y" }}<br>
-                <i class="fas fa-clock"></i> <strong>Time:</strong> {{ event.time|time:"g:i A" }}<br>
-                <i class="fas fa-map-marker-alt"></i> <strong>Location:</strong> {{ event.location }}<br>
-                {% if event.payment_amount %}
-                  <i class="fas fa-money-bill-wave"></i> <strong>Payment Amount:</strong> ₱{{ event.payment_amount }}
-                {% endif %}
-              </p>
-              <p class="card-text text-muted">{{ event.description|truncatewords:30 }}</p>
-            </div>
-          </div>
-
-          <div class="row mb-3">
-            <div class="col-md-4">
-              <div class="card text-center">
-                <div class="card-body">
-                  <h3 class="text-primary">{{ event.registrations.count }}</h3>
-                  <p class="text-muted mb-0">Registrations</p>
+          <h4 class="fw-bold mb-4" style="color: #1e3a8a;">
+            <i class="fas fa-calendar-day me-2" style="color: #fbbf24;"></i>
+            {{ event.title }}
+          </h4>
+          
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-calendar" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Date</small>
+                  <strong>{{ event.date|date:"F d, Y" }}</strong>
                 </div>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="card text-center">
-                <div class="card-body">
-                  <h3 class="text-success">{{ event.registrations.filter.count }}</h3>
-                  <p class="text-muted mb-0">Photos</p>
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-clock" style="color: #10b981; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Time</small>
+                  <strong>{{ event.time|time:"g:i A" }}</strong>
                 </div>
               </div>
             </div>
-            <div class="col-md-4">
-              <div class="card text-center">
-                <div class="card-body">
-                  <h3 class="text-info">{{ event.attendances.count }}</h3>
-                  <p class="text-muted mb-0">Attendance Records</p>
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-map-marker-alt" style="color: #dc2626; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Location</small>
+                  <strong>{{ event.location }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-tag" style="color: #fbbf24; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Event Fee</small>
+                  <strong>{% if event.payment_amount %}₱{{ event.payment_amount }}{% else %}Free{% endif %}</strong>
                 </div>
               </div>
             </div>
           </div>
-
-          <hr>
-
+          
+          <div class="p-3" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border-left: 4px solid #64748b;">
+            <p class="mb-0">{{ event.description|truncatewords:30 }}</p>
+          </div>
+        </div>
+      </div>
+      
+      {# Statistics Card #}
+      <div class="enhanced-card mb-4">
+        <div class="enhanced-card-header">
+          <h5><i class="fas fa-chart-bar me-2"></i> Impact Assessment</h5>
+        </div>
+        <div class="card-body">
+          <div class="row g-3 mb-4">
+            <div class="col-md-4">
+              <div class="text-center p-4" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px;">
+                <i class="fas fa-users" style="font-size: 2rem; color: #1e3a8a;"></i>
+                <h3 class="fw-bold mt-2 mb-0" style="color: #1e3a8a;">{{ event.registrations.count }}</h3>
+                <small class="text-muted">Registrations</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center p-4" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 12px;">
+                <i class="fas fa-images" style="font-size: 2rem; color: #065f46;"></i>
+                <h3 class="fw-bold mt-2 mb-0" style="color: #065f46;">{{ event.registrations.filter.count }}</h3>
+                <small class="text-muted">Photos</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="text-center p-4" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px;">
+                <i class="fas fa-clipboard-check" style="font-size: 2rem; color: #92400e;"></i>
+                <h3 class="fw-bold mt-2 mb-0" style="color: #92400e;">{{ event.attendances.count }}</h3>
+                <small class="text-muted">Attendance Records</small>
+              </div>
+            </div>
+          </div>
+          
+          <div class="alert-enhanced alert-enhanced-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Warning:</strong> All this data will be permanently deleted!
+          </div>
+        </div>
+      </div>
+      
+      {# Consequences Card #}
+      <div class="enhanced-card mb-4">
+        <div class="enhanced-card-header">
+          <h5><i class="fas fa-info-circle me-2"></i> What Will Happen</h5>
+        </div>
+        <div class="card-body">
+          <div class="list-group list-group-flush">
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>All event information will be permanently removed</strong>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>All {{ event.registrations.count }} registrations will be deleted</strong>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>All payments associated with this event will be removed</strong>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>All uploaded photos will be permanently deleted</strong>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>All attendance records will be lost forever</strong>
+            </div>
+            <div class="list-group-item border-0 px-0">
+              <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
+              <strong>This action CANNOT be undone or reversed</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {# Action Buttons #}
+      <div class="enhanced-card">
+        <div class="card-body">
           <form method="post">
             {% csrf_token %}
-            <div class="d-flex justify-content-between align-items-center">
-              <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-secondary btn-lg">
-                <i class="fas fa-arrow-left"></i> Cancel
+            <div class="d-flex gap-3">
+              <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-outline-secondary flex-grow-1" style="padding: 1rem;">
+                <i class="fas fa-arrow-left me-2"></i> No, Keep This Event
               </a>
-              <button type="submit" class="btn btn-danger btn-lg">
-                <i class="fas fa-trash"></i> Yes, Delete This Event
+              <button type="submit" class="btn-enhanced-danger flex-grow-1" style="padding: 1rem; font-size: 1.1rem;">
+                <i class="fas fa-trash-alt me-2"></i> Yes, Delete This Event Permanently
               </button>
             </div>
           </form>
@@ -81,4 +191,12 @@
     </div>
   </div>
 </div>
+
+<style>
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+</style>
 {% endblock %}

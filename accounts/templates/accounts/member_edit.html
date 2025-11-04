@@ -1,13 +1,130 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <h2 class="mb-4">Edit Member</h2>
-      <form method="post" class="card card-body shadow-sm">
-        {% csrf_token %}
-        {{ form.as_p|safe }}
-        <button type="submit" class="btn btn-primary w-100 mt-2">Save</button>
-      </form>
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <!-- Page Header -->
+        <div class="page-header">
+          <h2><i class="fas fa-user-edit"></i> Edit Member</h2>
+          <p>Update member information and settings</p>
+        </div>
+        
+        <!-- Edit Form Card -->
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-edit me-2"></i> Member Information</h5>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              
+              <div class="alert-enhanced alert-enhanced-info mb-4">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Note:</strong> Fill in all required fields marked with an asterisk (*). Changes will be saved immediately.
+              </div>
+              
+              {% if form.errors %}
+                <div class="alert-enhanced alert-enhanced-danger mb-4">
+                  <i class="fas fa-exclamation-triangle me-2"></i>
+                  <strong>Please correct the following errors:</strong>
+                  <ul class="mb-0 mt-2">
+                    {% for field in form %}
+                      {% for error in field.errors %}
+                        <li>{{ field.label }}: {{ error }}</li>
+                      {% endfor %}
+                    {% endfor %}
+                  </ul>
+                </div>
+              {% endif %}
+              
+              <!-- Form Fields -->
+              <div class="row">
+                {% for field in form %}
+                  <div class="col-md-6 mb-3">
+                    <label for="{{ field.id_for_label }}" class="enhanced-form-label">
+                      {% if 'first' in field.name or 'last' in field.name or 'name' in field.name %}
+                        <i class="fas fa-user"></i>
+                      {% elif 'email' in field.name %}
+                        <i class="fas fa-envelope"></i>
+                      {% elif 'phone' in field.name %}
+                        <i class="fas fa-phone"></i>
+                      {% elif 'date' in field.name or 'birth' in field.name %}
+                        <i class="fas fa-calendar"></i>
+                      {% elif 'address' in field.name %}
+                        <i class="fas fa-map-marker-alt"></i>
+                      {% elif 'emergency' in field.name %}
+                        <i class="fas fa-exclamation-triangle"></i>
+                      {% elif 'medical' in field.name %}
+                        <i class="fas fa-heartbeat"></i>
+                      {% elif 'allerg' in field.name %}
+                        <i class="fas fa-allergies"></i>
+                      {% elif 'role' in field.name or 'rank' in field.name %}
+                        <i class="fas fa-id-badge"></i>
+                      {% elif 'password' in field.name %}
+                        <i class="fas fa-lock"></i>
+                      {% else %}
+                        <i class="fas fa-pen"></i>
+                      {% endif %}
+                      {{ field.label }}
+                      {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    
+                    {% if field.field.widget.input_type == 'textarea' or 'Textarea' in field.field.widget.__class__.__name__ %}
+                      <textarea name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-control enhanced-form-control" rows="3" {% if field.field.required %}required{% endif %}>{{ field.value|default:'' }}</textarea>
+                    {% elif field.field.widget.input_type == 'select' or 'Select' in field.field.widget.__class__.__name__ %}
+                      {{ field }}
+                      <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                          var select = document.getElementById('{{ field.id_for_label }}');
+                          if (select) {
+                            select.classList.add('form-control', 'enhanced-form-control');
+                          }
+                        });
+                      </script>
+                    {% elif field.field.widget.input_type == 'checkbox' %}
+                      <div class="form-check">
+                        <input type="checkbox" name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-check-input" {% if field.value %}checked{% endif %}>
+                        <label class="form-check-label" for="{{ field.id_for_label }}">
+                          {{ field.help_text|default:"Enable this option" }}
+                        </label>
+                      </div>
+                    {% else %}
+                      <input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-control enhanced-form-control" value="{{ field.value|default:'' }}" {% if field.field.required %}required{% endif %}>
+                    {% endif %}
+                    
+                    {% if field.help_text and field.field.widget.input_type != 'checkbox' %}
+                      <div class="form-text mt-1">
+                        <i class="fas fa-info-circle"></i> {{ field.help_text }}
+                      </div>
+                    {% endif %}
+                    
+                    {% for error in field.errors %}
+                      <div class="alert-enhanced alert-enhanced-danger mt-2 p-2">
+                        <small>{{ error }}</small>
+                      </div>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Action Buttons -->
+              <div class="action-buttons mt-4 pt-4" style="border-top: 2px solid #f3f4f6;">
+                <button type="submit" class="btn-enhanced-success">
+                  <i class="fas fa-save me-2"></i> Save Changes
+                </button>
+                <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600;">
+                  <i class="fas fa-times me-2"></i> Cancel
+                </a>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
-{% endblock %} 
+{% endblock %}

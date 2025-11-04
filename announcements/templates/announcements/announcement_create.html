@@ -1,29 +1,198 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
+{% block title %}Create Announcement{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <h2 class="mb-4">Create Announcement</h2>
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form.title.label_tag }}
-                {{ form.title }}
-                {{ form.message.label_tag }}
-                {{ form.message }}
-                <div class="mb-3">
-                    {{ form.groups.label_tag }}
-                    {{ form.groups }}
-                    <div class="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple groups. Leave blank to send to all users.</div>
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-plus-circle"></i> Create New Announcement</h2>
+      <p>Broadcast important information to scouts and leaders</p>
+    </div>
+    
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{% url 'announcements:list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Announcements
+        </a>
+    </div>
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <div class="enhanced-card">
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- Title Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-heading"></i> Announcement Title
+                            </div>
+                            <label for="id_title" class="enhanced-form-label">
+                                <i class="fas fa-text-width"></i> Title
+                            </label>
+                            {{ form.title }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> A clear and concise title for your announcement
+                            </div>
+                        </div>
+                        
+                        <!-- Message Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-align-left"></i> Message Content
+                            </div>
+                            <label for="id_message" class="enhanced-form-label">
+                                <i class="fas fa-file-alt"></i> Message
+                            </label>
+                            {{ form.message }}
+                            <div class="form-text">
+                                <i class="fas fa-info-circle"></i> The full content of your announcement. Be clear and informative.
+                            </div>
+                        </div>
+                        
+                        <!-- Priority Section -->
+                        {% if form.priority %}
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-flag"></i> Priority Level
+                            </div>
+                            <div class="form-check form-switch" style="padding-left: 3rem;">
+                                {{ form.priority }}
+                                <label class="form-check-label ms-2" for="id_priority">
+                                    <strong>Mark as Important</strong>
+                                    <small class="d-block text-muted">High-priority announcements will be highlighted</small>
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Recipients Section -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-users"></i> Target Recipients
+                            </div>
+                            
+                            <div class="alert-enhanced alert-enhanced-info mb-3">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                <strong>Tip:</strong> Select one or more groups, or choose specific recipients. Leave both empty to send to all users.
+                            </div>
+                            
+                            <!-- Groups -->
+                            <div class="mb-4">
+                                <label for="id_groups" class="enhanced-form-label">
+                                    <i class="fas fa-layer-group"></i> Groups
+                                </label>
+                                {{ form.groups }}
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> Send to entire groups (Admins, Leaders, Scouts)
+                                </div>
+                            </div>
+                            
+                            <!-- Specific Recipients -->
+                            <div>
+                                <label for="id_specific_recipients" class="enhanced-form-label">
+                                    <i class="fas fa-user-friends"></i> Specific Recipients
+                                </label>
+                                {{ form.specific_recipients }}
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> Choose individual users to receive this announcement
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Buttons -->
+                        <div class="d-flex gap-2 justify-content-end pt-3 border-top">
+                            <a href="{% url 'announcements:list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn-enhanced-primary" style="min-width: 200px;">
+                                <i class="fas fa-paper-plane me-2"></i> Post Announcement
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="mb-3">
-                    {{ form.recipients.label_tag }}
-                    {{ form.recipients }}
-                    <div class="form-text">(Optional) Select specific users. If groups are selected, this is ignored.</div>
+            </div>
+            
+            <!-- Quick Tips Card -->
+            <div class="enhanced-card mt-4">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-lightbulb me-2"></i> Quick Tips</h5>
                 </div>
-                <button type="submit" class="btn btn-success">Create Announcement</button>
-                <a href="{% url 'announcements:announcement_list' %}" class="btn btn-secondary ms-2">Cancel</a>
-            </form>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="p-3" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+                                <h6 class="fw-bold mb-2" style="color: #1e3a8a;">
+                                    <i class="fas fa-check-circle me-2"></i> Be Clear
+                                </h6>
+                                <small>Use simple language and get straight to the point.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 12px; border-left: 4px solid #10b981;">
+                                <h6 class="fw-bold mb-2" style="color: #065f46;">
+                                    <i class="fas fa-clock me-2"></i> Be Timely
+                                </h6>
+                                <small>Post announcements well in advance of important events.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border-left: 4px solid #fbbf24;">
+                                <h6 class="fw-bold mb-2" style="color: #92400e;">
+                                    <i class="fas fa-flag me-2"></i> Use Priority Wisely
+                                </h6>
+                                <small>Reserve high priority for urgent or critical information.</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 12px; border-left: 4px solid #dc2626;">
+                                <h6 class="fw-bold mb-2" style="color: #7f1d1d;">
+                                    <i class="fas fa-users me-2"></i> Target Correctly
+                                </h6>
+                                <small>Send to the right audience to avoid unnecessary notifications.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Enhance form controls
+        ['id_title', 'id_message', 'id_groups', 'id_specific_recipients'].forEach(function(id) {
+            var element = document.getElementById(id);
+            if (element) {
+                if (element.tagName === 'TEXTAREA') {
+                    element.classList.add('form-control', 'enhanced-form-control');
+                    element.style.minHeight = '150px';
+                } else if (element.tagName === 'INPUT') {
+                    element.classList.add('form-control', 'enhanced-form-control');
+                } else if (element.tagName === 'SELECT') {
+                    element.classList.add('form-select', 'enhanced-form-control');
+                    if (element.multiple) {
+                        element.style.minHeight = '150px';
+                    }
+                }
+            }
+        });
+        
+        // Priority checkbox
+        var priorityCheckbox = document.getElementById('id_priority');
+        if (priorityCheckbox) {
+            priorityCheckbox.classList.add('form-check-input');
+            priorityCheckbox.style.width = '3rem';
+            priorityCheckbox.style.height = '1.5rem';
+            priorityCheckbox.style.cursor = 'pointer';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,63 +1,216 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
+{% block title %}{{ announcement.title }}{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-  <div class="row justify-content-center">
-    <div class="col-lg-8">
-      <div class="card shadow-sm">
-        <div class="card-header">
-          <div class="d-flex justify-content-between align-items-center">
-            <h3 class="mb-0">{{ announcement.title }}</h3>
-            <a href="{% url 'announcements:announcement_list' %}" class="btn btn-outline-secondary btn-sm">
-              <i class="fas fa-arrow-left"></i> Back to Announcements
-            </a>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <small class="text-muted">
-              <i class="fas fa-calendar-alt me-1"></i> 
-              Posted on {{ announcement.date_posted|date:"F d, Y at g:i A" }}
-            </small>
-          </div>
-          
-          <div class="announcement-content">
-            {{ announcement.message|linebreaks }}
-          </div>
-          
-          <hr>
-          <div class="row">
-            <div class="col-md-6">
-              <small class="text-muted">
-                <i class="fas fa-users me-1"></i>
-                Recipients: {{ announcement.recipients.count }} users
-              </small>
-            </div>
-            <div class="col-md-6 text-end">
-              <small class="text-muted">
-                <i class="fas fa-eye me-1"></i>
-                Read by: {{ announcement.read_by.count }} users
-              </small>
-            </div>
-          </div>
-          {% if request.user.is_authenticated and request.user.is_admin %}
-          <div class="mt-3 text-end">
-            <form method="post" action="{% url 'announcements:announcement_delete' announcement.pk %}" style="display:inline;">
-              {% csrf_token %}
-              <a href="{% url 'announcements:announcement_delete' announcement.pk %}" class="btn btn-danger btn-sm">Delete</a>
-            </form>
-          </div>
-          {% endif %}
-        </div>
-      </div>
+<div class="container-fluid py-4">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-bullhorn"></i> Announcement Details</h2>
+      <p>View complete announcement information</p>
     </div>
-  </div>
+    
+    <!-- Back Button -->
+    <div class="mb-4">
+        <a href="{% url 'announcements:list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i> Back to Announcements
+        </a>
+    </div>
+    
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Main Announcement Card -->
+            <div class="enhanced-card mb-4">
+                <div class="card-body">
+                    <!-- Title Section -->
+                    <div class="d-flex justify-content-between align-items-start mb-4">
+                        <h3 class="fw-bold mb-0" style="color: #1e3a8a;">
+                            <i class="fas fa-megaphone me-2" style="color: #fbbf24;"></i>
+                            {{ announcement.title }}
+                        </h3>
+                        {% if announcement.priority %}
+                        <span class="status-badge status-high">
+                            <i class="fas fa-exclamation-circle"></i> Important
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Metadata -->
+                    <div class="row g-3 mb-4 pb-4 border-bottom">
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <i class="fas fa-user" style="color: #3b82f6;"></i>
+                                <div>
+                                    <small class="text-muted d-block">Posted By</small>
+                                    <strong>{{ announcement.created_by.get_full_name|default:announcement.created_by.username }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <i class="fas fa-calendar" style="color: #10b981;"></i>
+                                <div>
+                                    <small class="text-muted d-block">Posted On</small>
+                                    <strong>{{ announcement.created_at|date:"F d, Y - g:i A" }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message Content -->
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3" style="color: #1e3a8a;">
+                            <i class="fas fa-file-alt me-2"></i> Message
+                        </h5>
+                        <div class="p-4" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border-left: 4px solid #3b82f6;">
+                            <p class="mb-0" style="font-size: 1.1rem; line-height: 1.8; white-space: pre-wrap;">{{ announcement.message }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recipients Section -->
+                    {% if announcement.groups.all or announcement.specific_recipients.all %}
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3" style="color: #1e3a8a;">
+                            <i class="fas fa-users me-2"></i> Recipients
+                        </h5>
+                        <div class="row g-2">
+                            {% if announcement.groups.all %}
+                            <div class="col-12">
+                                <div class="p-3" style="background: #fef3c7; border-radius: 8px; border-left: 4px solid #fbbf24;">
+                                    <strong><i class="fas fa-layer-group me-2"></i> Groups:</strong>
+                                    {% for group in announcement.groups.all %}
+                                    <span class="badge bg-warning text-dark ms-2">{{ group }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if announcement.specific_recipients.all %}
+                            <div class="col-12">
+                                <div class="p-3" style="background: #dbeafe; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                                    <strong><i class="fas fa-user-friends me-2"></i> Specific Recipients:</strong>
+                                    <span class="badge bg-info ms-2">{{ announcement.specific_recipients.count }} user{% if announcement.specific_recipients.count > 1 %}s{% endif %}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Action Buttons -->
+                    {% if user.is_admin or user.is_leader or announcement.created_by == user %}
+                    <div class="d-flex gap-2 justify-content-end">
+                        <a href="{% url 'announcements:list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-2"></i> Close
+                        </a>
+                        <a href="{% url 'announcements:delete' announcement.id %}" class="btn-enhanced-danger">
+                            <i class="fas fa-trash me-2"></i> Delete
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Sidebar Stats -->
+        <div class="col-lg-4">
+            <!-- Stats Card -->
+            <div class="enhanced-card mb-4">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-chart-bar me-2"></i> Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Recipients Count -->
+                    <div class="stat-card-enhanced mb-3" style="border-left-color: #3b82f6;">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">
+                                {% if announcement.groups.all %}
+                                    Multiple Groups
+                                {% elif announcement.specific_recipients.all %}
+                                    {{ announcement.specific_recipients.count }}
+                                {% else %}
+                                    All Users
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">Total Recipients</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Read Count -->
+                    <div class="stat-card-enhanced mb-3" style="border-left-color: #10b981;">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%);">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">{{ announcement.read_by.count }}</div>
+                            <div class="stat-label">Times Read</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Priority Status -->
+                    <div class="stat-card-enhanced" style="border-left-color: {% if announcement.priority %}#dc2626{% else %}#64748b{% endif %};">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, {% if announcement.priority %}#dc2626 0%, #ef4444{% else %}#475569 0%, #64748b{% endif %} 100%);">
+                            <i class="fas fa-flag"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">
+                                {% if announcement.priority %}
+                                    <i class="fas fa-exclamation-circle"></i> High
+                                {% else %}
+                                    <i class="fas fa-info-circle"></i> Normal
+                                {% endif %}
+                            </div>
+                            <div class="stat-label">Priority Level</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Info Card -->
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i> Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert-enhanced alert-enhanced-info">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        <small>
+                            <strong>Note:</strong> This announcement was posted by 
+                            <strong>{{ announcement.created_by.get_full_name|default:announcement.created_by.username }}</strong> 
+                            on <strong>{{ announcement.created_at|date:"M d, Y" }}</strong>.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
-.announcement-content {
-  font-size: 1.1rem;
-  line-height: 1.6;
-  color: #333;
-}
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .info-item i {
+        font-size: 2rem;
+    }
+    
+    .status-badge.status-high {
+        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
 </style>
 {% endblock %}

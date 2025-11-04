@@ -226,7 +226,7 @@ def payment_submit(request):
             
             # Manual payment flow (or PayMongo fallback)
             # Notify admins about new payment
-            admins = User.objects.filter(rank='admin')
+            admins = User.objects.filter(role='admin')
             admin_emails = [admin.email for admin in admins]
             if admin_emails:
                 NotificationService.send_email(
@@ -489,21 +489,26 @@ def payment_webhook(request):
 
 
 def handle_source_chargeable(webhook_data):
-    """Handle source.chargeable event - Payment source is ready"""
+    """
+    Handle source.chargeable event - QR code has been scanned and authorized
+    This is the critical event that indicates the user has completed payment.
+    We must charge the source immediately to capture the payment.
+    """
     from accounts.models import RegistrationPayment
+    from decimal import Decimal
+    from payments.services.paymongo_service import PayMongoService
     
     try:
         source_data = webhook_data['data']['attributes']['data']
         source_id = source_data['id']
-        metadata = source_data.get('attributes', {}).get('metadata', {}) or {}
-        # Amount in centavos
-        source_amount_centavos = source_data.get('attributes', {}).get('amount')
-        try:
-            source_amount = (source_amount_centavos or 0) / 100.0
-        except Exception:
-            source_amount = 0
+        source_attrs = source_data.get('attributes', {})
+        metadata = source_attrs.get('metadata', {}) or {}
         
-        logger.info(f'Processing source.chargeable for source: {source_id}')
+        # Amount in centavos
+        source_amount_centavos = source_attrs.get('amount', 0)
+        source_amount = Decimal(str(source_amount_centavos / 100.0))
+        
+        logger.info(f'📱 [WEBHOOK] source.chargeable: {source_id} | Amount: ₱{source_amount}')
         # If the gateway included metadata we can shortcut finalization for
         # simpler test flows: when metadata.payment_type indicates a
         # 'registration' or 'event_registration' we consider the flow
@@ -545,6 +550,57 @@ def handle_source_chargeable(webhook_data):
                             from datetime import timedelta
                             u.membership_expiry = timezone.now() + timedelta(days=365 * years)
                     u.save()
+                    
+                    # Send welcome email to user
+                    try:
+                        from notifications.services import NotificationService
+                        email_message = f"""Dear {u.first_name} {u.last_name},
+
+🎉 Welcome to ScoutConnect!
+
+Your registration payment of ₱{reg_payment.amount} has been successfully confirmed and your account is now active!
+
+Account Details:
+- Email: {u.email}
+- Registration Status: Active
+- Membership Expiry: {u.membership_expiry.strftime('%B %d, %Y') if u.membership_expiry else 'N/A'}
+
+You can now log in to access all features including:
+✓ Event registration
+✓ Announcements and notifications
+✓ Your personal dashboard
+
+Login here: {request.build_absolute_uri('/accounts/login/')}
+
+Thank you for joining ScoutConnect!
+
+Best regards,
+The ScoutConnect Team
+
+---
+This is an automated confirmation email. Please do not reply to this email.
+"""
+                        NotificationService.send_email(
+                            subject='🎉 Registration Payment Confirmed - Welcome to ScoutConnect!',
+                            message=email_message,
+                            recipient_list=[u.email]
+                        )
+                        logger.info(f'Registration confirmation email sent to {u.email}')
+                        
+                        # Send realtime notification
+                        try:
+                            from notifications.services import send_realtime_notification
+                            send_realtime_notification(
+                                user_id=u.id,
+                                message=f'Your registration payment has been confirmed! Welcome to ScoutConnect.',
+                                notification_type='registration_confirmed'
+                            )
+                        except Exception:
+                            logger.exception('Failed to send realtime notification for registration')
+                            
+                    except Exception:
+                        logger.exception(f'Failed to send registration confirmation email to {u.email}')
+                    
                     # mark any matching webhook logs processed
                     try:
                         from .models import WebhookLog
@@ -589,6 +645,58 @@ def handle_source_chargeable(webhook_data):
                     ev_reg.verified = True
                     ev_reg.verification_date = timezone.now()
                     ev_reg.save()
+                    
+                    # Send event payment confirmation email
+                    try:
+                        from notifications.services import NotificationService
+                        event = ev_reg.event
+                        user = ev_reg.user
+                        email_message = f"""Dear {user.first_name} {user.last_name},
+
+Your payment for the event has been successfully confirmed!
+
+Event Details:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📅 Event: {event.title}
+📍 Location: {event.location}
+🗓️  Date: {event.date.strftime('%B %d, %Y')}
+⏰ Time: {event.time.strftime('%I:%M %p') if event.time else 'TBA'}
+💰 Amount Paid: ₱{ev_payment.amount}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Registration Status: Confirmed ✓
+
+Thank you for registering! We look forward to seeing you at the event.
+
+For any questions, please contact your event coordinator.
+
+Best regards,
+The ScoutConnect Team
+
+---
+This is an automated confirmation email. Please do not reply to this email.
+"""
+                        NotificationService.send_email(
+                            subject=f'✓ Event Payment Confirmed - {event.title}',
+                            message=email_message,
+                            recipient_list=[user.email]
+                        )
+                        logger.info(f'Event payment confirmation email sent to {user.email} for event {event.id}')
+                        
+                        # Send realtime notification
+                        try:
+                            from notifications.services import send_realtime_notification
+                            send_realtime_notification(
+                                user_id=user.id,
+                                message=f'Your payment for "{event.title}" has been confirmed!',
+                                notification_type='event_payment_confirmed'
+                            )
+                        except Exception:
+                            logger.exception('Failed to send realtime notification for event payment')
+                            
+                    except Exception:
+                        logger.exception(f'Failed to send event payment confirmation email to {user.email}')
+                    
                     try:
                         from .models import WebhookLog
                         WebhookLog.objects.filter(body__contains=source_id, processed=False).update(processed=True)
@@ -808,7 +916,7 @@ def handle_payment_paid(webhook_data):
                             date_of_birth=student_data.date_of_birth,
                             address=student_data.address,
                             password=student_data.password_hash,
-                            rank='scout',
+                            role='scout',
                             is_active=True,
                             registration_status='active',
                         )
@@ -946,7 +1054,7 @@ This is an automated message. Please do not reply to this email.
                     )
                     
                     # Notify admins
-                    admin_users = User.objects.filter(rank='admin', is_active=True)
+                    admin_users = User.objects.filter(role='admin', is_active=True)
                     for admin in admin_users:
                         send_realtime_notification(
                             user_id=admin.id,
@@ -1448,7 +1556,87 @@ def payment_success(request):
                     logger.error(f'Fallback payment check failed: {str(e)}')
                     import traceback
                     traceback.print_exc()
-    return render(request, 'payments/payment_success.html', {'user_activated': user_activated, 'user_email': user_email})
+    
+    # Pass payment_id for status polling
+    context = {
+        'user_activated': user_activated,
+        'user_email': user_email,
+        'payment_id': reg_payment_id
+    }
+    return render(request, 'payments/payment_success.html', context)
+
+
+@login_required
+def payment_status(request, payment_id):
+    """
+    API endpoint to check payment status (for frontend polling)
+    Returns JSON with payment status and user registration status
+    """
+    from accounts.models import RegistrationPayment
+    from events.models import EventPayment
+    
+    try:
+        # Try to find RegistrationPayment first
+        reg_payment = RegistrationPayment.objects.filter(
+            id=payment_id,
+            user=request.user
+        ).first()
+        
+        if reg_payment:
+            return JsonResponse({
+                'success': True,
+                'payment_type': 'registration',
+                'status': reg_payment.status,
+                'amount': float(reg_payment.amount),
+                'verified': reg_payment.status == 'verified',
+                'user_status': request.user.registration_status,
+                'verification_date': reg_payment.verification_date.isoformat() if reg_payment.verification_date else None
+            })
+        
+        # Try EventPayment
+        event_payment = EventPayment.objects.filter(
+            id=payment_id,
+            registration__user=request.user
+        ).select_related('registration__event').first()
+        
+        if event_payment:
+            return JsonResponse({
+                'success': True,
+                'payment_type': 'event',
+                'status': event_payment.status,
+                'amount': float(event_payment.amount),
+                'verified': event_payment.status == 'verified',
+                'event_title': event_payment.registration.event.title,
+                'verification_date': event_payment.verification_date.isoformat() if event_payment.verification_date else None
+            })
+        
+        # Try legacy Payment model
+        payment = Payment.objects.filter(
+            id=payment_id,
+            user=request.user
+        ).first()
+        
+        if payment:
+            return JsonResponse({
+                'success': True,
+                'payment_type': payment.payment_type,
+                'status': payment.status,
+                'amount': float(payment.amount),
+                'verified': payment.status == 'verified',
+                'verification_date': payment.verification_date.isoformat() if payment.verification_date else None
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'Payment not found'
+        }, status=404)
+        
+    except Exception as e:
+        logger.error(f'Error checking payment status: {str(e)}')
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
 
 
 @login_required

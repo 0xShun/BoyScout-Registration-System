@@ -17,6 +17,21 @@ local_settings.py
 secrets.py
 
 # ============================================
+# DOCUMENTATION - EXCLUDE INTERNAL DOCS
+# ============================================
+
+# Keep only README.md, exclude all other markdown files
+*.md
+!README.md
+!.github/copilot-instructions.md
+
+# Specific internal documentation files
+UI_ENHANCEMENT_PROGRESS.md
+README_PHASE1.md
+README_PYTHONANYWHERE.md
+README_PYTHONANYWHERE_WEB_CHECKLIST.md
+
+# ============================================
 # PYTHON
 # ============================================
 

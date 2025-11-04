@@ -8,6 +8,43 @@ import uuid
 
 # Create your models here.
 
+class SystemSettings(models.Model):
+    """
+    System-wide settings that admins can change from the admin panel.
+    Only one instance should exist (singleton pattern).
+    """
+    registration_fee = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=500.00,
+        verbose_name="Platform Registration Fee",
+        help_text="Default fee for new user registrations. All users pay this amount to register."
+    )
+    
+    class Meta:
+        verbose_name = "System Settings"
+        verbose_name_plural = "System Settings"
+    
+    def __str__(self):
+        return f"System Settings (Registration Fee: ₱{self.registration_fee})"
+    
+    def save(self, *args, **kwargs):
+        # Ensure only one instance exists (singleton)
+        self.pk = 1
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_settings(cls):
+        """Get or create the system settings instance"""
+        settings, created = cls.objects.get_or_create(pk=1)
+        return settings
+    
+    @classmethod
+    def get_registration_fee(cls):
+        """Quick method to get the current registration fee"""
+        return cls.get_settings().registration_fee
+
+
 class Group(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
@@ -34,7 +71,13 @@ class BatchRegistration(models.Model):
     
     number_of_students = models.PositiveIntegerField(default=1, verbose_name="Number of Students")
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total Amount")
-    amount_per_student = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, verbose_name="Amount per Student")
+    amount_per_student = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=500.00, 
+        verbose_name="Amount per Student",
+        help_text="Will be set to current platform registration fee automatically"
+    )
     
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True, verbose_name="Notes")
@@ -109,25 +152,57 @@ class User(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username', 'first_name', 'last_name'] # Fields prompted for when creating a superuser
 
-    RANK_CHOICES = (
-        ('admin', 'Administrator'),
-        ('scout', 'Scout'),
-        ('senior_scout', 'Senior Scout'),
-        ('patrol_leader', 'Patrol Leader'),
-        ('assistant_patrol_leader', 'Assistant Patrol Leader'),
+    # User role (system access level)
+    ROLE_CHOICES = (
+        ('scout', 'Scout'),                # Regular member
+        ('leader', 'Scout Leader'),        # Troop leader/coordinator
+        ('admin', 'Administrator'),        # Full system admin
+    )
+    
+    # Scout advancement rank (merit-based, optional)
+    SCOUT_RANK_CHOICES = (
+        ('tenderfoot', 'Tenderfoot'),
         ('second_class', 'Second Class'),
         ('first_class', 'First Class'),
         ('star', 'Star'),
         ('life', 'Life'),
-        ('eagle', 'Eagle'),
+        ('eagle', 'Eagle Scout'),
     )
+    
+    # Backward compatibility: RANK_CHOICES maps to ROLE_CHOICES
+    RANK_CHOICES = ROLE_CHOICES
 
     REGISTRATION_STATUS_CHOICES = [
         ('active', 'Active'),
         ('inactive', 'Inactive'),
     ]
 
-    rank = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout')
+    # System role (determines permissions)
+    role = models.CharField(
+        max_length=30, 
+        choices=ROLE_CHOICES, 
+        default='scout',
+        verbose_name="User Role",
+        help_text="Scout (member), Scout Leader (coordinator), or Administrator"
+    )
+    
+    # Scout advancement rank (optional, for scouts only)
+    scout_rank = models.CharField(
+        max_length=30,
+        choices=SCOUT_RANK_CHOICES,
+        blank=True,
+        null=True,
+        verbose_name="Scout Advancement Rank",
+        help_text="Merit-based advancement rank (for scouts only)"
+    )
+    
+    # Keep old 'rank' field temporarily for migration compatibility
+    rank = models.CharField(
+        max_length=30, 
+        choices=ROLE_CHOICES + SCOUT_RANK_CHOICES,  # Combined for backward compatibility
+        default='scout',
+        help_text="DEPRECATED: Use 'role' field instead"
+    )
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     address = models.TextField(blank=True)
@@ -156,10 +231,48 @@ class User(AbstractUser):
     registration_amount_required = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('500.00'), verbose_name="Registration Amount Required")
 
     def is_admin(self):
-        return self.rank == 'admin'
+        """Check if user is a system administrator (callable from Python code)"""
+        return self.role == 'admin'
+
+    def is_leader(self):
+        """Check if user is a scout leader (callable from Python code)"""
+        return self.role == 'leader'
 
     def is_scout(self):
-        return self.rank == 'scout'
+        """Check if user is a regular scout member (callable from Python code)"""
+        return self.role == 'scout'
+    
+    def has_leader_permissions(self):
+        """Check if user has at least leader-level permissions (callable from Python code)"""
+        return self.role in ('leader', 'admin')
+    
+    def can_manage_events(self):
+        """Check if user can create/manage events (callable from Python code)"""
+        return self.has_leader_permissions()
+    
+    def can_verify_payments(self):
+        """Check if user can verify payments (callable from Python code)"""
+        return self.is_admin()
+    
+    def can_change_settings(self):
+        """Check if user can change system settings (callable from Python code)"""
+        return self.is_admin()
+    
+    # Template-accessible properties (no parentheses needed in templates)
+    @property
+    def is_admin_user(self):
+        """Template-friendly property to check if user is admin"""
+        return self.role == 'admin'
+    
+    @property
+    def is_leader_user(self):
+        """Template-friendly property to check if user is leader"""
+        return self.role == 'leader'
+    
+    @property
+    def is_scout_user(self):
+        """Template-friendly property to check if user is scout"""
+        return self.role == 'scout'
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.username
@@ -179,16 +292,16 @@ class User(AbstractUser):
     @property
     def is_registration_fully_paid(self):
         """Check if user has completed registration payment"""
-        # Admin users don't need payment verification
-        if self.rank == 'admin':
+        # Admins and leaders don't need payment verification
+        if self.role in ('admin', 'leader'):
             return True
         return self.registration_total_paid >= self.registration_amount_required
 
     @property
     def is_registration_complete(self):
         """Check if user has completed registration and is active"""
-        # Admin users are always active
-        if self.rank == 'admin':
+        # Admins and leaders are always active
+        if self.role in ('admin', 'leader'):
             return True
         # Accept both legacy 'Active Member' and newer lowercase 'active'
         return (self.registration_status in ('Active Member', 'active')) and self.is_active
@@ -200,8 +313,8 @@ class User(AbstractUser):
         
         # This method is kept for backward compatibility
         # With automatic PayMongo payments, status is managed by webhook
-        # Admin users are always active
-        if self.rank == 'admin':
+        # Admins and leaders are always active (no payment required)
+        if self.role in ('admin', 'leader'):
             self.registration_status = 'active'
             self.is_active = True
         elif self.registration_total_paid >= self.registration_amount_required:
@@ -219,6 +332,7 @@ class User(AbstractUser):
         self.save()
 
     def save(self, *args, **kwargs):
+        # Auto-generate username from email if not provided
         if not self.username:
             base_username = slugify(self.email.split('@')[0])
             unique_username = base_username
@@ -228,15 +342,23 @@ class User(AbstractUser):
                 num += 1
             self.username = unique_username
         
-        # Admin users are automatically active and don't need payment verification
-        if self.rank == 'admin':
+        # Sync 'rank' with 'role' for backward compatibility during migration
+        if not self.rank or self.rank in dict(self.ROLE_CHOICES).keys():
+            self.rank = self.role
+        
+        # Admins and leaders are automatically active (no payment required)
+        if self.role in ('admin', 'leader'):
             self.is_active = True
             self.registration_status = 'active'
+            self.registration_total_paid = self.registration_amount_required
         
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.get_full_name()} ({self.get_rank_display()})"
+        role_display = self.get_role_display()
+        if self.scout_rank and self.role == 'scout':
+            return f"{self.get_full_name()} ({role_display} - {self.get_scout_rank_display()})"
+        return f"{self.get_full_name()} ({role_display})"
 
     class Meta:
         verbose_name = _('user')

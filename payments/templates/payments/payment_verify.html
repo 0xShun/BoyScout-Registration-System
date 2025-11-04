@@ -1,26 +1,172 @@
 {% extends 'base.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-md-6">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h4 class="card-title mb-3">Verify Payment</h4>
-          <p><strong>User:</strong> {{ payment.user.username }}</p>
-          <p><strong>Amount:</strong> ₱{{ payment.amount }}</p>
-          <p><strong>Date:</strong> {{ payment.date }}</p>
-          <p><strong>Status:</strong> 
-            <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-              {{ payment.get_status_display }}
-            </span>
-          </p>
-          <p><strong>Proof:</strong> {% if payment.proof %}<a href="{{ payment.proof.url }}" target="_blank" class="btn btn-sm btn-outline-info">View Proof</a>{% else %}-{% endif %}</p>
-          <form method="post" class="mt-4">
-            {% csrf_token %}
-            <button name="status" value="verified" type="submit" class="btn btn-success me-2">Mark as Verified</button>
-            <button name="status" value="rejected" type="submit" class="btn btn-danger">Mark as Rejected</button>
-          </form>
+  <div class="container-fluid py-4">
+    <div class="row justify-content-center">
+      <div class="col-lg-8">
+        <!-- Page Header -->
+        <div class="page-header">
+          <h2><i class="fas fa-clipboard-check"></i> Verify Payment</h2>
+          <p>Review and approve member payment submission</p>
+        </div>
+        
+        <!-- Payment Details Card -->
+        <div class="enhanced-card mb-4">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-info-circle me-2"></i> Payment Information</h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <!-- Member Info -->
+              <div class="col-md-6 mb-3">
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user"></i> Member
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.1rem; font-weight: 600;">
+                    {{ payment.user.get_full_name|default:payment.user.username }}
+                  </div>
+                  <small class="text-muted">{{ payment.user.email }}</small>
+                </div>
+              </div>
+              
+              <!-- Payment Amount -->
+              <div class="col-md-6 mb-3">
+                <div class="info-item" style="background: #fef3c7; border-radius: 12px; padding: 1rem 1.5rem; border-left: 4px solid #fbbf24;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-coins"></i> Amount
+                  </div>
+                  <div class="info-value" style="color: #d97706; font-size: 1.5rem; font-weight: 800;">
+                    ₱{{ payment.amount }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Payment Date -->
+              <div class="col-md-6 mb-3">
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; border-left: 4px solid #8b5cf6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-calendar-alt"></i> Date Submitted
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ payment.date|date:"F d, Y - h:i A" }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Current Status -->
+              <div class="col-md-6 mb-3">
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; border-left: 4px solid #6b7280;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> Current Status
+                  </div>
+                  <div class="mt-2">
+                    <span class="status-badge {% if payment.status == 'verified' %}status-verified{% elif payment.status == 'pending' %}status-pending{% else %}status-rejected{% endif %}">
+                      {% if payment.status == 'verified' %}
+                        <i class="fas fa-check-circle"></i>
+                      {% elif payment.status == 'pending' %}
+                        <i class="fas fa-clock"></i>
+                      {% else %}
+                        <i class="fas fa-times-circle"></i>
+                      {% endif %}
+                      {{ payment.get_status_display }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Payment Proof Card -->
+        <div class="enhanced-card mb-4">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-file-image me-2"></i> Payment Proof / Receipt</h5>
+          </div>
+          <div class="card-body text-center">
+            {% if payment.proof %}
+              <div style="background: #f9fafb; padding: 2rem; border-radius: 12px; border: 2px dashed #d1d5db;">
+                <a href="{{ payment.proof.url }}" target="_blank">
+                  <img src="{{ payment.proof.url }}" alt="Payment Proof" class="img-fluid" style="max-width: 100%; max-height: 500px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                </a>
+                <div class="mt-3">
+                  <a href="{{ payment.proof.url }}" target="_blank" class="btn-enhanced-primary">
+                    <i class="fas fa-external-link-alt me-2"></i> Open in New Tab
+                  </a>
+                </div>
+              </div>
+            {% else %}
+              <div class="empty-state-enhanced">
+                <i class="fas fa-image"></i>
+                <h4>No Receipt Uploaded</h4>
+                <p>The member has not uploaded a payment proof yet.</p>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Verification Actions Card -->
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-cogs me-2"></i> Verification Action</h5>
+          </div>
+          <div class="card-body">
+            <form method="post">
+              {% csrf_token %}
+              
+              <div class="alert-enhanced alert-enhanced-warning mb-4">
+                <strong><i class="fas fa-exclamation-triangle me-2"></i> Important:</strong> 
+                Please carefully review the payment proof before taking action. This action will notify the member via email.
+              </div>
+              
+              <div class="row g-3">
+                <!-- Verify Button -->
+                <div class="col-md-6">
+                  <div style="background: #d1fae5; padding: 1.5rem; border-radius: 12px; border: 2px solid #10b981; height: 100%;">
+                    <div class="text-center mb-3">
+                      <div style="background: #10b981; width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <i class="fas fa-check-circle fa-2x text-white"></i>
+                      </div>
+                      <h5 class="fw-bold text-success mb-2">Verify Payment</h5>
+                      <p class="mb-3 small text-muted">Approve this payment as valid and complete</p>
+                    </div>
+                    <button name="status" value="verified" type="submit" class="btn-enhanced-success w-100">
+                      <i class="fas fa-check-circle me-2"></i> Mark as Verified
+                    </button>
+                  </div>
+                </div>
+                
+                <!-- Reject Button -->
+                <div class="col-md-6">
+                  <div style="background: #fee2e2; padding: 1.5rem; border-radius: 12px; border: 2px solid #dc2626; height: 100%;">
+                    <div class="text-center mb-3">
+                      <div style="background: #dc2626; width: 60px; height: 60px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <i class="fas fa-times-circle fa-2x text-white"></i>
+                      </div>
+                      <h5 class="fw-bold text-danger mb-2">Reject Payment</h5>
+                      <p class="mb-3 small text-muted">Deny this payment if proof is invalid</p>
+                    </div>
+                    <button name="status" value="rejected" type="submit" class="btn-enhanced-danger w-100">
+                      <i class="fas fa-times-circle me-2"></i> Mark as Rejected
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Back Button -->
+              <div class="text-center mt-4">
+                <a href="{% url 'payments:payment_list' %}" class="btn btn-secondary" style="padding: 0.75rem 2rem; border-radius: 12px; font-weight: 600;">
+                  <i class="fas fa-arrow-left me-2"></i> Back to Payment List
+                </a>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>
   </div>
-{% endblock %} 
+{% endblock %}

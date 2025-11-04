@@ -1,48 +1,106 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>Verify Event Registration Payment</h2>
-        <a href="{% url 'events:event_detail' event_pk %}" class="btn btn-secondary">Back to Event</a>
+    {# Page Header #}
+    <div class="page-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2><i class="fas fa-check-circle"></i> Verify Event Registration Payment</h2>
+                <p>Review and verify payment for event registration</p>
+            </div>
+            <a href="{% url 'events:event_detail' event_pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i> Back to Event
+            </a>
+        </div>
     </div>
     
     <div class="row">
         <div class="col-lg-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Registration Details</h5>
+            {# Registration Details Card #}
+            <div class="enhanced-card mb-4">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-id-card me-2"></i> Registration Details</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
+                    <div class="row g-4">
                         <div class="col-md-6">
-                            <p><strong>Scout:</strong> {{ registration.user.get_full_name }}</p>
-                            <p><strong>Email:</strong> {{ registration.user.email }}</p>
-                            <p><strong>RSVP:</strong> 
-                                <span class="badge {% if registration.rsvp == 'yes' %}bg-success{% elif registration.rsvp == 'no' %}bg-danger{% else %}bg-warning{% endif %}">
-                                    {{ registration.get_rsvp_display }}
-                                </span>
-                            </p>
+                            <div class="mb-3">
+                                <div class="info-item">
+                                    <i class="fas fa-user" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Scout</small>
+                                        <strong>{{ registration.user.get_full_name }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="info-item">
+                                    <i class="fas fa-envelope" style="color: #10b981; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Email</small>
+                                        <strong>{{ registration.user.email }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="info-item">
+                                    <i class="fas fa-clipboard-check" style="color: #fbbf24; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">RSVP</small>
+                                        <span class="status-badge {% if registration.rsvp == 'yes' %}status-verified{% elif registration.rsvp == 'no' %}status-rejected{% else %}status-pending{% endif %}">
+                                            {{ registration.get_rsvp_display }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-6">
-                            <p><strong>Event:</strong> {{ registration.event.title }}</p>
-                            <p><strong>Event Fee:</strong> ₱{{ registration.event.payment_amount }}</p>
-                            <p><strong>Amount Paid:</strong> ₱{{ registration.total_paid }}</p>
-                            <p><strong>Amount Remaining:</strong> ₱{{ registration.amount_remaining }}</p>
-                            <p><strong>Registered At:</strong> {{ registration.registered_at|date:'M d, Y g:i A' }}</p>
+                            <div class="mb-3">
+                                <div class="info-item">
+                                    <i class="fas fa-calendar-alt" style="color: #dc2626; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Event</small>
+                                        <strong>{{ registration.event.title }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <div class="info-item">
+                                    <i class="fas fa-tag" style="color: #8b5cf6; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Event Fee</small>
+                                        <strong>₱{{ registration.event.payment_amount }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="info-item">
+                                    <i class="fas fa-calendar" style="color: #64748b; font-size: 1.5rem;"></i>
+                                    <div>
+                                        <small class="text-muted d-block">Registered At</small>
+                                        <strong>{{ registration.registered_at|date:'M d, Y g:i A' }}</strong>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Payment History -->
+            {# Payment History #}
             {% if registration.payments.exists %}
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Payment History</h5>
+                <div class="enhanced-card mb-4">
+                    <div class="enhanced-card-header">
+                        <h5><i class="fas fa-history me-2"></i> Payment History</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
-                            <table class="table table-hover">
+                            <table class="table enhanced-table">
                                 <thead>
                                     <tr>
                                         <th>Date</th>
@@ -57,9 +115,9 @@
                                     {% for payment in registration.payments.all %}
                                         <tr>
                                             <td>{{ payment.created_at|date:"M d, Y g:i A" }}</td>
-                                            <td>₱{{ payment.amount }}</td>
+                                            <td><strong>₱{{ payment.amount }}</strong></td>
                                             <td>
-                                                <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% elif payment.status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                                                <span class="status-badge {% if payment.status == 'verified' %}status-verified{% elif payment.status == 'pending' %}status-pending{% elif payment.status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
                                                     {{ payment.get_status_display }}
                                                 </span>
                                             </td>
@@ -86,7 +144,7 @@
                                                         <input type="hidden" name="payment_id" value="{{ payment.id }}">
                                                         <div class="row g-2">
                                                             <div class="col-md-6">
-                                                                <input type="number" name="payment_amount" class="form-control form-control-sm" 
+                                                                <input type="number" name="payment_amount" class="form-control form-control-sm enhanced-form-control" 
                                                                        placeholder="Amount paid" step="0.01" min="0.01" 
                                                                        value="{{ payment.amount }}" required>
                                                             </div>
@@ -113,42 +171,44 @@
                 </div>
             {% endif %}
 
-            <!-- Legacy Receipt (for old registrations) -->
+            {# Legacy Receipt (for old registrations) #}
             {% if registration.receipt_image and not registration.payments.exists %}
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Payment Receipt</h5>
+                <div class="enhanced-card mb-4">
+                    <div class="enhanced-card-header">
+                        <h5><i class="fas fa-receipt me-2"></i> Payment Receipt</h5>
                     </div>
                     <div class="card-body">
                         <div class="text-center mb-3">
-                            <img src="{{ registration.receipt_image.url }}" alt="Payment Receipt" class="img-fluid" style="max-width: 100%; max-height: 400px;">
+                            <img src="{{ registration.receipt_image.url }}" alt="Payment Receipt" class="img-fluid rounded" style="max-width: 100%; max-height: 400px; border: 2px solid #e5e7eb;">
                         </div>
                         <div class="text-center">
                             <a href="{{ registration.receipt_image.url }}" target="_blank" class="btn btn-info">
-                                <i class="fas fa-external-link-alt"></i> Open Full Size
+                                <i class="fas fa-external-link-alt me-2"></i> Open Full Size
                             </a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Legacy Verification Form -->
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h5 class="mb-0">Payment Verification</h5>
+                {# Legacy Verification Form #}
+                <div class="enhanced-card">
+                    <div class="enhanced-card-header">
+                        <h5><i class="fas fa-check-square me-2"></i> Payment Verification</h5>
                     </div>
                     <div class="card-body">
                         <form method="post">
                             {% csrf_token %}
                             <div class="mb-3">
-                                <label for="notes" class="form-label">Admin Notes (optional):</label>
-                                <textarea name="notes" id="notes" class="form-control" rows="3" placeholder="Add any notes about the payment verification..."></textarea>
+                                <label for="notes" class="enhanced-form-label">
+                                    <i class="fas fa-sticky-note"></i> Admin Notes (optional)
+                                </label>
+                                <textarea name="notes" id="notes" class="form-control enhanced-form-control" rows="3" placeholder="Add any notes about the payment verification..."></textarea>
                             </div>
                             <div class="d-flex gap-2">
-                                <button type="submit" name="action" value="verify" class="btn btn-success">
-                                    <i class="fas fa-check"></i> Verify Payment
+                                <button type="submit" name="action" value="verify" class="btn-enhanced-success">
+                                    <i class="fas fa-check me-2"></i> Verify Payment
                                 </button>
-                                <button type="submit" name="action" value="reject" class="btn btn-danger">
-                                    <i class="fas fa-times"></i> Reject Payment
+                                <button type="submit" name="action" value="reject" class="btn-enhanced-danger">
+                                    <i class="fas fa-times me-2"></i> Reject Payment
                                 </button>
                             </div>
                         </form>
@@ -157,32 +217,85 @@
             {% endif %}
         </div>
 
-        <!-- Sidebar -->
+        {# Sidebar #}
         <div class="col-lg-4">
-            <!-- Payment Status -->
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h5 class="mb-0">Current Status</h5>
+            {# Payment Status #}
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-info-circle me-2"></i> Current Status</h5>
                 </div>
                 <div class="card-body">
-                    <p><strong>Payment Status:</strong> 
-                        <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
-                            {{ registration.get_payment_status_display }}
-                        </span>
-                    </p>
-                    <p><strong>Amount Required:</strong> ₱{{ registration.amount_required }}</p>
-                    <p><strong>Amount Paid:</strong> ₱{{ registration.total_paid }}</p>
-                    <p><strong>Amount Remaining:</strong> ₱{{ registration.amount_remaining }}</p>
+                    <div class="stat-card-enhanced mb-3" style="border-left-color: {% if registration.payment_status == 'paid' %}#10b981{% elif registration.payment_status == 'partial' %}#3b82f6{% elif registration.payment_status == 'pending' %}#fbbf24{% elif registration.payment_status == 'rejected' %}#dc2626{% else %}#64748b{% endif %};">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, {% if registration.payment_status == 'paid' %}#065f46 0%, #10b981{% elif registration.payment_status == 'partial' %}#1e3a8a 0%, #3b82f6{% elif registration.payment_status == 'pending' %}#92400e 0%, #fbbf24{% elif registration.payment_status == 'rejected' %}#7f1d1d 0%, #dc2626{% else %}#475569 0%, #64748b{% endif %} 100%);">
+                            <i class="fas fa-credit-card"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value" style="font-size: 1rem;">{{ registration.get_payment_status_display }}</div>
+                            <div class="stat-label">Payment Status</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-enhanced mb-3" style="border-left-color: #3b82f6;">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+                            <i class="fas fa-tag"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">₱{{ registration.amount_required }}</div>
+                            <div class="stat-label">Amount Required</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-enhanced mb-3" style="border-left-color: #10b981;">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%);">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">₱{{ registration.total_paid }}</div>
+                            <div class="stat-label">Amount Paid</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card-enhanced" style="border-left-color: {% if registration.amount_remaining > 0 %}#fbbf24{% else %}#10b981{% endif %};">
+                        <div class="stat-icon" style="background: linear-gradient(135deg, {% if registration.amount_remaining > 0 %}#92400e 0%, #fbbf24{% else %}#065f46 0%, #10b981{% endif %} 100%);">
+                            <i class="fas fa-calculator"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-value">₱{{ registration.amount_remaining }}</div>
+                            <div class="stat-label">Amount Remaining</div>
+                        </div>
+                    </div>
+                    
                     {% if registration.verified_by %}
-                        <p><strong>Verified by:</strong> {{ registration.verified_by.get_full_name }}</p>
-                        <p><strong>Verification date:</strong> {{ registration.verification_date|date:"M d, Y g:i A" }}</p>
+                        <hr>
+                        <div class="alert-enhanced alert-enhanced-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <div>
+                                <strong>Verified by:</strong> {{ registration.verified_by.get_full_name }}<br>
+                                <strong>Date:</strong> {{ registration.verification_date|date:"M d, Y g:i A" }}
+                            </div>
+                        </div>
                     {% endif %}
+                    
                     {% if registration.payment_notes %}
-                        <p><strong>Notes:</strong> {{ registration.payment_notes }}</p>
+                        <div class="alert-enhanced alert-enhanced-info mt-3">
+                            <i class="fas fa-sticky-note me-2"></i>
+                            <div>
+                                <strong>Notes:</strong><br>
+                                {{ registration.payment_notes }}
+                            </div>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+
+<style>
+    .info-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+</style>
+{% endblock %}

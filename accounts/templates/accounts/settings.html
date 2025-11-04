@@ -1,30 +1,136 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
 
 {% block title %}Settings{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4">
-    <h2 class="mb-4">Settings</h2>
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-cog"></i> System Settings</h2>
+      <p>Manage user roles and system configurations</p>
+    </div>
+    
     <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="card shadow-sm">
-                <div class="card-header fw-bold">Manage User Roles</div>
+        <div class="col-lg-8">
+            <!-- User Role Management Card -->
+            <div class="enhanced-card mb-4">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-user-shield me-2"></i> Manage User Roles</h5>
+                </div>
                 <div class="card-body">
+                    <div class="alert-enhanced alert-enhanced-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Role Management:</strong> Assign or change user roles to control access levels and permissions.
+                    </div>
+                    
                     <form method="post">
                         {% csrf_token %}
-                        <div class="mb-3">
-                            <label for="id_user" class="form-label">Select User:</label>
+                        
+                        <!-- Select User -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-user"></i> Select User
+                            </div>
+                            <label for="id_user" class="enhanced-form-label">
+                                <i class="fas fa-users"></i> User
+                            </label>
                             {{ form.user }}
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    var select = document.getElementById('id_user');
+                                    if (select) {
+                                        select.classList.add('form-control', 'enhanced-form-control');
+                                    }
+                                });
+                            </script>
                         </div>
-                        <div class="mb-3">
-                            <label for="id_rank" class="form-label">New Rank:</label>
+                        
+                        <!-- Select Rank -->
+                        <div class="form-section">
+                            <div class="form-section-title">
+                                <i class="fas fa-id-badge"></i> Assign Role
+                            </div>
+                            <label for="id_rank" class="enhanced-form-label">
+                                <i class="fas fa-user-tag"></i> New Rank
+                            </label>
                             {{ form.rank }}
+                            <script>
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    var select = document.getElementById('id_rank');
+                                    if (select) {
+                                        select.classList.add('form-control', 'enhanced-form-control');
+                                    }
+                                });
+                            </script>
+                            <div class="form-text mt-2">
+                                <i class="fas fa-exclamation-triangle"></i> 
+                                <strong>Note:</strong> Changing roles will immediately update user permissions.
+                            </div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100">Update Role</button>
+                        
+                        <!-- Submit Button -->
+                        <div class="text-center mt-4">
+                            <button type="submit" class="btn-enhanced-success" style="min-width: 250px;">
+                                <i class="fas fa-save me-2"></i> Update Role
+                            </button>
+                        </div>
                     </form>
+                </div>
+            </div>
+            
+            <!-- Role Reference Card -->
+            <div class="enhanced-card">
+                <div class="enhanced-card-header">
+                    <h5><i class="fas fa-book me-2"></i> Role Descriptions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <!-- Admin Role -->
+                        <div class="col-md-4">
+                            <div style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); padding: 1.5rem; border-radius: 12px; color: white; height: 100%;">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-crown" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="fw-bold text-center mb-2">Admin</h6>
+                                <small class="d-block text-center" style="opacity: 0.9;">
+                                    Full system access. Can manage users, payments, events, and all settings.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Leader Role -->
+                        <div class="col-md-4">
+                            <div style="background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%); padding: 1.5rem; border-radius: 12px; color: white; height: 100%;">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-star" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="fw-bold text-center mb-2">Leader</h6>
+                                <small class="d-block text-center" style="opacity: 0.9;">
+                                    Can view members, manage events, and track attendance. Limited admin access.
+                                </small>
+                            </div>
+                        </div>
+                        
+                        <!-- Scout Role -->
+                        <div class="col-md-4">
+                            <div style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%); padding: 1.5rem; border-radius: 12px; color: white; height: 100%;">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-user" style="font-size: 2.5rem;"></i>
+                                </div>
+                                <h6 class="fw-bold text-center mb-2">Scout</h6>
+                                <small class="d-block text-center" style="opacity: 0.9;">
+                                    Regular member. Can view profile, register for events, and make payments.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

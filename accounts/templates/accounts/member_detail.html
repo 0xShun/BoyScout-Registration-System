@@ -1,72 +1,145 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
+
 {% block content %}
   <div class="container-fluid py-4">
-    <div class="row justify-content-center mb-4">
-      <div class="col-lg-10">
-        <div class="card shadow-sm text-center">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h2><i class="fas fa-user-circle"></i> Member Profile</h2>
+      <p>View detailed information about {{ member.get_full_name }}</p>
+    </div>
+    
+    <!-- Payment Summary Dashboard -->
+    <div class="row g-3 mb-4">
+      <!-- Total Paid -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: #10b981;">
+          <div class="stat-icon stat-icon-success">
+            <i class="fas fa-check-circle"></i>
+          </div>
+          <div class="stat-value">₱{{ total_paid }}</div>
+          <div class="stat-label">Total Paid</div>
+        </div>
+      </div>
+      
+      <!-- Total Dues -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: #3b82f6;">
+          <div class="stat-icon stat-icon-primary">
+            <i class="fas fa-receipt"></i>
+          </div>
+          <div class="stat-value">₱{{ total_dues }}</div>
+          <div class="stat-label">Total Dues</div>
+        </div>
+      </div>
+      
+      <!-- Balance -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: {% if balance >= 0 %}#10b981{% else %}#dc2626{% endif %};">
+          <div class="stat-icon {% if balance >= 0 %}stat-icon-success{% else %}stat-icon-danger{% endif %}">
+            <i class="fas fa-balance-scale"></i>
+          </div>
+          <div class="stat-value" style="color: {% if balance >= 0 %}#10b981{% else %}#dc2626{% endif %};">₱{{ balance }}</div>
+          <div class="stat-label">Balance</div>
+        </div>
+      </div>
+      
+      <!-- Status -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: {% if registration_status == 'active' %}#10b981{% elif registration_status == 'payment_submitted' %}#fbbf24{% else %}#6b7280{% endif %};">
+          <div class="stat-icon" style="background: {% if registration_status == 'active' %}linear-gradient(135deg, #065f46 0%, #10b981 100%){% elif registration_status == 'payment_submitted' %}linear-gradient(135deg, #d97706 0%, #fbbf24 100%){% else %}linear-gradient(135deg, #4b5563 0%, #6b7280 100%){% endif %}; color: white;">
+            <i class="fas fa-user-check"></i>
+          </div>
+          <div class="stat-label mb-2">Status</div>
+          <span class="status-badge {% if registration_status == 'active' %}status-verified{% elif registration_status == 'payment_submitted' %}status-pending{% else %}status-rejected{% endif %}">
+            {{ member.get_registration_status_display }}
+          </span>
+        </div>
+      </div>
+      
+      <!-- Registration Payment -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: #fbbf24;">
+          <div class="stat-icon stat-icon-warning">
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <div class="stat-value">₱{{ registration_payment }}</div>
+          <div class="stat-label">Registration</div>
+        </div>
+      </div>
+      
+      <!-- Event Payments -->
+      <div class="col-md-2">
+        <div class="stat-card-enhanced" style="border-left-color: #8b5cf6;">
+          <div class="stat-icon" style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%); color: white;">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
+          <div class="stat-value">₱{{ event_payments }}</div>
+          <div class="stat-label">Events</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Payment Breakdown Card -->
+    <div class="row mb-4">
+      <div class="col-md-12">
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-chart-pie me-2"></i> Payment Breakdown</h5>
+          </div>
           <div class="card-body">
-            <h5 class="card-title">Payment Summary</h5>
-            <div class="row g-2">
-              <div class="col-2">
-                <div class="fw-bold text-success">₱{{ total_paid }}</div>
-                <div class="small">Total Paid</div>
-              </div>
-              <div class="col-2">
-                <div class="fw-bold text-primary">₱{{ total_dues }}</div>
-                <div class="small">Total Dues</div>
-              </div>
-              <div class="col-2">
-                <div class="fw-bold {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ balance }}</div>
-                <div class="small">Balance</div>
-              </div>
-              <div class="col-2">
-                <div class="fw-bold">
-                  <span class="badge {% if registration_status == 'active' %}bg-success{% elif registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
-                    {{ member.get_registration_status_display }}
-                  </span>
-                </div>
-                <div class="small">Status</div>
-              </div>
-              <div class="col-2">
-                <div class="fw-bold text-info">₱{{ registration_payment }}</div>
-                <div class="small">Registration</div>
-              </div>
-              <div class="col-2">
-                <div class="fw-bold text-warning">₱{{ event_payments }}</div>
-                <div class="small">Events</div>
-              </div>
-            </div>
-            
-            <!-- Payment Breakdown -->
-            <div class="mt-3">
-              <h6>Payment Breakdown:</h6>
-              <div class="row g-2">
-                <div class="col-md-4">
-                  <small class="text-muted">Registration Payments:</small><br>
-                  <span class="fw-bold">₱{{ registration_payments }}</span>
-                </div>
-                <div class="col-md-4">
-                  <small class="text-muted">Event Payments:</small><br>
-                  <span class="fw-bold">₱{{ event_payments }}</span>
-                </div>
-                <div class="col-md-4">
-                  <small class="text-muted">Other Payments:</small><br>
-                  <span class="fw-bold">₱{{ general_payments }}</span>
+            <div class="row g-3">
+              <!-- Payments -->
+              <div class="col-md-6">
+                <div style="background: #f0fdf4; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #10b981;">
+                  <h6 class="fw-bold mb-3" style="color: #065f46;">
+                    <i class="fas fa-check-circle me-2"></i> Payments Received
+                  </h6>
+                  <div class="row g-2">
+                    <div class="col-4">
+                      <div class="text-center p-2" style="background: white; border-radius: 8px;">
+                        <div class="fw-bold" style="color: #d97706; font-size: 1.25rem;">₱{{ registration_payments }}</div>
+                        <small class="text-muted">Registration</small>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="text-center p-2" style="background: white; border-radius: 8px;">
+                        <div class="fw-bold" style="color: #d97706; font-size: 1.25rem;">₱{{ event_payments }}</div>
+                        <small class="text-muted">Events</small>
+                      </div>
+                    </div>
+                    <div class="col-4">
+                      <div class="text-center p-2" style="background: white; border-radius: 8px;">
+                        <div class="fw-bold" style="color: #d97706; font-size: 1.25rem;">₱{{ general_payments }}</div>
+                        <small class="text-muted">Other</small>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
               
-              <!-- Dues Breakdown -->
-              <div class="mt-3">
-                <h6>Outstanding Dues:</h6>
-                <div class="row g-2">
-                  <div class="col-md-6">
-                    <small class="text-muted">Registration Dues:</small><br>
-                    <span class="fw-bold text-warning">₱{{ registration_dues }}</span>
-                  </div>
-                  <div class="col-md-6">
-                    <small class="text-muted">Event Dues:</small><br>
-                    <span class="fw-bold text-warning">₱{{ event_dues }}</span>
+              <!-- Dues -->
+              <div class="col-md-6">
+                <div style="background: #fef3c7; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #fbbf24;">
+                  <h6 class="fw-bold mb-3" style="color: #92400e;">
+                    <i class="fas fa-exclamation-circle me-2"></i> Outstanding Dues
+                  </h6>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="text-center p-2" style="background: white; border-radius: 8px;">
+                        <div class="fw-bold" style="color: #dc2626; font-size: 1.25rem;">₱{{ registration_dues }}</div>
+                        <small class="text-muted">Registration</small>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="text-center p-2" style="background: white; border-radius: 8px;">
+                        <div class="fw-bold" style="color: #dc2626; font-size: 1.25rem;">₱{{ event_dues }}</div>
+                        <small class="text-muted">Events</small>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -75,161 +148,214 @@
         </div>
       </div>
     </div>
-  <div class="row justify-content-center">
-    <div class="col-md-8">
-      <div class="card shadow-sm">
-        <div class="card-body">
-          <h4 class="card-title mb-4">Member Profile</h4>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Name:</strong></div>
-            <div class="col-md-8">{{ member.get_full_name }}</div>
+    
+    <!-- Member Profile Card -->
+    <div class="row justify-content-center">
+      <div class="col-lg-10">
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-id-card me-2"></i> Personal Information</h5>
           </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Email:</strong></div>
-            <div class="col-md-8">{{ member.email }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Registration Status:</strong></div>
-            <div class="col-md-8">
-              <span class="badge {% if member.registration_status == 'active' %}bg-success{% elif member.registration_status == 'payment_submitted' %}bg-warning{% else %}bg-secondary{% endif %}">
-                {{ member.get_registration_status_display }}
-              </span>
+          <div class="card-body">
+            <div class="row">
+              <!-- Left Column -->
+              <div class="col-md-6">
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user"></i> Full Name
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.get_full_name }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-envelope"></i> Email
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.email }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-id-badge"></i> Role
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.get_role_display }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-birthday-cake"></i> Date of Birth
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.date_of_birth|date:"F d, Y"|default:"Not provided" }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-phone"></i> Phone Number
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.phone_number|default:"Not provided" }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #3b82f6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-map-marker-alt"></i> Address
+                  </div>
+                  <div class="info-value" style="color: #1e3a8a; font-size: 1.05rem;">
+                    {{ member.address|default:"Not provided"|linebreaks }}
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Right Column -->
+              <div class="col-md-6">
+                <div class="info-item" style="background: #fef3c7; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #fbbf24;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-shield"></i> Emergency Contact
+                  </div>
+                  <div class="info-value" style="color: #92400e; font-size: 1.05rem;">
+                    {{ member.emergency_contact|default:"Not provided" }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #fef3c7; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #fbbf24;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-phone-alt"></i> Emergency Phone
+                  </div>
+                  <div class="info-value" style="color: #92400e; font-size: 1.05rem;">
+                    {{ member.emergency_phone|default:"Not provided" }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #fee2e2; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #dc2626;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-heartbeat"></i> Medical Conditions
+                  </div>
+                  <div class="info-value" style="color: #991b1b; font-size: 1.05rem;">
+                    {{ member.medical_conditions|default:"None"|linebreaks }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #fee2e2; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #dc2626;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-allergies"></i> Allergies
+                  </div>
+                  <div class="info-value" style="color: #991b1b; font-size: 1.05rem;">
+                    {{ member.allergies|default:"None"|linebreaks }}
+                  </div>
+                </div>
+                
+                <div class="info-item" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 1rem; border-left: 4px solid #8b5cf6;">
+                  <div class="info-label" style="font-weight: 600; color: #374151; font-size: 0.9rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-calendar-plus"></i> Join Date
+                  </div>
+                  <div class="info-value" style="color: #6d28d9; font-size: 1.05rem;">
+                    {{ member.join_date|date:"F d, Y" }}
+                  </div>
+                </div>
+              </div>
             </div>
+            
+            <!-- Action Button -->
+            {% if user.is_admin or user.pk == member.pk %}
+              <div class="text-center mt-4 pt-4" style="border-top: 2px solid #f3f4f6;">
+                <a href="{% url 'accounts:member_edit' member.pk %}" class="btn-enhanced-primary">
+                  <i class="fas fa-edit me-2"></i> Edit Profile
+                </a>
+                <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600;">
+                  <i class="fas fa-arrow-left me-2"></i> Back to List
+                </a>
+              </div>
+            {% endif %}
           </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Rank:</strong></div>
-            <div class="col-md-8">{{ member.get_rank_display }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Date of Birth:</strong></div>
-            <div class="col-md-8">{{ member.date_of_birth|date:"F d, Y"|default:"Not provided" }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Phone Number:</strong></div>
-            <div class="col-md-8">{{ member.phone_number|default:"Not provided" }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Address:</strong></div>
-            <div class="col-md-8">{{ member.address|default:"Not provided"|linebreaks }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Emergency Contact:</strong></div>
-            <div class="col-md-8">{{ member.emergency_contact|default:"Not provided" }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Emergency Phone:</strong></div>
-            <div class="col-md-8">{{ member.emergency_phone|default:"Not provided" }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Medical Conditions:</strong></div>
-            <div class="col-md-8">{{ member.medical_conditions|default:"None"|linebreaks }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Allergies:</strong></div>
-            <div class="col-md-8">{{ member.allergies|default:"None"|linebreaks }}</div>
-          </div>
-          
-          <div class="row mb-3">
-            <div class="col-md-4"><strong>Join Date:</strong></div>
-            <div class="col-md-8">{{ member.join_date|date:"F d, Y" }}</div>
-          </div>
-          
-          {% if user.is_admin or user.pk == member.pk %}
-            <div class="mt-4">
-              <a href="{% url 'accounts:member_edit' member.pk %}" class="btn btn-outline-primary">Edit Profile</a>
-            </div>
-          {% endif %}
         </div>
       </div>
     </div>
+    
+    <!-- Verified Registration Payments -->
+    {% if verified_registration_payments %}
+      <div class="row justify-content-center mt-4">
+        <div class="col-lg-10">
+          <div class="enhanced-card">
+            <div class="enhanced-card-header" style="background: linear-gradient(135deg, #d97706 0%, #fbbf24 100%);">
+              <h5><i class="fas fa-user-plus me-2"></i> Verified Registration Payments</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table enhanced-table">
+                  <thead>
+                    <tr>
+                      <th><i class="fas fa-calendar me-1"></i> Date</th>
+                      <th><i class="fas fa-coins me-1"></i> Amount</th>
+                      <th><i class="fas fa-user-check me-1"></i> Verified By</th>
+                      <th><i class="fas fa-calendar-check me-1"></i> Verification Date</th>
+                      <th><i class="fas fa-sticky-note me-1"></i> Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for payment in verified_registration_payments %}
+                      <tr>
+                        <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                        <td><span class="fw-bold" style="color: #d97706; font-size: 1.1rem;">₱{{ payment.amount }}</span></td>
+                        <td class="fw-semibold">{{ payment.verified_by.get_full_name }}</td>
+                        <td>{{ payment.verification_date|date:"M d, Y" }}</td>
+                        <td>{{ payment.notes|default:"-" }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+    
+    <!-- Verified Event Payments -->
+    {% if verified_event_payments %}
+      <div class="row justify-content-center mt-4">
+        <div class="col-lg-10">
+          <div class="enhanced-card">
+            <div class="enhanced-card-header" style="background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);">
+              <h5><i class="fas fa-calendar-alt me-2"></i> Verified Event Payments</h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table enhanced-table">
+                  <thead>
+                    <tr>
+                      <th><i class="fas fa-flag me-1"></i> Event</th>
+                      <th><i class="fas fa-calendar me-1"></i> Date</th>
+                      <th><i class="fas fa-coins me-1"></i> Amount</th>
+                      <th><i class="fas fa-user-check me-1"></i> Verified By</th>
+                      <th><i class="fas fa-calendar-check me-1"></i> Verification Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for reg in verified_event_payments %}
+                      <tr>
+                        <td class="fw-semibold">{{ reg.event.title }}</td>
+                        <td>{{ reg.event.date|date:"M d, Y" }}</td>
+                        <td><span class="fw-bold" style="color: #d97706; font-size: 1.1rem;">₱{{ reg.event.payment_amount }}</span></td>
+                        <td class="fw-semibold">{{ reg.verified_by.get_full_name }}</td>
+                        <td>{{ reg.verification_date|date:"M d, Y" }}</td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
   </div>
-  
-  <!-- Verified Registration Payments Section -->
-  {% if verified_registration_payments %}
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div class="card-header">
-            <h5 class="mb-0">Verified Registration Payments</h5>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Verified By</th>
-                    <th>Verification Date</th>
-                    <th>Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for payment in verified_registration_payments %}
-                    <tr>
-                      <td>{{ payment.created_at|date:"M d, Y" }}</td>
-                      <td class="text-success">₱{{ payment.amount }}</td>
-                      <td>{{ payment.verified_by.get_full_name }}</td>
-                      <td>{{ payment.verification_date|date:"M d, Y" }}</td>
-                      <td>{{ payment.notes|default:"-" }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
-  
-  <!-- Verified Event Payments Section -->
-  {% if verified_event_payments %}
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-8">
-        <div class="card shadow-sm">
-          <div class="card-header">
-            <h5 class="mb-0">Verified Event Payments</h5>
-          </div>
-          <div class="card-body">
-            <div class="table-responsive">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Event</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Verified By</th>
-                    <th>Verification Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for reg in verified_event_payments %}
-                    <tr>
-                      <td>{{ reg.event.title }}</td>
-                      <td>{{ reg.event.date|date:"M d, Y" }}</td>
-                      <td class="text-success">₱{{ reg.event.payment_amount }}</td>
-                      <td>{{ reg.verified_by.get_full_name }}</td>
-                      <td>{{ reg.verification_date|date:"M d, Y" }}</td>
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  {% endif %}
-{% endblock %} 
+{% endblock %}

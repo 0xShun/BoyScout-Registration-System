@@ -1,29 +1,35 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-  <div class="row justify-content-center">
-    <div class="col-lg-8 col-md-10 bg-white p-5 rounded shadow">
-      <div class="mb-4 text-center">
-        <h2 class="fw-bold mb-2">Register</h2>
-        <p class="text-muted">Join ScoutConnect - Complete your registration</p>
-      </div>
-      
-      <!-- Registration Type Toggle Switch -->
-      <div class="card mb-4 border-primary">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="mb-1">
-                <i class="fas fa-user me-2" id="registrationTypeIcon"></i>
-                <span id="registrationTypeLabel">Single Registration</span>
-              </h6>
-              <small class="text-muted" id="registrationTypeDesc">Register one student</small>
+  <div class="registration-container">
+    <div class="row justify-content-center">
+      <div class="col-lg-9 col-md-10">
+        <div class="registration-card bg-white p-5 rounded-4 shadow-lg">
+          <div class="mb-5 text-center">
+            <div class="mb-3">
+              <img src="{% static 'img/logo1.png' %}" alt="Scout Logo" style="height: 60px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">
             </div>
-            <div class="form-check form-switch form-switch-lg">
-              <input class="form-check-input" type="checkbox" role="switch" id="registrationTypeSwitch" style="width: 60px; height: 30px;">
+            <h2 class="fw-bold mb-2" style="color: #1e3a8a; font-size: 2.5rem;">Create Account</h2>
+            <p class="text-muted" style="font-size: 1.1rem;">Join ScoutConnect - Begin your scouting journey</p>
+          </div>
+      
+          <!-- Registration Type Toggle Switch -->
+          <div class="registration-type-card mb-4">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 class="mb-1 fw-bold">
+                    <i class="fas fa-user me-2 text-primary" id="registrationTypeIcon"></i>
+                    <span id="registrationTypeLabel">Single Registration</span>
+                  </h5>
+                  <small class="text-muted" style="font-size: 0.95rem;" id="registrationTypeDesc">Register one student</small>
+                </div>
+                <div class="form-check form-switch form-switch-lg">
+                  <input class="form-check-input custom-switch" type="checkbox" role="switch" id="registrationTypeSwitch">
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
       
       <form method="post" id="registrationForm">
         {% csrf_token %}
@@ -32,14 +38,14 @@
         <!-- Single Registration Form (default) -->
         <div id="singleRegistrationForm">
           <!-- Display Fixed Registration Fee -->
-          <div class="alert alert-info mb-4">
+          <div class="fee-card mb-4">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <h6 class="mb-0"><i class="fas fa-tag"></i> Registration Fee</h6>
+                <h6 class="mb-1 fw-bold"><i class="fas fa-tag me-2"></i>Registration Fee</h6>
                 <small class="text-muted">Set by administrator</small>
               </div>
               <div class="text-end">
-                <h4 class="mb-0 text-primary">₱500.00</h4>
+                <h3 class="mb-0 fw-bold" style="color: #1e3a8a;">₱500.00</h3>
               </div>
             </div>
           </div>
@@ -58,24 +64,24 @@
           {% endfor %}
           
           <!-- Payment Information -->
-          <div class="alert alert-primary">
-            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Instant Payment - No Receipt Upload Needed!</h6>
-            <p class="mb-2">After registration, you'll be redirected to pay securely via:</p>
-            <div class="d-flex gap-3 justify-content-center my-3">
-              <span class="badge bg-light text-dark fs-6">GCash</span>
-              <span class="badge bg-light text-dark fs-6">PayMaya</span>
-              <span class="badge bg-light text-dark fs-6">GrabPay</span>
+          <div class="payment-info-card mb-4">
+            <h6 class="fw-bold mb-3"><i class="fas fa-mobile-alt me-2"></i>Instant Payment - No Receipt Upload Needed!</h6>
+            <p class="mb-3">After registration, you'll be redirected to pay securely via:</p>
+            <div class="payment-methods mb-3">
+              <div class="payment-badge"><i class="fab fa-google-wallet"></i> GCash</div>
+              <div class="payment-badge"><i class="fas fa-wallet"></i> PayMaya</div>
+              <div class="payment-badge"><i class="fas fa-mobile-alt"></i> GrabPay</div>
             </div>
-            <ul class="mb-2">
-              <li><strong>Instant verification</strong> - No waiting for admin approval</li>
-              <li><strong>Secure payment</strong> - Protected by PayMongo</li>
-              <li><strong>Easy process</strong> - Just scan QR code in your e-wallet app</li>
+            <ul class="payment-features mb-3">
+              <li><i class="fas fa-check-circle text-success me-2"></i><strong>Instant verification</strong> - No waiting for admin approval</li>
+              <li><i class="fas fa-shield-alt text-success me-2"></i><strong>Secure payment</strong> - Protected by PayMongo</li>
+              <li><i class="fas fa-qrcode text-success me-2"></i><strong>Easy process</strong> - Just scan QR code in your e-wallet app</li>
             </ul>
-            <p class="mb-0 small">Your account will be activated automatically after payment!</p>
+            <p class="mb-0 text-muted small"><i class="fas fa-info-circle me-1"></i>Your account will be activated automatically after payment!</p>
           </div>
           
-          <button type="submit" class="btn btn-dark w-100 py-2 mt-3">
-            <i class="fas fa-user-plus"></i> Register & Proceed to Payment
+          <button type="submit" class="btn btn-register w-100 py-3 fw-bold">
+            <i class="fas fa-user-plus me-2"></i>Register & Proceed to Payment
           </button>
         </div>
         
@@ -169,43 +175,207 @@
         </div>
       </form>
       
-      <div class="text-center mt-3">
-        <a href="{% url 'accounts:login' %}" class="text-decoration-none">Already have an account? Log in</a>
-      </div>
-      
-      <div class="text-center mt-5">
-        <small class="text-muted">© ScoutConnect 2024</small>
+          <div class="text-center mt-4">
+            <p class="text-muted mb-2">Already have an account?</p>
+            <a href="{% url 'accounts:login' %}" class="btn btn-outline-primary rounded-pill px-4 py-2">
+              <i class="fas fa-sign-in-alt me-2"></i>Sign In
+            </a>
+          </div>
+          
+          <div class="text-center mt-4">
+            <a href="/" class="text-muted text-decoration-none">
+              <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
   <style>
+    .registration-container {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      padding: 3rem 0;
+    }
+    
+    .registration-card {
+      border: none;
+    }
+    
+    .rounded-4 {
+      border-radius: 1.5rem !important;
+    }
+    
+    .registration-type-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 2px solid #bfdbfe;
+      transition: all 0.3s ease;
+    }
+    
+    .registration-type-card:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+    }
+    
+    .fee-card {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 2px solid #fbbf24;
+    }
+    
+    .payment-info-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 2px solid #3b82f6;
+    }
+    
+    .payment-methods {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .payment-badge {
+      background: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      color: #1e3a8a;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .payment-badge:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .payment-features {
+      list-style: none;
+      padding-left: 0;
+    }
+    
+    .payment-features li {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .payment-features li:last-child {
+      border-bottom: none;
+    }
+    
+    .form-control, .form-select {
+      border-radius: 0.75rem;
+      padding: 0.9rem 1.25rem;
+      border: 2px solid #e5e7eb;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+      background: #f0f9ff;
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+    
     .form-text {
       font-size: 0.875em;
-      color: #6c757d;
+      color: #6b7280;
     }
+    
     form p {
-        margin-bottom: 0.5rem;
+      margin-bottom: 0.5rem;
     }
     
     /* Custom toggle switch styling */
-    .form-switch-lg .form-check-input {
+    .custom-switch {
+      width: 60px;
+      height: 30px;
       cursor: pointer;
     }
     
-    .form-switch-lg .form-check-input:checked {
-      background-color: #28a745;
-      border-color: #28a745;
+    .custom-switch:checked {
+      background-color: #10b981;
+      border-color: #10b981;
     }
     
-    .form-switch-lg .form-check-input:focus {
-      box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+    .custom-switch:focus {
+      box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.25);
+    }
+    
+    /* Buttons */
+    .btn-register {
+      background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+      color: white;
+      border: none;
+      font-size: 1.1rem;
+      border-radius: 3rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+    }
+
+    .btn-register:hover {
+      background: linear-gradient(135deg, #1e40af 0%, #2563eb 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(30, 58, 138, 0.4);
+      color: white;
+    }
+    
+    .btn-outline-primary {
+      border: 2px solid #3b82f6;
+      color: #1e3a8a;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .btn-outline-primary:hover {
+      background: #3b82f6;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
     
     /* Smooth transitions */
     #singleRegistrationForm,
     #batchRegistrationForm {
       transition: opacity 0.3s ease-in-out;
+    }
+    
+    .alert {
+      border-radius: 0.75rem;
+    }
+    
+    .card {
+      border-radius: 1rem;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    
+    .card-header {
+      border-radius: 1rem 1rem 0 0 !important;
+      font-weight: 600;
+    }
+    
+    @media (max-width: 768px) {
+      .registration-container {
+        padding: 2rem 1rem;
+      }
+      
+      .registration-card {
+        padding: 2rem !important;
+      }
     }
   </style>
 {% endblock %}

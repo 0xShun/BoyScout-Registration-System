@@ -1,9 +1,13 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container-fluid py-4 position-relative">
   {# Access Control Overlay for scouts without completed/paid registration #}
-  {% if user.is_authenticated and user.rank != 'admin' %}
+  {% if user.is_authenticated and user.role != 'admin' %}
     {% if user.is_scout %}
       {% if not user.is_registration_complete or not user.is_registration_fully_paid %}
     <div id="event-blur-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; backdrop-filter: blur(6px) brightness(0.8); background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;">
@@ -18,18 +22,23 @@
     {% endif %}
   {% endif %}
 
-  {# Header Section #}
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Events & Activities Calendar</h2>
-    {% if user.is_admin %}
-      <a href="{% url 'events:event_create' %}" class="btn btn-success">
-        <i class="fas fa-plus me-1"></i> Create Event
+  {# Page Header #}
+  <div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2><i class="fas fa-calendar-alt"></i> Events & Activities Calendar</h2>
+        <p>View and manage upcoming scout events and activities</p>
+      </div>
+      {% if user.is_admin %}
+      <a href="{% url 'events:event_create' %}" class="btn-enhanced-success">
+        <i class="fas fa-plus-circle me-2"></i> Create Event
       </a>
-    {% endif %}
+      {% endif %}
+    </div>
   </div>
 
   {# Calendar Container #}
-  <div class="card shadow-sm">
+  <div class="enhanced-card">
     <div class="card-body">
       <div id="calendar"></div>
     </div>
@@ -269,7 +278,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 {# Conditional CSS for Access Control #}
-{% if user.is_authenticated and user.rank != 'admin' %}
+{% if user.is_authenticated and user.role != 'admin' %}
   {% if user.is_scout %}
     {% if not user.is_registration_complete or not user.is_registration_fully_paid %}
       <style>

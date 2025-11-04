@@ -1,183 +1,251 @@
 {% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container py-4 position-relative">
-  {% comment %} Only show the locked overlay to non-admins who haven't completed registration {% endcomment %}
+  {% comment %} Access Control Overlay {% endcomment %}
   {% if user.is_authenticated and not user.is_admin and not user.is_registration_complete %}
     <div id="event-blur-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; backdrop-filter: blur(6px) brightness(0.8); background: rgba(255,255,255,0.6); display: flex; align-items: center; justify-content: center;">
     </div>
   {% endif %}
   
+  {# Page Header #}
+  <div class="page-header mb-4">
+    <h2><i class="fas fa-calendar-day"></i> Event Details</h2>
+    <p>View event information and manage your registration</p>
+  </div>
+  
   <div class="row">
     <div class="col-lg-8">
+      {# Registration Status Card #}
       {% if user.is_authenticated %}
         {% if registration %}
-              <div class="alert alert-success border-success">
-                <h6><i class="fas fa-check-circle"></i> You are registered for this event!</h6>
-                <p><strong>RSVP Status:</strong> {{ registration.get_rsvp_display }}</p>
-                <p class="mb-0"><strong>Payment Status:</strong> 
-                  <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
-                    {{ registration.get_payment_status_display }}
-                  </span>
-                </p>
-                
-                {% if event.has_payment_required %}
-                  <hr>
-                  <p class="mb-1"><strong>Amount Required:</strong> ₱{{ registration.amount_required }}</p>
-                  <p class="mb-1"><strong>Amount Paid:</strong> ₱{{ registration.total_paid }}</p>
-                  {% if registration.amount_remaining > 0 %}
-                    <p class="mb-0"><strong>Status:</strong> <span class="text-warning">Payment Pending</span></p>
-                  {% else %}
-                    <p class="mb-0"><strong>Status:</strong> <span class="text-success">Fully Paid ✓</span></p>
-                  {% endif %}
-                {% endif %}
-                
-                {% if registration.verified %}
-                  <div class="mt-3 p-2 bg-success bg-opacity-10 border border-success rounded">
-                    <p class="mb-0 text-success">
-                      <i class="fas fa-check-circle"></i> <strong>Verified</strong> 
-                      {% if registration.verified_by %}
-                        by {{ registration.verified_by.get_full_name }} on {{ registration.verification_date|date:"M d, Y" }}
-                      {% endif %}
-                    </p>
+          <div class="enhanced-card mb-4" style="border-left: 4px solid #10b981;">
+            <div class="card-body">
+              <h5 class="fw-bold mb-3" style="color: #10b981;">
+                <i class="fas fa-check-circle me-2"></i> You are registered for this event!
+              </h5>
+              
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="fas fa-clipboard-check" style="color: #3b82f6;"></i>
+                    <div>
+                      <small class="text-muted d-block">RSVP Status</small>
+                      <strong>{{ registration.get_rsvp_display }}</strong>
+                    </div>
                   </div>
-                {% endif %}
-                
-                {% if registration.payment_notes %}
-                  <div class="mt-2">
-                    <small class="text-muted"><strong>Admin Notes:</strong> {{ registration.payment_notes }}</small>
+                </div>
+                <div class="col-md-6">
+                  <div class="info-item">
+                    <i class="fas fa-credit-card" style="color: #fbbf24;"></i>
+                    <div>
+                      <small class="text-muted d-block">Payment Status</small>
+                      <span class="status-badge {% if registration.payment_status == 'paid' %}status-verified{% elif registration.payment_status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
+                        {{ registration.get_payment_status_display }}
+                      </span>
+                    </div>
                   </div>
-                {% endif %}
-              </div>
-            {% else %}
-              <!-- Not Registered Yet -->
-              <div class="mb-3">
-                <p class="lead">Ready to join this event?</p>
-                
-                {% if event.has_payment_required %}
-                  <div class="alert alert-light border">
-                    <h6>Payment Details</h6>
-                    <p class="mb-1"><i class="fas fa-tag"></i> <strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
-                    <p class="mb-0 text-muted small">
-                      <i class="fas fa-shield-alt"></i> Secure payment via PayMongo QR PH (GCash, PayMaya, GrabPay)
-                    </p>
-                  </div>
-                {% else %}
-                  <div class="alert alert-success">
-                    <p class="mb-0"><i class="fas fa-gift"></i> This is a free event - no payment required!</p>
-                  </div>
-                {% endif %}
+                </div>
               </div>
               
-              <!-- Registration Button -->
+              {% if event.has_payment_required %}
+                <hr>
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="text-center p-3" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 8px;">
+                      <small class="text-muted d-block">Amount Required</small>
+                      <h4 class="fw-bold mb-0" style="color: #1e3a8a;">₱{{ registration.amount_required }}</h4>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="text-center p-3" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 8px;">
+                      <small class="text-muted d-block">Amount Paid</small>
+                      <h4 class="fw-bold mb-0" style="color: #065f46;">₱{{ registration.total_paid }}</h4>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="text-center p-3" style="background: linear-gradient(135deg, {% if registration.amount_remaining > 0 %}#fef3c7 0%, #fde68a{% else %}#d1fae5 0%, #a7f3d0{% endif %} 100%); border-radius: 8px;">
+                      <small class="text-muted d-block">Balance</small>
+                      <h4 class="fw-bold mb-0" style="color: {% if registration.amount_remaining > 0 %}#92400e{% else %}#065f46{% endif %};">
+                        ₱{{ registration.amount_remaining }}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+              {% endif %}
+              
+              {% if registration.verified %}
+                <div class="mt-3 p-3 bg-success bg-opacity-10 border border-success rounded">
+                  <p class="mb-0 text-success">
+                    <i class="fas fa-check-circle"></i> <strong>Verified</strong> 
+                    {% if registration.verified_by %}
+                      by {{ registration.verified_by.get_full_name }} on {{ registration.verification_date|date:"M d, Y" }}
+                    {% endif %}
+                  </p>
+                </div>
+              {% endif %}
+              
+              {% if registration.payment_notes %}
+                <div class="mt-2">
+                  <small class="text-muted"><strong>Admin Notes:</strong> {{ registration.payment_notes }}</small>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        {% else %}
+          {# Not Registered - Show Registration Form #}
+          <div class="enhanced-card mb-4">
+            <div class="card-body">
+              <h5 class="fw-bold mb-3"><i class="fas fa-user-plus me-2"></i> Ready to join this event?</h5>
+              
+              {% if event.has_payment_required %}
+                <div class="alert-enhanced alert-enhanced-info mb-4">
+                  <i class="fas fa-tag me-2"></i>
+                  <div>
+                    <h6 class="mb-1">Payment Details</h6>
+                    <p class="mb-1"><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
+                    <small><i class="fas fa-shield-alt"></i> Secure payment via PayMongo QR PH (GCash, PayMaya, GrabPay)</small>
+                  </div>
+                </div>
+              {% else %}
+                <div class="alert-enhanced alert-enhanced-success mb-4">
+                  <i class="fas fa-gift me-2"></i>
+                  <strong>This is a free event - no payment required!</strong>
+                </div>
+              {% endif %}
+              
               <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="register_event" value="1">
                 
                 {% if event.has_payment_required %}
-                  <button type="submit" class="btn btn-success btn-lg w-100">
-                    <i class="fas fa-credit-card"></i> Register & Pay ₱{{ event.payment_amount }}
+                  <button type="submit" class="btn-enhanced-success w-100" style="padding: 1rem;">
+                    <i class="fas fa-credit-card me-2"></i> Register & Pay ₱{{ event.payment_amount }}
                   </button>
-                  <p class="text-muted text-center small mt-2">
+                  <p class="text-muted text-center small mt-2 mb-0">
                     You will be redirected to PayMongo to complete the payment securely
                   </p>
                 {% else %}
-                  <button type="submit" class="btn btn-primary btn-lg w-100">
-                    <i class="fas fa-check-circle"></i> Register for Free Event
+                  <button type="submit" class="btn-enhanced-primary w-100" style="padding: 1rem;">
+                    <i class="fas fa-check-circle me-2"></i> Register for Free Event
                   </button>
                 {% endif %}
               </form>
+            </div>
+          </div>
         {% endif %}
       {% endif %}
       
-      <!-- Event Details Section -->
-      <div class="card shadow-sm mb-4">
-        <div class="card-header">
-          <h4 class="mb-0">{{ event.title }}</h4>
+      {# Event Details Card #}
+      <div class="enhanced-card mb-4">
+        <div class="enhanced-card-header">
+          <h4><i class="fas fa-info-circle me-2"></i> {{ event.title }}</h4>
         </div>
         <div class="card-body">
           {% if event.banner %}
-            <div class="mb-3">
-              <img src="{{ event.banner.url }}" alt="{{ event.title }}" class="img-fluid rounded">
+            <div class="mb-4">
+              <img src="{{ event.banner.url }}" alt="{{ event.title }}" class="img-fluid rounded" style="width: 100%; max-height: 400px; object-fit: cover;">
             </div>
           {% endif %}
           
-          <div class="row">
+          <div class="row g-3 mb-4">
             <div class="col-md-6">
-              <p><strong><i class="fas fa-calendar-alt"></i> Date:</strong> {{ event.date|date:"F d, Y" }}</p>
-              <p><strong><i class="fas fa-clock"></i> Time:</strong> {{ event.time|time:"g:i A" }}</p>
+              <div class="info-item">
+                <i class="fas fa-calendar-alt" style="color: #3b82f6; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Date</small>
+                  <strong>{{ event.date|date:"F d, Y" }}</strong>
+                </div>
+              </div>
             </div>
             <div class="col-md-6">
-              <p><strong><i class="fas fa-map-marker-alt"></i> Location:</strong> {{ event.location }}</p>
-              {% if event.has_payment_required %}
-                <p><strong><i class="fas fa-tag"></i> Event Fee:</strong> ₱{{ event.payment_amount }}</p>
-              {% else %}
-                <p><strong><i class="fas fa-gift"></i> Event Fee:</strong> Free</p>
-              {% endif %}
+              <div class="info-item">
+                <i class="fas fa-clock" style="color: #10b981; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Time</small>
+                  <strong>{{ event.time|time:"g:i A" }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-map-marker-alt" style="color: #dc2626; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Location</small>
+                  <strong>{{ event.location }}</strong>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="info-item">
+                <i class="fas fa-tag" style="color: #fbbf24; font-size: 1.5rem;"></i>
+                <div>
+                  <small class="text-muted d-block">Event Fee</small>
+                  <strong>{% if event.has_payment_required %}₱{{ event.payment_amount }}{% else %}Free{% endif %}</strong>
+                </div>
+              </div>
             </div>
           </div>
           
           <hr>
-          <div class="event-description">
-            <h6><strong>Event Description:</strong></h6>
-            <p class="text-muted">{{ event.description|linebreaks }}</p>
+          
+          <div class="mb-3">
+            <h6 class="fw-bold"><i class="fas fa-align-left me-2"></i> Event Description</h6>
+            <div class="p-3" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 8px; border-left: 4px solid #3b82f6;">
+              <p class="mb-0">{{ event.description|linebreaks }}</p>
+            </div>
           </div>
           
           <div class="mt-3">
             <small class="text-muted">
               <i class="fas fa-info-circle"></i> 
-              Event created by {{ event.created_by.get_full_name }} on {{ event.created_at|date:"M d, Y" }}
+              Event created by <strong>{{ event.created_by.get_full_name }}</strong> on {{ event.created_at|date:"M d, Y" }}
             </small>
           </div>
         </div>
       </div>
-    </div>
-
-      <!-- Admin Section -->
+      
+      {# Admin Controls #}
       {% if user.is_admin %}
-        <div class="card shadow-sm mb-4">
-          <div class="card-header">
-            <h5 class="mb-0">Admin Controls</h5>
+        <div class="enhanced-card mb-4">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-tools me-2"></i> Admin Controls</h5>
           </div>
           <div class="card-body">
-            <div class="row">
-              <div class="col-md-12">
-                <a href="{% url 'events:event_edit' event.pk %}" class="btn btn-warning mb-2 w-100">
-                  <i class="fas fa-edit"></i> Edit Event
-                </a>
-                <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info mb-2 w-100">
-                  <i class="fas fa-clipboard-check"></i> Manage Attendance
+            <div class="row g-2">
+              <div class="col-md-6">
+                <a href="{% url 'events:event_edit' event.pk %}" class="btn-enhanced-warning w-100">
+                  <i class="fas fa-edit me-2"></i> Edit Event
                 </a>
               </div>
-              <!-- <div class="col-md-6">
-                <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2 w-100">
-                  <i class="fas fa-camera"></i> Upload Photos
+              <div class="col-md-6">
+                <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info w-100">
+                  <i class="fas fa-clipboard-check me-2"></i> Manage Attendance
                 </a>
-                <a href="{% url 'events:pending_payments' %}" class="btn btn-primary mb-2 w-100">
-                  <i class="fas fa-money-bill-wave"></i> View Pending Payments
-                </a>
-              </div> -->
-            </div>
-            <div class="row mt-2">
+              </div>
               <div class="col-12">
-                <a href="{% url 'events:event_delete' event.pk %}" class="btn btn-danger w-100" 
+                <a href="{% url 'events:event_delete' event.pk %}" class="btn-enhanced-danger w-100" 
                    onclick="return confirm('Are you sure you want to delete this event? This action cannot be undone and will remove all registrations and payments associated with this event.')">
-                  <i class="fas fa-trash"></i> Delete Event
+                  <i class="fas fa-trash me-2"></i> Delete Event
                 </a>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Registrations List -->
+        {# Registrations List #}
         {% if registrations %}
-          <div class="card shadow-sm">
-            <div class="card-header">
-              <h5 class="mb-0">All Registrations</h5>
+          <div class="enhanced-card">
+            <div class="enhanced-card-header">
+              <h5><i class="fas fa-users me-2"></i> All Registrations</h5>
             </div>
             <div class="card-body">
               <div class="table-responsive">
-                <table class="table table-striped">
+                <table class="table enhanced-table">
                   <thead>
                     <tr>
                       <th>User</th>
@@ -190,20 +258,24 @@
                   <tbody>
                     {% for reg in registrations %}
                       <tr>
-                        <td>{{ reg.user.get_full_name }}</td>
+                        <td><strong>{{ reg.user.get_full_name }}</strong></td>
                         <td>{{ reg.get_rsvp_display }}</td>
                         <td>
-                          <span class="badge {% if reg.payment_status == 'paid' %}bg-success{% elif reg.payment_status == 'pending' %}bg-warning{% elif reg.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                          <span class="status-badge {% if reg.payment_status == 'paid' %}status-verified{% elif reg.payment_status == 'pending' %}status-pending{% elif reg.payment_status == 'rejected' %}status-rejected{% else %}status-pending{% endif %}">
                             {{ reg.get_payment_status_display }}
                           </span>
                         </td>
                         <td>{{ reg.registered_at|date:"M d, Y" }}</td>
                         <td>
                           {% if reg.payment_status == 'pending' %}
-                            <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-primary">Verify Payment</a>
+                            <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-primary">
+                              <i class="fas fa-check me-1"></i> Verify Payment
+                            </a>
                           {% endif %}
                           {% if reg.receipt_image %}
-                            <a href="{{ reg.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">View Receipt</a>
+                            <a href="{{ reg.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">
+                              <i class="fas fa-image me-1"></i> View Receipt
+                            </a>
                           {% endif %}
                         </td>
                       </tr>
@@ -217,34 +289,64 @@
       {% endif %}
     </div>
 
-    <!-- Sidebar -->
+    {# Sidebar #}
     <div class="col-lg-4">
-      <!-- Attendance Summary -->
-      <div class="card shadow-sm mb-4">
-        <div class="card-header">
-          <h5 class="mb-0">Attendance Summary</h5>
+      {# Attendance Summary #}
+      <div class="enhanced-card mb-4">
+        <div class="enhanced-card-header">
+          <h5><i class="fas fa-chart-pie me-2"></i> Attendance Summary</h5>
         </div>
         <div class="card-body">
-          <p><strong>Present:</strong> {{ present_count }}</p>
-          <p><strong>Absent:</strong> {{ absent_count }}</p>
-          <p><strong>Total:</strong> {{ total_scouts }}</p>
+          <div class="stat-card-enhanced mb-3" style="border-left-color: #10b981;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #065f46 0%, #10b981 100%);">
+              <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ present_count }}</div>
+              <div class="stat-label">Present</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-enhanced mb-3" style="border-left-color: #dc2626;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%);">
+              <i class="fas fa-user-times"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ absent_count }}</div>
+              <div class="stat-label">Absent</div>
+            </div>
+          </div>
+          
+          <div class="stat-card-enhanced" style="border-left-color: #3b82f6;">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value">{{ total_scouts }}</div>
+              <div class="stat-label">Total Scouts</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Event Photos -->
+      {# Event Photos #}
       {% if photos %}
-        <div class="card shadow-sm">
-          <div class="card-header">
-            <h5 class="mb-0">Event Photos</h5>
+        <div class="enhanced-card">
+          <div class="enhanced-card-header">
+            <h5><i class="fas fa-images me-2"></i> Event Photos</h5>
           </div>
           <div class="card-body">
-            <div class="row">
+            <div class="row g-2">
               {% for photo in photos %}
-                <div class="col-6 mb-2">
-                  <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" class="img-fluid rounded">
-                  {% if photo.is_featured %}
-                    <span class="badge bg-warning">Featured</span>
-                  {% endif %}
+                <div class="col-6">
+                  <div class="position-relative">
+                    <img src="{{ photo.image.url }}" alt="{{ photo.caption }}" class="img-fluid rounded" style="width: 100%; height: 150px; object-fit: cover;">
+                    {% if photo.is_featured %}
+                      <span class="badge bg-warning position-absolute top-0 start-0 m-2">
+                        <i class="fas fa-star"></i> Featured
+                      </span>
+                    {% endif %}
+                  </div>
                 </div>
               {% endfor %}
             </div>
@@ -254,7 +356,6 @@
     </div>
   </div>
 </div>
-{% endblock %}
 
 <style>
   {% if user.is_authenticated and user.registration_status != 'active' %}
@@ -264,6 +365,12 @@
     user-select: none;
   }
   {% endif %}
+  
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
 </style>
 
 <script>
@@ -311,8 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function checkForVerifiedStatus() {
     try {
-      // Look specifically for "Verified" text in the green div (alert-success)
-      const greenDiv = document.querySelector('.alert-success.border-success');
+      const greenDiv = document.querySelector('.bg-success.bg-opacity-10');
       if (greenDiv) {
         const greenDivText = greenDiv.textContent || '';
         if (/Verified/i.test(greenDivText)) {
@@ -321,18 +427,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
       
-      // Also check for other indicators of paid/verified status
-      const statusBadge = document.querySelector('.alert-success span.badge');
-      if (statusBadge) {
-        const txt = statusBadge.textContent || '';
-        if (/paid/i.test(txt)) return true;
-      }
-      
-      const fullyPaidText = Array.from(document.querySelectorAll('.alert-success'))
-        .some(el => /Fully Paid|Fully Paid \u2713/i.test(el.textContent || ''));
-      if (fullyPaidText) return true;
-      
-      if (document.querySelector('.bg-success.bg-opacity-10')) return true;
+      const statusBadge = document.querySelector('.status-badge.status-verified');
+      if (statusBadge) return true;
       
     } catch (e) {
       console.error('checkForVerifiedStatus error', e);
@@ -340,21 +436,20 @@ document.addEventListener('DOMContentLoaded', function() {
     return false;
   }
 
-  // Check immediately when page loads
   if (checkForVerifiedStatus()) {
     triggerSendEmail();
   }
 
-  // Set up observer to watch for changes in the green div
-  const observerTarget = document.querySelector('.alert-success.border-success');
+  const observerTarget = document.querySelector('.bg-success.bg-opacity-10');
   if (observerTarget) {
     const observer = new MutationObserver((mutationsList) => {
       if (checkForVerifiedStatus()) {
         triggerSendEmail();
-        observer.disconnect(); // Stop observing after sending email
+        observer.disconnect();
       }
     });
     observer.observe(observerTarget, { childList: true, subtree: true, characterData: true });
   }
 });
 </script>
+{% endblock %}

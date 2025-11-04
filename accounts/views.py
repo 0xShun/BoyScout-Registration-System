@@ -37,6 +37,14 @@ def admin_dashboard(request):
     # No pending payments - all payments are full payment upfront
     unpaid_count = Payment.objects.filter(status__in=['pending', 'for_verification']).count()
     announcement_count = Announcement.objects.count()
+    
+    # Role distribution
+    role_distribution = {
+        'scouts': User.objects.filter(role='scout').count(),
+        'leaders': User.objects.filter(role='leader').count(),
+        'admins': User.objects.filter(role='admin').count(),
+    }
+    
     # Membership growth by month
     member_growth = (
         User.objects.annotate(month=TruncMonth('date_joined'))
@@ -63,7 +71,7 @@ def admin_dashboard(request):
     ]
     # Most active scouts (by payment count)
     active_scouts = (
-        User.objects.filter(rank='scout')
+        User.objects.filter(role='scout')
         .annotate(payment_count=models.Count('payments'))
         .order_by('-payment_count')[:5]
     )
@@ -81,7 +89,7 @@ def admin_dashboard(request):
             'rate': rate,
         })
     # Most/least active scouts by attendance
-    scout_attendance = User.objects.filter(rank='scout').annotate(
+    scout_attendance = User.objects.filter(role='scout').annotate(
         present_count=models.Count('attendances', filter=models.Q(attendances__status='present')),
         absent_count=models.Count('attendances', filter=models.Q(attendances__status='absent')),
         total_attendance=models.Count('attendances')
@@ -120,13 +128,25 @@ def admin_dashboard(request):
     # No server-side filtering; the template JS handles filter chips without reload
     recent_activity = sorted(unified, key=lambda x: x.timestamp, reverse=True)[:12]
 
+    # Convert data to JSON-safe format for charts
+    import json
+    member_growth_json = json.dumps([
+        {'month': item['month'].isoformat() if item['month'] else None, 'count': item['count']}
+        for item in member_growth
+    ])
+    payment_trends_json = json.dumps([
+        {'month': item['month'].isoformat() if item['month'] else None, 'total': float(item['total']) if item['total'] else 0}
+        for item in payment_trends
+    ])
+    
     return render(request, 'accounts/admin_dashboard.html', {
         'member_count': member_count,
         'payment_total': payment_total,
         'unpaid_count': unpaid_count,  # Unpaid platform registrations
         'announcement_count': announcement_count,
-        'member_growth': list(member_growth),
-        'payment_trends': list(payment_trends),
+        'role_distribution': role_distribution,
+        'member_growth': member_growth_json,
+        'payment_trends': payment_trends_json,
         'announcement_engagement': announcement_engagement,
         'active_scouts': active_scouts,
         'attendance_rates': attendance_rates,
@@ -135,16 +155,32 @@ def admin_dashboard(request):
         'repeated_absentees': repeated_absentees,
         'is_active_member': is_active_member,
         'recent_activity': recent_activity,
-    'activity_filter': activity_filter,
+        'activity_filter': activity_filter,
     })
+
+@login_required
+def dashboard(request):
+    """Generic dashboard that redirects based on user role"""
+    if request.user.is_admin():
+        return redirect('accounts:admin_dashboard')
+    else:
+        return redirect('accounts:scout_dashboard')
 
 @login_required
 def scout_dashboard(request):
     if not request.user.is_scout():
         return redirect('accounts:admin_dashboard')
-    is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
-    # Profile completeness check
+    
+    from announcements.models import Announcement
+    from events.models import Event, EventRegistration
+    from django.utils import timezone
+    from django.db.models import Count, Sum, Q
+    from decimal import Decimal
+    
     user = request.user
+    today = timezone.now().date()
+    
+    # Profile completeness check
     incomplete_fields = []
     if not user.phone_number:
         incomplete_fields.append('Phone Number')
@@ -155,34 +191,113 @@ def scout_dashboard(request):
     if not user.emergency_phone:
         incomplete_fields.append('Emergency Phone')
     profile_incomplete = bool(incomplete_fields)
-
-    # Fetch latest announcements for this user (limit 5)
-    from announcements.models import Announcement
-    latest_announcements = Announcement.objects.order_by('-date_posted')[:3]
-
-
-
-    # Fetch upcoming events (limit 5)
-    from events.models import Event, EventRegistration
-    from django.utils import timezone
-    today = timezone.now().date()
-    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:3]
     
-    # No pending payments - users must pay in full before registration
-    # Only show unpaid event registrations (those that require payment but haven't been paid)
+    # Calculate profile completion percentage
+    total_fields = 8  # first_name, last_name, email, phone, address, emergency_contact, emergency_phone, scout_rank
+    completed_fields = 3  # email, first_name, last_name are required
+    if user.phone_number:
+        completed_fields += 1
+    if user.address:
+        completed_fields += 1
+    if user.emergency_contact:
+        completed_fields += 1
+    if user.emergency_phone:
+        completed_fields += 1
+    if user.scout_rank:
+        completed_fields += 1
+    profile_completion = int((completed_fields / total_fields) * 100)
+    
+    # Registration payment progress
+    registration_paid = user.registration_total_paid or Decimal('0.00')
+    registration_fee = Decimal('500.00')
+    registration_progress = min(int((registration_paid / registration_fee) * 100), 100)
+    
+    # Events attended
+    events_attended = EventRegistration.objects.filter(
+        user=user,
+        event__date__lt=today
+    ).count()
+    
+    # Events this month
+    from datetime import datetime
+    this_month_start = datetime(today.year, today.month, 1).date()
+    events_this_month = EventRegistration.objects.filter(
+        user=user,
+        event__date__gte=this_month_start,
+        event__date__lt=today
+    ).count()
+    event_participation_progress = min(events_this_month * 25, 100)  # 4 events = 100%
+    
+    # Total contributions (verified payments)
+    total_paid = Payment.objects.filter(
+        user=user,
+        status='verified'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+    
+    # Attendance rate
+    total_registrations = EventRegistration.objects.filter(user=user).count()
+    if total_registrations > 0:
+        attended = EventRegistration.objects.filter(
+            user=user,
+            event__date__lt=today
+        ).count()
+        attendance_rate = int((attended / total_registrations) * 100)
+    else:
+        attendance_rate = 0
+    
+    # Achievements earned (based on milestones)
+    achievements_earned = 0
+    total_achievements = 6
+    if events_attended >= 1:
+        achievements_earned += 1
+    if events_attended >= 5:
+        achievements_earned += 1
+    if events_attended >= 10:
+        achievements_earned += 1
+    if profile_completion == 100:
+        achievements_earned += 1
+    if total_paid >= 1000:
+        achievements_earned += 1
+    if attendance_rate >= 90:
+        achievements_earned += 1
+    
+    # Check if active member
+    is_active_member = Payment.objects.filter(user=user, status='verified').exists()
+    
+    # Fetch latest announcements
+    latest_announcements = Announcement.objects.order_by('-date_posted')[:3]
+    
+    # Fetch upcoming events
+    upcoming_events = Event.objects.filter(date__gte=today).order_by('date', 'time')[:3]
+    
+    # Get next event for countdown
+    next_event = Event.objects.filter(date__gte=today).order_by('date', 'time').first()
+    
+    # Unpaid event registrations
     unpaid_event_registrations = EventRegistration.objects.filter(
         user=user,
         event__payment_amount__gt=0,
-        payment_status='not_required',  # Not paid yet
+        payment_status='not_required',
         event__date__gte=today
     ).select_related('event').order_by('event__date', 'event__time')[:5]
-
+    
     return render(request, 'accounts/scout_dashboard.html', {
         'is_active_member': is_active_member,
         'profile_incomplete': profile_incomplete,
         'incomplete_fields': incomplete_fields,
+        'profile_completion': profile_completion,
+        'registration_paid': registration_paid,
+        'registration_progress': registration_progress,
+        'events_attended': events_attended,
+        'events_this_month': events_this_month,
+        'event_participation_progress': event_participation_progress,
+        'total_paid': total_paid,
+        'attendance_rate': attendance_rate,
+        'achievements_earned': achievements_earned,
+        'total_achievements': total_achievements,
         'latest_announcements': latest_announcements,
-        'upcoming_events': upcoming_events if user.registration_status == 'active' or user.rank == 'admin' else [],
+        'upcoming_events': upcoming_events if user.registration_status == 'active' or user.role == 'admin' else [],
+        'next_event': next_event,
         'unpaid_event_registrations': unpaid_event_registrations,
         'today': today,
     })
@@ -216,14 +331,18 @@ def register(request):
                     with transaction.atomic():
                         number_of_students = registrar_form.cleaned_data['number_of_students']
                         
+                        # Get registration fee from system settings
+                        from .models import SystemSettings
+                        registration_fee = SystemSettings.get_registration_fee()
+                        
                         # Create BatchRegistration record (student details will be collected after payment)
                         batch_reg = BatchRegistration.objects.create(
                             registrar_name=registrar_form.cleaned_data['registrar_name'],
                             registrar_email=registrar_form.cleaned_data['registrar_email'],
                             registrar_phone=registrar_form.cleaned_data.get('registrar_phone', ''),
                             number_of_students=number_of_students,
-                            amount_per_student=Decimal('500.00'),
-                            total_amount=Decimal('500.00') * number_of_students,
+                            amount_per_student=registration_fee,
+                            total_amount=registration_fee * number_of_students,
                             status='pending'
                         )
                         
@@ -255,7 +374,7 @@ def register(request):
                             
                             if checkout_url:
                                 # Notify admins
-                                admins = User.objects.filter(rank='admin')
+                                admins = User.objects.filter(role='admin')
                                 for admin in admins:
                                     send_realtime_notification(
                                         admin.id,
@@ -295,42 +414,37 @@ def register(request):
                 post_data.pop('phone_number', None)
             form = UserRegisterForm(post_data)
             if form.is_valid():
-                # Create user
+                # Create user (INACTIVE until payment is verified)
                 user = form.save(commit=False)
-                user.rank = 'scout'
-                # TEMPORARY: For testing, immediately activate new users so they can access events
-                # TODO: This is a short-term change for debugging/testing. Add a feature flag
-                # or environment guard and remove this automatic activation before deploying to
-                # production to avoid bypassing payment verification.
-                # NOTE: Remove or gate this behavior before deploying to production.
-                user.is_active = True
-                user.registration_status = 'active'
+                user.role = 'scout'
+                user.is_active = False  # User must complete payment first
+                user.registration_status = 'inactive'  # Will be activated by webhook
                 user.save()
 
-                # Fixed registration fee (set by admin)
-                REGISTRATION_FEE = Decimal('500.00')
-                amount = REGISTRATION_FEE
+                # Get registration fee from system settings (admin can change this)
+                from .models import SystemSettings
+                amount = SystemSettings.get_registration_fee()
                 
-                # Create RegistrationPayment record (pending PayMongo payment)
+                # Create RegistrationPayment record (PENDING until PayMongo payment completes)
                 reg_payment = RegistrationPayment.objects.create(
                     user=user,
                     amount=amount,
-                    status='verified',
-                    verification_date=timezone.now(),
+                    status='pending',  # Will be updated to 'verified' by webhook
                 )
 
-                # Send registration confirmation email since we auto-activate for testing
+                # Send registration initiated email
                 try:
                     NotificationService.send_email(
-                        subject='Registration Complete - ScoutConnect',
+                        subject='Complete Your Registration - ScoutConnect',
                         message=(f"Dear {user.first_name} {user.last_name},\n\n"
-                                 "Your account registration is complete and your registration payment has been recorded as complete for testing purposes. "
-                                 "You can now access events and your dashboard.\n\n"
-                                 "If this was a mistake, please contact support."),
+                                 "Thank you for registering with ScoutConnect!\n\n"
+                                 "To complete your registration, please proceed with the payment of ₱{amount}.\n"
+                                 "Your account will be automatically activated once your payment is confirmed.\n\n"
+                                 "You will receive another email once your payment is verified."),
                         recipient_list=[user.email]
                     )
                 except Exception:
-                    logger.exception('Failed to send registration confirmation email')
+                    logger.exception('Failed to send registration initiation email')
 
                 # Create PayMongo payment source
                 try:
@@ -360,7 +474,7 @@ def register(request):
                             request.session['pending_registration_payment_id'] = reg_payment.id
                             
                             # Notify admins
-                            admins = User.objects.filter(rank='admin')
+                            admins = User.objects.filter(role='admin')
                             for admin in admins:
                                 send_realtime_notification(
                                     admin.id,
@@ -419,12 +533,12 @@ def admin_required(view_func):
 @admin_required
 def member_list(request):
     query = request.GET.get('q', '')
-    filter_rank = request.GET.get('rank', '')
+    filter_role = request.GET.get('rank', '')
     members = User.objects.all()
     if query:
         members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
-    if filter_rank:
-        members = members.filter(rank=filter_rank)
+    if filter_role:
+        members = members.filter(role=filter_role)
     
     registration_fee = 500  # Registration fee instead of monthly dues
     
@@ -489,8 +603,8 @@ def member_list(request):
     return render(request, 'accounts/member_list.html', {
         'members': members,
         'query': query,
-        'filter_rank': filter_rank,
-        'rank_choices': User.RANK_CHOICES,
+        'filter_rank': filter_role,
+        'role_choices': User.ROLE_CHOICES,
     })
 
 @login_required
@@ -644,8 +758,8 @@ def settings_view(request):
         form = RoleManagementForm(request.POST)
         if form.is_valid():
             user = form.cleaned_data['user']
-            rank = form.cleaned_data['rank']
-            user.rank = rank
+            role = form.cleaned_data['rank']
+            user.role = rank
             user.save()
             messages.success(request, f"Successfully updated {user.username}'s rank to {rank}.")
             return redirect('accounts:settings')
@@ -696,7 +810,7 @@ def group_delete(request, pk):
 @admin_required
 def group_detail(request, pk):
     group = Group.objects.get(pk=pk)
-    scouts = User.objects.filter(rank='scout').order_by('last_name', 'first_name')
+    scouts = User.objects.filter(role='scout').order_by('last_name', 'first_name')
     if request.method == 'POST':
         # Assign scouts to group
         selected_ids = request.POST.getlist('scouts')
@@ -786,10 +900,10 @@ def quick_announcement(request):
             else:
                 target_users = []
                 if 'scouts' in recipients:
-                    scouts = User.objects.filter(rank='scout')
+                    scouts = User.objects.filter(role='scout')
                     target_users.extend(scouts)
                 if 'admins' in recipients:
-                    admins = User.objects.filter(rank='admin')
+                    admins = User.objects.filter(role='admin')
                     target_users.extend(admins)
                 announcement.recipients.set(target_users)
                 print(f"[DEBUG] Recipients set to filtered users: count={len(target_users)}")
@@ -842,7 +956,7 @@ def badge_list(request):
 @admin_required
 def badge_manage(request, pk):
     badge = Badge.objects.get(pk=pk)
-    scouts = User.objects.filter(rank='scout').order_by('last_name', 'first_name')
+    scouts = User.objects.filter(role='scout').order_by('last_name', 'first_name')
     # Get or create UserBadge for each scout
     user_badges = [UserBadge.objects.get_or_create(user=scout, badge=badge)[0] for scout in scouts]
     if request.method == 'POST':
@@ -874,7 +988,7 @@ def registration_payment(request, user_id):
         return redirect('accounts:login')
     
     # Admin users don't need to pay registration fees
-    if user.rank == 'admin':
+    if user.role == 'admin':
         messages.info(request, 'Admin users do not need to pay registration fees.')
         return redirect('accounts:admin_dashboard' if user.is_admin() else 'accounts:scout_dashboard')
     
@@ -904,7 +1018,7 @@ def registration_payment(request, user_id):
                 )
                 
                 # Notify admins about new registration payment
-                admins = User.objects.filter(rank='admin')
+                admins = User.objects.filter(role='admin')
                 for admin in admins:
                     send_realtime_notification(
                         admin.id, 
