@@ -3,16 +3,194 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
 <style>
-    @keyframes pulseWarning {
-        0%, 100% { transform: scale(1); opacity: 1; }
-        50% { transform: scale(1.1); opacity: 0.8; }
+    /* Flat Design for Delete Confirmation */
+    .delete-warning-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 48px 32px;
+        text-align: center;
+        margin-bottom: 24px;
     }
     
-    .warning-icon-animated {
-        animation: pulseWarning 2s ease-in-out infinite;
-        font-size: 5rem;
+    .delete-icon {
+        font-size: 4rem;
         color: #dc2626;
-        margin-bottom: 1.5rem;
+        margin-bottom: 24px;
+    }
+    
+    .delete-title {
+        color: #dc2626;
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+    
+    .delete-message {
+        color: #6b7280;
+        font-size: 1.05rem;
+        margin: 0;
+    }
+    
+    .delete-preview-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        overflow: hidden;
+    }
+    
+    .delete-preview-header {
+        background: #fef2f2;
+        border-bottom: 2px solid #dc2626;
+        padding: 20px 24px;
+    }
+    
+    .delete-preview-header h5 {
+        color: #7f1d1d;
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+    }
+    
+    .delete-preview-header i {
+        margin-right: 8px;
+    }
+    
+    .delete-preview-body {
+        padding: 32px 24px;
+    }
+    
+    .delete-preview-title {
+        color: #1e3a8a;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 24px;
+    }
+    
+    .delete-meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    
+    .delete-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .delete-meta-item i {
+        font-size: 1.5rem;
+        color: #3b82f6;
+    }
+    
+    .delete-meta-item div small {
+        color: #6b7280;
+        font-size: 0.875rem;
+        display: block;
+        margin-bottom: 4px;
+    }
+    
+    .delete-meta-item div strong {
+        color: #1f2937;
+        font-size: 0.95rem;
+    }
+    
+    .delete-message-preview {
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-left: 4px solid #6b7280;
+        padding: 20px;
+        border-radius: 6px;
+        color: #4b5563;
+        line-height: 1.6;
+    }
+    
+    .delete-warning-points {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    
+    .delete-warning-points h5 {
+        color: #dc2626;
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+    }
+    
+    .delete-warning-points h5 i {
+        margin-right: 8px;
+    }
+    
+    .delete-warning-points ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .delete-warning-points li {
+        color: #4b5563;
+        font-size: 0.95rem;
+        padding: 12px 16px;
+        background: #fef2f2;
+        border-left: 4px solid #dc2626;
+        border-radius: 4px;
+        margin-bottom: 12px;
+    }
+    
+    .delete-warning-points li:last-child {
+        margin-bottom: 0;
+    }
+    
+    .delete-warning-points li i {
+        color: #dc2626;
+        margin-right: 10px;
+    }
+    
+    .delete-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+    }
+    
+    .btn-go-back {
+        padding: 14px 32px;
+        background: white;
+        color: #6b7280;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-go-back:hover {
+        background: #f9fafb;
+        color: #6b7280;
+    }
+    
+    .btn-confirm-delete {
+        padding: 14px 32px;
+        background: #dc2626;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+    }
+    
+    .btn-confirm-delete:hover {
+        background: #b91c1c;
     }
 </style>
 {% endblock %}
@@ -30,130 +208,85 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <!-- Warning Card -->
-            <div class="enhanced-card mb-4">
-                <div class="card-body text-center py-5">
-                    <div class="warning-icon-animated">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <h3 class="fw-bold mb-3" style="color: #dc2626;">
-                        Are You Sure?
-                    </h3>
-                    <p class="lead mb-0">
-                        You are about to permanently delete this announcement.
-                    </p>
+            <div class="delete-warning-card">
+                <div class="delete-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
                 </div>
+                <h3 class="delete-title">Are You Sure?</h3>
+                <p class="delete-message">
+                    You are about to permanently delete this announcement.
+                </p>
             </div>
             
             <!-- Announcement Preview Card -->
-            <div class="enhanced-card mb-4">
-                <div class="enhanced-card-header" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-bottom: 2px solid #dc2626;">
-                    <h5 style="color: #7f1d1d;">
-                        <i class="fas fa-file-alt me-2"></i> Announcement to be Deleted
+            <div class="delete-preview-card">
+                <div class="delete-preview-header">
+                    <h5>
+                        <i class="fas fa-file-alt"></i> Announcement to be Deleted
                     </h5>
                 </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h4 class="fw-bold" style="color: #1e3a8a;">
-                            <i class="fas fa-megaphone me-2" style="color: #fbbf24;"></i>
-                            {{ announcement.title }}
-                        </h4>
-                    </div>
+                <div class="delete-preview-body">
+                    <h4 class="delete-preview-title">
+                        {{ announcement.title }}
+                    </h4>
                     
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <div class="info-item">
-                                <i class="fas fa-user" style="color: #3b82f6; font-size: 1.5rem;"></i>
-                                <div>
-                                    <small class="text-muted d-block">Posted By</small>
-                                    <strong>{{ announcement.created_by.get_full_name|default:announcement.created_by.username }}</strong>
-                                </div>
+                    <div class="delete-meta-grid">
+                        <div class="delete-meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <div>
+                                <small>Posted On</small>
+                                <strong>{{ announcement.date_posted|date:"M d, Y" }}</strong>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="info-item">
-                                <i class="fas fa-calendar" style="color: #10b981; font-size: 1.5rem;"></i>
-                                <div>
-                                    <small class="text-muted d-block">Posted On</small>
-                                    <strong>{{ announcement.created_at|date:"M d, Y" }}</strong>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="info-item">
-                                <i class="fas fa-eye" style="color: #fbbf24; font-size: 1.5rem;"></i>
-                                <div>
-                                    <small class="text-muted d-block">Times Read</small>
-                                    <strong>{{ announcement.read_by.count }}</strong>
-                                </div>
+                        <div class="delete-meta-item">
+                            <i class="fas fa-eye"></i>
+                            <div>
+                                <small>Times Read</small>
+                                <strong>{{ announcement.read_by.count }}</strong>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="p-4" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; border-left: 4px solid #64748b;">
-                        <p class="mb-0" style="display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;">
-                            {{ announcement.message }}
-                        </p>
+                    <div class="delete-message-preview">
+                        {{ announcement.message|truncatewords:50 }}
                     </div>
                 </div>
             </div>
             
             <!-- Warning Points Card -->
-            <div class="enhanced-card mb-4">
-                <div class="enhanced-card-header">
-                    <h5><i class="fas fa-info-circle me-2"></i> Important Information</h5>
-                </div>
-                <div class="card-body">
-                    <div class="alert-enhanced alert-enhanced-danger">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        <strong>Warning:</strong> This action cannot be undone!
-                    </div>
-                    
-                    <div class="list-group list-group-flush mt-3">
-                        <div class="list-group-item border-0 px-0">
-                            <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
-                            <strong>The announcement will be permanently removed from the system</strong>
-                        </div>
-                        <div class="list-group-item border-0 px-0">
-                            <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
-                            <strong>Recipients will no longer be able to view this announcement</strong>
-                        </div>
-                        <div class="list-group-item border-0 px-0">
-                            <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
-                            <strong>All read tracking data will be lost</strong>
-                        </div>
-                        <div class="list-group-item border-0 px-0">
-                            <i class="fas fa-times-circle me-2" style="color: #dc2626;"></i>
-                            <strong>This action cannot be reversed or undone</strong>
-                        </div>
-                    </div>
-                </div>
+            <div class="delete-warning-points">
+                <h5>
+                    <i class="fas fa-exclamation-circle"></i> Important Notice
+                </h5>
+                <ul>
+                    <li>
+                        <i class="fas fa-ban"></i>
+                        This action cannot be undone
+                    </li>
+                    <li>
+                        <i class="fas fa-users-slash"></i>
+                        All recipients will no longer have access to this announcement
+                    </li>
+                    <li>
+                        <i class="fas fa-database"></i>
+                        All related data including read statistics will be permanently removed
+                    </li>
+                </ul>
             </div>
             
             <!-- Action Buttons -->
-            <div class="enhanced-card">
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="d-flex gap-3">
-                            <a href="{% url 'announcements:detail' announcement.id %}" class="btn btn-outline-secondary flex-grow-1" style="padding: 1rem;">
-                                <i class="fas fa-arrow-left me-2"></i> No, Go Back
-                            </a>
-                            <button type="submit" class="btn-enhanced-danger flex-grow-1" style="padding: 1rem; font-size: 1.1rem;">
-                                <i class="fas fa-trash-alt me-2"></i> Yes, Delete Permanently
-                            </button>
-                        </div>
-                    </form>
+            <form method="post" style="margin-bottom: 32px;">
+                {% csrf_token %}
+                <div class="delete-actions">
+                    <a href="{% url 'announcements:announcement_list' %}" class="btn-go-back">
+                        <i class="fas fa-arrow-left"></i> Go Back
+                    </a>
+                    <button type="submit" class="btn-confirm-delete">
+                        <i class="fas fa-trash"></i> Yes, Delete Permanently
+                    </button>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
 </div>
-
-<style>
-    .info-item {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-    }
-</style>
 {% endblock %}

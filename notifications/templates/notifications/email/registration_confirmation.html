@@ -1,0 +1,82 @@
+{% extends "notifications/email/base.html" %}
+
+{% block header_title %}🎉 Welcome to ScoutConnect!{% endblock %}
+{% block header_subtitle %}Your registration is confirmed{% endblock %}
+
+{% block content %}
+<div class="email-greeting">Hello {{ recipient_name }},</div>
+
+<div class="email-body">
+    <p>Welcome to the ScoutConnect platform! Your account has been successfully created and is ready to use.</p>
+</div>
+
+<div class="email-section">
+    <div class="text-center" style="margin-bottom: 16px;">
+        <span class="email-success-badge">✓ Account Active</span>
+    </div>
+    <div class="email-section-title">👤 Account Information</div>
+    <div class="email-field">
+        <span class="email-field-label">Full Name</span>
+        <span class="email-field-value">{{ full_name }}</span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Email</span>
+        <span class="email-field-value">{{ email }}</span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Account Type</span>
+        <span class="email-field-value"><span class="email-highlight">{{ account_type }}</span></span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Registration Date</span>
+        <span class="email-field-value">{{ registration_date|date:"F d, Y" }}</span>
+    </div>
+</div>
+
+<div class="email-body">
+    <p>Your registration is now complete and your account is active. You can start exploring all the features of ScoutConnect right away!</p>
+</div>
+
+<div class="email-section" style="background-color: #f0fdf4; border-color: #86efac;">
+    <div class="email-section-title">🚀 Getting Started</div>
+    <div class="email-body" style="margin-bottom: 0;">
+        <p>Here's what you can do now:</p>
+        <ul style="color: #1f2937; margin: 8px 0; padding-left: 20px;">
+            <li>Complete your profile with additional information</li>
+            <li>Browse and register for upcoming events</li>
+            <li>View announcements and stay updated</li>
+            <li>Connect with other members in your troop</li>
+        </ul>
+    </div>
+</div>
+
+<div class="email-body">
+    <p>If you haven't already, we recommend completing your profile to get the most out of ScoutConnect.</p>
+</div>
+
+<div class="text-center">
+    <a href="{{ dashboard_url }}" class="email-button success">Go to Dashboard</a>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-section">
+    <div class="email-section-title">🔐 Account Security</div>
+    <div class="email-body" style="margin-bottom: 0;">
+        <p>To keep your account secure:</p>
+        <ul style="color: #4b5563; margin: 8px 0; padding-left: 20px;">
+            <li>Never share your login credentials with anyone</li>
+            <li>Use a strong, unique password</li>
+            <li>Log out when using shared computers</li>
+            <li>Report any suspicious activity immediately</li>
+        </ul>
+    </div>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-body text-muted">
+    <p><strong>Need Help?</strong></p>
+    <p>If you have any questions or need assistance setting up your account, please visit our help center or contact our support team through the ScoutConnect dashboard.</p>
+</div>
+{% endblock %}

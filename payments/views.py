@@ -273,12 +273,37 @@ def payment_verify(request, payment_id):
             payment.notes = notes
             payment.save()
             
-            # Notify user about verification
-            NotificationService.send_email(
-                subject="Payment Verified",
-                message=f"Your payment of ₱{payment.amount} has been verified. Thank you!",
-                recipient_list=[payment.user.email],
-            )
+            # Notify user about verification with HTML email
+            try:
+                context = {
+                    'recipient_name': payment.user.first_name or 'Member',
+                    'amount': payment.amount,
+                    'reference_number': payment.qr_ph_reference or payment.id,
+                    'payment_date': payment.verification_date,
+                    'payment_type': 'Manual Payment Verification',
+                    'payment_method': 'QR Code Payment',
+                    'dashboard_url': f"{settings.SITE_URL}/payments/",
+                    'is_event_payment': False,
+                }
+                
+                plain_text = f"Your payment of ₱{payment.amount} has been verified. Thank you!"
+                
+                NotificationService.send_html_email(
+                    subject="✅ Payment Verified - ScoutConnect",
+                    recipient_list=[payment.user.email],
+                    html_template='notifications/email/payment_success.html',
+                    context=context,
+                    plain_text_message=plain_text
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send HTML payment verification email: {str(e)}")
+                # Fallback to plain text
+                NotificationService.send_email(
+                    subject="Payment Verified",
+                    message=plain_text,
+                    recipient_list=[payment.user.email],
+                )
+            
             if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
                 NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been verified. Thank you!")
             # Real-time notification
@@ -292,12 +317,35 @@ def payment_verify(request, payment_id):
             payment.notes = notes
             payment.save()
             
-            # Notify user about rejection
-            NotificationService.send_email(
-                subject="Payment Rejected",
-                message=f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}",
-                recipient_list=[payment.user.email],
-            )
+            # Notify user about rejection with HTML email
+            try:
+                context = {
+                    'recipient_name': payment.user.first_name or 'Member',
+                    'amount': payment.amount,
+                    'reference_number': payment.qr_ph_reference or payment.id,
+                    'submission_date': payment.created_at if hasattr(payment, 'created_at') else payment.verification_date,
+                    'rejection_reason': notes or 'Your payment could not be verified. Please resubmit with correct details.',
+                    'resubmit_url': f"{settings.SITE_URL}/payments/submit/",
+                }
+                
+                plain_text = f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}"
+                
+                NotificationService.send_html_email(
+                    subject="⚠️ Payment Verification Issue - Action Required",
+                    recipient_list=[payment.user.email],
+                    html_template='notifications/email/payment_rejection.html',
+                    context=context,
+                    plain_text_message=plain_text
+                )
+            except Exception as e:
+                logger.warning(f"Failed to send HTML payment rejection email: {str(e)}")
+                # Fallback to plain text
+                NotificationService.send_email(
+                    subject="Payment Rejected",
+                    message=plain_text,
+                    recipient_list=[payment.user.email],
+                )
+            
             if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
                 NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been rejected.")
             # Real-time notification

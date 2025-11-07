@@ -86,11 +86,11 @@ def announcement_create(request):
                 if user.email:
                     email_recipients.append(user.email)
             
-            # Send email to all recipients
+            # Send HTML email to all recipients
             if email_recipients:
                 try:
                     subject = f"📢 ScoutConnect Announcement: {announcement.title}"
-                    message = f"""
+                    plain_text_message = f"""
 Dear ScoutConnect Member,
 
 {announcement.message}
@@ -104,7 +104,23 @@ The ScoutConnect Team
 This is an automated message from ScoutConnect. Please do not reply to this email.
                     """.strip()
                     
-                    NotificationService.send_email(subject, message, email_recipients)
+                    # Build dashboard URL
+                    from django.urls import reverse
+                    dashboard_url = f"{settings.SITE_URL}{reverse('announcements:announcement_list')}" if hasattr(settings, 'SITE_URL') else "#"
+                    
+                    context = {
+                        'announcement': announcement,
+                        'recipient_name': 'Member',
+                        'dashboard_url': dashboard_url,
+                    }
+                    
+                    NotificationService.send_html_email(
+                        subject=subject,
+                        recipient_list=email_recipients,
+                        html_template='notifications/email/announcement.html',
+                        context=context,
+                        plain_text_message=plain_text_message
+                    )
                     logger.info(f"Announcement email sent to {len(email_recipients)} recipients")
                 except Exception as e:
                     logger.error(f"Failed to send announcement emails: {str(e)}")

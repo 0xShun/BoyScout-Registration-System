@@ -21,7 +21,7 @@
             <span class="badge bg-primary ms-2">{{ announcements|length }}</span>
         </h4>
         {% if user.is_admin or user.is_leader %}
-        <a href="{% url 'announcements:create' %}" class="btn-enhanced-primary">
+        <a href="{% url 'announcements:announcement_create' %}" class="btn-enhanced-primary">
             <i class="fas fa-plus-circle me-2"></i> Create Announcement
         </a>
         {% endif %}
@@ -29,73 +29,40 @@
     
     {% if announcements %}
     <!-- Announcements Grid -->
-    <div class="row g-4">
+    <div class="row g-3">
         {% for announcement in announcements %}
         <div class="col-lg-4 col-md-6">
-            <div class="enhanced-card h-100" style="transition: all 0.3s ease;">
-                <div class="card-body d-flex flex-column">
-                    <!-- Announcement Header -->
-                    <div class="d-flex justify-content-between align-items-start mb-3">
-                        <div class="flex-grow-1">
-                            <h5 class="fw-bold mb-2" style="color: #1e3a8a;">
-                                <i class="fas fa-megaphone me-2" style="color: #fbbf24;"></i>
-                                {{ announcement.title }}
-                            </h5>
-                        </div>
-                        {% if announcement.priority %}
-                        <span class="status-badge status-high ms-2">
-                            <i class="fas fa-exclamation-circle"></i> Important
-                        </span>
-                        {% endif %}
-                    </div>
+            <div class="announcement-card">
+                <div class="announcement-card-body">
+                    <!-- Announcement Title -->
+                    <h5 class="announcement-title">
+                        {{ announcement.title }}
+                    </h5>
                     
                     <!-- Announcement Message Preview -->
-                    <div class="mb-3 flex-grow-1">
-                        <p class="text-muted mb-0" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                            {{ announcement.message|truncatewords:30 }}
-                        </p>
-                    </div>
+                    <p class="announcement-preview">
+                        {{ announcement.message|truncatewords:30 }}
+                    </p>
                     
                     <!-- Announcement Metadata -->
-                    <div class="border-top pt-3">
-                        <div class="row g-2 mb-3">
-                            <div class="col-6">
-                                <div class="info-item-horizontal">
-                                    <i class="fas fa-user" style="color: #3b82f6;"></i>
-                                    <span><strong>From:</strong> {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}</span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="info-item-horizontal">
-                                    <i class="fas fa-calendar" style="color: #10b981;"></i>
-                                    <span><strong>Date:</strong> {{ announcement.created_at|date:"M d, Y" }}</span>
-                                </div>
-                            </div>
+                    <div class="announcement-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>Posted: {{ announcement.date_posted|date:"M d, Y" }}</span>
                         </div>
                         
-                        {% if announcement.groups.all or announcement.specific_recipients.all %}
-                        <div class="mb-3">
-                            <div class="info-item-horizontal">
-                                <i class="fas fa-users" style="color: #fbbf24;"></i>
-                                <span>
-                                    <strong>Recipients:</strong> 
-                                    {% if announcement.groups.all %}
-                                        {{ announcement.groups.all|join:", " }}
-                                    {% endif %}
-                                    {% if announcement.specific_recipients.all %}
-                                        {% if announcement.groups.all %} + {% endif %}
-                                        {{ announcement.specific_recipients.count }} specific user{% if announcement.specific_recipients.count > 1 %}s{% endif %}
-                                    {% endif %}
-                                </span>
-                            </div>
+                        {% if announcement.recipients.all %}
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span>Recipients: {{ announcement.recipients.count }} user{% if announcement.recipients.count > 1 %}s{% endif %}</span>
                         </div>
                         {% endif %}
-                        
-                        <!-- View Button -->
-                        <a href="{% url 'announcements:detail' announcement.id %}" class="btn-enhanced-primary w-100">
-                            <i class="fas fa-eye me-2"></i> View Details
-                        </a>
                     </div>
+                    
+                    <!-- View Button -->
+                    <a href="{% url 'announcements:announcement_detail' announcement.id %}" class="announcement-btn">
+                        <i class="fas fa-eye me-2"></i> View Details
+                    </a>
                 </div>
             </div>
         </div>
@@ -107,40 +74,110 @@
         <i class="fas fa-bullhorn"></i>
         <h4>No Announcements Yet</h4>
         <p class="text-muted mb-4">Start keeping everyone informed by creating your first announcement.</p>
-        {% if user.is_admin or user.is_leader %}
-        <a href="{% url 'announcements:create' %}" class="btn-enhanced-primary">
-            <i class="fas fa-plus-circle me-2"></i> Create First Announcement
-        </a>
-        {% endif %}
     </div>
     {% endif %}
 </div>
 
 <style>
-    .enhanced-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 30px rgba(30, 58, 138, 0.15) !important;
+    /* Flat Design for Announcements */
+    .announcement-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 24px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
     }
     
-    .info-item-horizontal {
+    .announcement-card-body {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    
+    .announcement-title {
+        color: #1e3a8a;
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        line-height: 1.5;
+    }
+    
+    .announcement-preview {
+        color: #6b7280;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        margin-bottom: 20px;
+        flex-grow: 1;
+    }
+    
+    .announcement-meta {
+        border-top: 1px solid #f3f4f6;
+        padding-top: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .meta-item {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
+        gap: 10px;
+        color: #4b5563;
         font-size: 0.875rem;
+        margin-bottom: 10px;
     }
     
-    .info-item-horizontal i {
-        font-size: 1rem;
+    .meta-item:last-child {
+        margin-bottom: 0;
     }
     
-    .status-badge.status-high {
-        background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    .meta-item i {
+        color: #3b82f6;
+        width: 16px;
+        text-align: center;
+    }
+    
+    .announcement-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 12px 24px;
+        background: #1e3a8a;
         color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
+        text-decoration: none;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.95rem;
+    }
+    
+    .announcement-btn:hover {
+        background: #1e40af;
+        color: white;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 24px;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 24px;
+    }
+    
+    .empty-state h4 {
+        color: #1f2937;
+        font-size: 1.5rem;
         font-weight: 600;
-        white-space: nowrap;
+        margin-bottom: 12px;
+    }
+    
+    .empty-state p {
+        color: #6b7280;
+        font-size: 1rem;
     }
 </style>
 {% endblock %}

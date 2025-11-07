@@ -1,10 +1,14 @@
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.utils import timezone
 from django.db import models
+from django.template.loader import render_to_string
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from .models import Notification
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Add a model for logging simulated SMS
 class SimulatedSMSLog(models.Model):
@@ -17,19 +21,79 @@ class SimulatedSMSLog(models.Model):
 
 class NotificationService:
     @staticmethod
-    def send_email(subject, message, recipient_list):
+    def send_email(subject, message, recipient_list, html_template=None, context=None):
+        """
+        Send email with optional HTML template support.
+        
+        Args:
+            subject: Email subject line
+            message: Plain text message (fallback if no HTML template)
+            recipient_list: List of recipient email addresses
+            html_template: (Optional) Path to HTML email template
+            context: (Optional) Dictionary of variables for template rendering
+        
+        Returns:
+            bool: True if email sent successfully, False otherwise
+        """
         try:
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                recipient_list,
-                fail_silently=False,
-            )
+            if html_template and context:
+                # Add current year to context for footer
+                context['current_year'] = timezone.now().year
+                
+                # Render HTML from template
+                html_content = render_to_string(html_template, context)
+                
+                # Create email with both plain text and HTML
+                msg = EmailMultiAlternatives(
+                    subject=subject,
+                    body=message,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    to=recipient_list,
+                )
+                msg.attach_alternative(html_content, "text/html")
+                msg.send(fail_silently=False)
+            else:
+                # Send plain text email
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    recipient_list,
+                    fail_silently=False,
+                )
+            
+            logger.info(f"Email sent successfully to {len(recipient_list)} recipient(s)")
             return True
         except Exception as e:
+            logger.error(f"Email sending failed: {str(e)}")
             print(f"Email sending failed: {str(e)}")
             return False
+    
+    @staticmethod
+    def send_html_email(subject, recipient_list, html_template, context, plain_text_message=None):
+        """
+        Send email with HTML template and optional plain text fallback.
+        
+        Args:
+            subject: Email subject line
+            recipient_list: List of recipient email addresses
+            html_template: Path to HTML email template
+            context: Dictionary of variables for template rendering
+            plain_text_message: (Optional) Plain text fallback message
+        
+        Returns:
+            bool: True if email sent successfully, False otherwise
+        """
+        # Use plain_text_message or extract from subject for fallback
+        fallback_message = plain_text_message or f"View this email in an HTML-compatible email client.\n\nSubject: {subject}"
+        
+        return NotificationService.send_email(
+            subject=subject,
+            message=fallback_message,
+            recipient_list=recipient_list,
+            html_template=html_template,
+            context=context
+        )
 
     @staticmethod
     def format_phone_number(phone_number):

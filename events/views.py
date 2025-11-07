@@ -40,48 +40,63 @@ def admin_required(view_func):
 def send_event_notifications(event, action='created'):
     """Send notifications to all active users about new/updated events"""
     from accounts.models import User
+    from django.conf import settings
+    from django.urls import reverse
+    import logging
+    
+    logger = logging.getLogger(__name__)
     
     active_users = User.objects.filter(is_active=True)
     
     if action == 'created':
-        subject = f"New Event: {event.title}"
-        message = f"""
-        A new event has been scheduled!
-        
-        Event: {event.title}
-        Date: {event.date}
-        Time: {event.time}
-        Location: {event.location}
-        
-        {event.description}
-        
-        Please log in to your dashboard to register.
-        """
+        subject = f"📅 New Event: {event.title}"
         sms_message = f"New event: {event.title} on {event.date}"
     else:  # updated
-        subject = f"Event Updated: {event.title}"
-        message = f"""
-        An event has been updated!
-        
-        Event: {event.title}
-        Date: {event.date}
-        Time: {event.time}
-        Location: {event.location}
-        
-        {event.description}
-        
-        Please check your dashboard for updated details.
-        """
+        subject = f"📅 Event Updated: {event.title}"
         sms_message = f"Event updated: {event.title} on {event.date}"
     
-    # Send email to all active users
+    # Plain text fallback message
+    plain_text_message = f"""
+Event: {event.title}
+Date: {event.date}
+Time: {event.time}
+Location: {event.location}
+
+{event.description}
+
+Please log in to your dashboard to register.
+    """.strip()
+    
+    # Collect email recipients
+    email_recipients = []
     for user in active_users:
         if user.email:
-            NotificationService.send_email(subject, message, [user.email])
+            email_recipients.append(user.email)
         
         # Send SMS if phone number exists
         if user.phone_number:
             NotificationService.send_sms(user.phone_number, sms_message)
+    
+    # Send HTML email to all recipients
+    if email_recipients:
+        try:
+            context = {
+                'event': event,
+                'recipient_name': 'Member',
+                'event_url': f"{settings.SITE_URL}/events/{event.pk}/",
+                'dashboard_url': f"{settings.SITE_URL}/events/",
+            }
+            
+            NotificationService.send_html_email(
+                subject=subject,
+                recipient_list=email_recipients,
+                html_template='notifications/email/event_notification.html',
+                context=context,
+                plain_text_message=plain_text_message
+            )
+            logger.info(f"Event notification email sent to {len(email_recipients)} recipients")
+        except Exception as e:
+            logger.error(f"Failed to send event notification emails: {str(e)}")
 
 @login_required
 def event_list(request):
@@ -385,15 +400,29 @@ def send_event_payment_confirmation_ajax(request, pk):
         # Build and send the same confirmation email used in server-side flows
         try:
             logger.info('Sending event payment confirmation email', extra={'registration_id': registration.pk, 'user': registration.user.email})
-            subject = f'Event Payment Confirmed - {registration.event.title}'
-            message = f"Dear {registration.user.first_name} {registration.user.last_name},\n\n"
-            message += f"Your payment for the event '{registration.event.title}' has been confirmed.\n\n"
-            message += "Thank you and see you at the event!"
+            subject = f'✅ Event Payment Confirmed - {registration.event.title}'
+            plain_text_message = f"Dear {registration.user.first_name} {registration.user.last_name},\n\n"
+            plain_text_message += f"Your payment for the event '{registration.event.title}' has been confirmed.\n\n"
+            plain_text_message += "Thank you and see you at the event!"
 
-            NotificationService.send_email(
+            context = {
+                'recipient_name': registration.user.first_name or 'Member',
+                'event_title': registration.event.title,
+                'amount': registration.total_paid or registration.amount_required,
+                'event_date': registration.event.date,
+                'event_time': registration.event.time,
+                'event_location': registration.event.location,
+                'reference_number': registration.id,
+                'event_url': f"{settings.SITE_URL}/events/{registration.event.pk}/" if hasattr(settings, 'SITE_URL') else "#",
+                'is_event_payment': True,
+            }
+
+            NotificationService.send_html_email(
                 subject=subject,
-                message=message,
-                recipient_list=[registration.user.email]
+                recipient_list=[registration.user.email],
+                html_template='notifications/email/payment_success.html',
+                context=context,
+                plain_text_message=plain_text_message
             )
             logger.info('Event payment confirmation email sent', extra={'registration_id': registration.pk, 'recipient': registration.user.email})
 

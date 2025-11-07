@@ -74,9 +74,9 @@
                       {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
                     </label>
                     
-                    {% if field.field.widget.input_type == 'textarea' or 'Textarea' in field.field.widget.__class__.__name__ %}
+                    {% if field.field.widget.input_type == 'textarea' %}
                       <textarea name="{{ field.name }}" id="{{ field.id_for_label }}" class="form-control enhanced-form-control" rows="3" {% if field.field.required %}required{% endif %}>{{ field.value|default:'' }}</textarea>
-                    {% elif field.field.widget.input_type == 'select' or 'Select' in field.field.widget.__class__.__name__ %}
+                    {% elif field.field.widget.input_type == 'select' %}
                       {{ field }}
                       <script>
                         document.addEventListener('DOMContentLoaded', function() {

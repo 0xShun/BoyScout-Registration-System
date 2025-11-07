@@ -1,0 +1,65 @@
+{% extends "notifications/email/base.html" %}
+
+{% block header_title %}📅 New Event Scheduled{% endblock %}
+{% block header_subtitle %}Join us for this exciting event!{% endblock %}
+
+{% block content %}
+<div class="email-greeting">Hello {{ recipient_name }},</div>
+
+<div class="email-body">
+    <p>A new event has been scheduled on ScoutConnect! We'd love to have you join us.</p>
+</div>
+
+<div class="email-section">
+    <div class="email-section-title">📍 Event Information</div>
+    <div class="email-field">
+        <span class="email-field-label">Event Name</span>
+        <span class="email-field-value"><strong>{{ event.title }}</strong></span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Date</span>
+        <span class="email-field-value">{{ event.date|date:"F d, Y" }}</span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Time</span>
+        <span class="email-field-value">{{ event.time|time:"g:i A" }}</span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Location</span>
+        <span class="email-field-value">{{ event.location }}</span>
+    </div>
+    {% if event.has_payment_required %}
+    <div class="email-field">
+        <span class="email-field-label">Registration Fee</span>
+        <span class="email-field-value"><span class="email-highlight">₱{{ event.payment_amount }}</span></span>
+    </div>
+    {% else %}
+    <div class="email-field">
+        <span class="email-field-label">Registration Fee</span>
+        <span class="email-field-value"><span class="email-highlight">FREE</span></span>
+    </div>
+    {% endif %}
+</div>
+
+<div class="email-section">
+    <div class="email-section-title">📝 Event Description</div>
+    <div class="email-body">
+        <p>{{ event.description|linebreaks }}</p>
+    </div>
+</div>
+
+<div class="email-body">
+    <p>Register now to secure your spot! Limited seats may be available.</p>
+</div>
+
+<div class="text-center">
+    <a href="{{ event_url }}" class="email-button">Register Now</a>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-body text-muted">
+    <p><strong>Questions?</strong></p>
+    <p>If you have any questions about this event, please log in to your ScoutConnect dashboard or contact the event organizer.</p>
+</div>
+{% endblock %}

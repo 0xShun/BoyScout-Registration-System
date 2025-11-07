@@ -1,0 +1,46 @@
+{% extends "notifications/email/base.html" %}
+
+{% block header_title %}📢 New Announcement{% endblock %}
+{% block header_subtitle %}Stay Updated with ScoutConnect{% endblock %}
+
+{% block content %}
+<div class="email-greeting">Hello {{ recipient_name }},</div>
+
+<div class="email-body">
+    <p>A new announcement has been posted on ScoutConnect. Here are the details:</p>
+</div>
+
+<div class="email-section">
+    <div class="email-section-title">📋 Announcement Details</div>
+    <div class="email-field">
+        <span class="email-field-label">Title</span>
+        <span class="email-field-value"><strong>{{ announcement.title }}</strong></span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Posted On</span>
+        <span class="email-field-value">{{ announcement.date_posted|date:"F d, Y \\a\\t g:i A" }}</span>
+    </div>
+</div>
+
+<div class="email-section">
+    <div class="email-section-title">📝 Message</div>
+    <div class="email-body">
+        <p>{{ announcement.message|linebreaks }}</p>
+    </div>
+</div>
+
+<div class="email-body">
+    <p>Log in to your ScoutConnect dashboard to read more announcements and stay updated with all the latest news.</p>
+</div>
+
+<div class="text-center">
+    <a href="{{ dashboard_url }}" class="email-button">View on Dashboard</a>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-body text-muted">
+    <p><strong>Why are you receiving this email?</strong></p>
+    <p>You're receiving this announcement because you're registered on the ScoutConnect platform and are part of the recipient group for this announcement.</p>
+</div>
+{% endblock %}

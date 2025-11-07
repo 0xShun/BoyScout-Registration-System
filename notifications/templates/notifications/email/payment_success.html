@@ -1,0 +1,86 @@
+{% extends "notifications/email/base.html" %}
+
+{% block header_title %}✅ Payment Confirmed{% endblock %}
+{% block header_subtitle %}Thank you for your payment!{% endblock %}
+
+{% block content %}
+<div class="email-greeting">Hello {{ recipient_name }},</div>
+
+<div class="email-body">
+    <p>Your payment has been successfully processed and verified. Here's a summary of your transaction:</p>
+</div>
+
+<div class="email-section">
+    <div class="text-center" style="margin-bottom: 16px;">
+        <span class="email-success-badge">✓ Payment Verified</span>
+    </div>
+    <div class="email-section-title">💰 Transaction Details</div>
+    <div class="email-field">
+        <span class="email-field-label">Amount Paid</span>
+        <span class="email-field-value"><strong style="font-size: 16px; color: #16a34a;">₱{{ amount|floatformat:2 }}</strong></span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Payment Type</span>
+        <span class="email-field-value">{{ payment_type }}</span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Reference Number</span>
+        <span class="email-field-value"><code style="background-color: #f3f4f6; padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 12px;">{{ reference_number }}</code></span>
+    </div>
+    <div class="email-field">
+        <span class="email-field-label">Payment Date</span>
+        <span class="email-field-value">{{ payment_date|date:"F d, Y \\a\\t g:i A" }}</span>
+    </div>
+    {% if payment_method %}
+    <div class="email-field">
+        <span class="email-field-label">Payment Method</span>
+        <span class="email-field-value">{{ payment_method }}</span>
+    </div>
+    {% endif %}
+</div>
+
+{% if related_item %}
+<div class="email-section">
+    <div class="email-section-title">{% if is_event_payment %}🎫 Event Registration{% else %}📝 Registration{% endif %}</div>
+    <div class="email-field">
+        <span class="email-field-label">{% if is_event_payment %}Event{% else %}Item{% endif %}</span>
+        <span class="email-field-value"><strong>{{ related_item }}</strong></span>
+    </div>
+    {% if related_item_status %}
+    <div class="email-field">
+        <span class="email-field-label">Status</span>
+        <span class="email-field-value"><span class="email-highlight">{{ related_item_status }}</span></span>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="email-body">
+    <p>Your payment has been recorded in our system. You can now access all the services and benefits associated with your payment.</p>
+</div>
+
+<div class="text-center">
+    <a href="{{ dashboard_url }}" class="email-button success">Go to Dashboard</a>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-section" style="background-color: #eff6ff; border-color: #bfdbfe;">
+    <div class="email-section-title">📋 What's Next?</div>
+    <div class="email-body" style="margin-bottom: 0;">
+        <p>{% if is_event_payment %}
+        Your event registration is now confirmed! Check your dashboard for event details, reminders, and any additional information.
+        {% else %}
+        Your account is now active! You can start exploring all the features available to registered members.
+        {% endif %}</p>
+    </div>
+</div>
+
+<div class="email-divider"></div>
+
+<div class="email-body text-muted">
+    <p><strong>Need Help?</strong></p>
+    <p>If you have any questions about your payment or need assistance, please log in to your ScoutConnect dashboard or contact our support team.</p>
+    <p><strong>Keep this email for your records.</strong> It serves as your payment receipt.</p>
+</div>
+{% endblock %}
