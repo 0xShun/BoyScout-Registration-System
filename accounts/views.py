@@ -510,50 +510,56 @@ The ScoutConnect Team
                                 print(f'Failed to send welcome email to {user.email}: {str(e)}')
                         
                         # Create PayMongo payment source for batch (for show)
-                        paymongo = PayMongoService()
-                        batch_desc = f"Batch Registration - {batch_reg.registrar_name} ({number_of_students} students)"
-                        success, source_data = paymongo.create_source(
-                            amount=float(batch_reg.total_amount),
-                            description=batch_desc,
-                            redirect_success=request.build_absolute_uri('/payments/success/'),
-                            redirect_failed=request.build_absolute_uri('/payments/failed/'),
-                            metadata={
-                                'payment_type': 'batch_registration',
-                                'batch_registration_id': str(batch_reg.id),
-                                'number_of_students': number_of_students,
-                                'registrar_email': batch_reg.registrar_email,
-                            }
-                        )
-                        
-                        if success and source_data and 'data' in source_data:
-                            source = source_data['data']
-                            batch_reg.paymongo_source_id = source['id']
-                            batch_reg.save()
+                        try:
+                            paymongo = PayMongoService()
+                            batch_desc = f"Batch Registration - {batch_reg.registrar_name} ({number_of_students} students)"
+                            success, source_data = paymongo.create_source(
+                                amount=float(batch_reg.total_amount),
+                                description=batch_desc,
+                                redirect_success=request.build_absolute_uri('/payments/success/'),
+                                redirect_failed=request.build_absolute_uri('/payments/failed/'),
+                                metadata={
+                                    'payment_type': 'batch_registration',
+                                    'batch_registration_id': str(batch_reg.id),
+                                    'number_of_students': number_of_students,
+                                    'registrar_email': batch_reg.registrar_email,
+                                }
+                            )
                             
-                            # Get checkout URL
-                            checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
-                            
-                            if checkout_url:
-                                # Notify admins
-                                admins = User.objects.filter(role='admin')
-                                batch_notif = f"✅ Batch registration completed: {batch_reg.registrar_name} - {number_of_students} students created and activated!"
-                                for admin in admins:
-                                    send_realtime_notification(
-                                        admin.id,
-                                        batch_notif,
-                                        type='registration'
-                                    )
+                            if success and source_data and 'data' in source_data:
+                                source = source_data['data']
+                                batch_reg.paymongo_source_id = source['id']
+                                batch_reg.save()
                                 
-                                success_msg = f'✅ Success! {number_of_students} student accounts created and activated! Each student will receive their login credentials via email. Redirecting to payment...'
-                                messages.success(request, success_msg)
-                                return redirect(checkout_url)
+                                # Get checkout URL
+                                checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
+                                
+                                if checkout_url:
+                                    # Notify admins
+                                    admins = User.objects.filter(role='admin')
+                                    batch_notif = f"✅ Batch registration completed: {batch_reg.registrar_name} - {number_of_students} students created and activated!"
+                                    for admin in admins:
+                                        send_realtime_notification(
+                                            admin.id,
+                                            batch_notif,
+                                            type='registration'
+                                        )
+                                    
+                                    success_msg = f'✅ Success! {number_of_students} student accounts created and activated! Each student will receive their login credentials via email. Redirecting to payment...'
+                                    messages.success(request, success_msg)
+                                    return redirect(checkout_url)
+                                else:
+                                    # PayMongo failed but users already created - that's OK
+                                    messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway unavailable.')
+                                    return redirect('accounts:login')
                             else:
                                 # PayMongo failed but users already created - that's OK
                                 messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway unavailable.')
                                 return redirect('accounts:login')
-                        else:
-                            # PayMongo failed but users already created - that's OK
-                            messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway unavailable.')
+                        except Exception as paymongo_error:
+                            # PayMongo error - users already created, so just log and redirect
+                            logger.error(f'PayMongo error in batch registration: {str(paymongo_error)}')
+                            messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway encountered an error. Please contact admin for payment arrangements.')
                             return redirect('accounts:login')
                             
                 except Exception as e:
