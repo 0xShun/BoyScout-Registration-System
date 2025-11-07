@@ -63,15 +63,11 @@ def announcement_create(request):
             announcement = form.save(commit=False)
             announcement.save()
             form.save_m2m()
-            # Determine recipients
-            selected_groups = form.cleaned_data.get('groups')
-            if selected_groups and selected_groups.exists():
-                recipients = User.objects.filter(groups_membership__in=selected_groups).distinct()
-            else:
-                recipients = announcement.recipients.all()
-                if not recipients:
-                    recipients = User.objects.all()
+            
+            # Send to all users
+            recipients = User.objects.all()
             announcement.recipients.set(recipients)
+            
             # Send notifications
             email_recipients = []
             for user in recipients:

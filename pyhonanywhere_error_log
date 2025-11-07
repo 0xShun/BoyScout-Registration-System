@@ -1,0 +1,275 @@
+2025-10-28 18:53:00,784: PayMongo source created successfully
+2025-10-28 18:53:06,884: Invalid webhook signature - proceeding anyway for testing
+2025-10-28 18:53:06,889: Webhook received: source.chargeable
+2025-10-28 18:53:06,889: Processing source.chargeable for source: src_4KnTzqNKfGksHEGyX4NagE4K
+2025-10-28 18:53:06,914: Auto-finalizing registration payment 1 from source.chargeable
+2025-10-28 19:08:40,578: Not Found: /ws/notifications/
+2025-10-28 19:16:50,984: Announcement email sent to 2 recipients
+2025-10-28 19:25:56,830: PayMongo source created successfully
+2025-10-28 19:26:04,206: Invalid webhook signature - proceeding anyway for testing
+2025-10-28 19:26:04,206: Webhook received: source.chargeable
+2025-10-28 19:26:04,207: Processing source.chargeable for source: src_V7xvtEq51rX82EG9Kqdwa4Xo
+2025-10-28 19:26:04,226: Auto-finalizing registration payment 2 from source.chargeable
+2025-10-28 19:27:38,277: Announcement email sent to 3 recipients
+2025-10-28 19:28:59,612: Not Found: /favicon.ico
+2025-10-28 19:28:59,612: OSError: write error
+2025-10-28 19:29:48,953: PayMongo source created successfully
+2025-10-28 19:29:49,002: Event payment initiated: User shun, Event Team building, Source src_NdmpTNwmS1hqCveth1cwRJ7K
+2025-10-28 19:29:54,015: Invalid webhook signature - proceeding anyway for testing
+2025-10-28 19:29:54,015: Webhook received: source.chargeable
+2025-10-28 19:29:54,015: Processing source.chargeable for source: src_NdmpTNwmS1hqCveth1cwRJ7K
+2025-10-28 19:29:54,022: Auto-finalizing event registration 3 from source.chargeable
+2025-10-28 23:03:57,669: Not Found: /robots.txt
+2025-10-28 23:14:30,872: PayMongo source created successfully
+2025-10-28 23:14:46,640: Invalid webhook signature - proceeding anyway for testing
+2025-10-28 23:14:46,641: Webhook received: source.chargeable
+2025-10-28 23:14:46,642: Processing source.chargeable for source: src_vQr9oBDGMUkmQqgEYYSupx9W
+2025-10-28 23:14:46,650: Auto-finalizing registration payment 3 from source.chargeable
+2025-10-28 23:17:30,650: PayMongo source created successfully
+2025-10-28 23:17:30,694: Event payment initiated: User jhovin611, Event Team building, Source src_x9pfAAy7WisexGjsieh1y9sY
+2025-10-28 23:17:37,826: Invalid webhook signature - proceeding anyway for testing
+2025-10-28 23:17:37,826: Webhook received: source.chargeable
+2025-10-28 23:17:37,827: Processing source.chargeable for source: src_x9pfAAy7WisexGjsieh1y9sY
+2025-10-28 23:17:37,839: Auto-finalizing event registration 4 from source.chargeable
+2025-10-28 23:37:53,626: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-10-29 00:05:32,974: PayMongo source created successfully
+2025-10-29 00:06:29,611: Invalid webhook signature - proceeding anyway for testing
+2025-10-29 00:06:29,611: Webhook received: source.chargeable
+2025-10-29 00:06:29,614: Processing source.chargeable for source: src_1qddMHoWREnZDs5GhB3FTprS
+2025-10-29 00:06:29,626: Auto-finalizing registration payment 4 from source.chargeable
+2025-10-29 00:06:40,730: OSError: write error
+2025-10-29 00:07:19,387: OSError: write error
+2025-10-29 03:57:53,864: Not Found: /ws/notifications/
+2025-10-29 04:08:47,077: Not Found: /ws/notifications/
+2025-10-29 04:09:12,143: OSError: write error
+2025-10-29 04:21:22,728: Not Found: /ws/notifications/
+2025-10-29 10:20:23,563: /home/ScoutConnect/BoyScout-Registration-System/accounts/views.py:486: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'accounts.models.User'> QuerySet.
+2025-10-29 10:20:23,569:   paginator = Paginator(members, 10)
+2025-10-29 10:22:09,865: Not Found: /favicon.ico
+2025-10-29 10:22:31,320: OSError: write error
+2025-10-29 10:23:38,331: Not Found: /ws/notifications/
+2025-10-29 10:26:43,543: Not Found: /ws/notifications/
+2025-10-29 10:26:58,607: Not Found: /ws/notifications/
+2025-10-29 10:52:15,727: Not Found: /ws/notifications/
+2025-10-29 10:53:30,338: OSError: write error
+2025-10-29 10:55:45,630: PayMongo source created successfully
+2025-10-29 10:55:57,921: Invalid webhook signature - proceeding anyway for testing
+2025-10-29 10:55:57,921: Webhook received: source.chargeable
+2025-10-29 10:55:57,921: Processing source.chargeable for source: src_6aZp2kkkg4Dtq9sXsDNvoP6W
+2025-10-29 10:55:57,927: Auto-finalizing registration payment 5 from source.chargeable
+2025-10-29 13:14:54,075: Not Found: /ws/notifications/
+2025-10-29 13:15:01,992: Not Found: /ws/notifications/
+2025-10-31 04:04:29,322: Not Found: /robots.txt
+2025-10-31 04:04:29,322: OSError: write error
+2025-10-31 19:02:50,761: Not Found: /robots.txt
+2025-11-01 02:36:10,671: Not Found: /robots.txt
+2025-11-02 00:55:00,224: Not Found: /robots.txt
+2025-11-02 23:27:37,939: Not Found: /robots.txt
+2025-11-03 21:38:59,964: Not Found: /robots.txt
+2025-11-04 20:01:37,460: Not Found: /robots.txt
+2025-11-05 01:41:51,848: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 04:32:59,183: Not Found: /ws/notifications/
+2025-11-05 04:33:42,871: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 04:34:01,107: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 04:34:22,015: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 04:36:17,331: /home/ScoutConnect/BoyScout-Registration-System/accounts/views.py:486: UnorderedObjectListWarning: Pagination may yield inconsistent results with an unordered object_list: <class 'accounts.models.User'> QuerySet.
+2025-11-05 04:36:17,332:   paginator = Paginator(members, 10)
+2025-11-05 04:38:51,283: Not Found: /ws/notifications/
+2025-11-05 04:58:51,870: Not Found: /ws/notifications/
+2025-11-05 04:59:22,317: Not Found: /ws/notifications/
+2025-11-05 05:10:21,515: Not Found: /ws/notifications/
+2025-11-05 05:10:36,773: OSError: write error
+2025-11-05 05:10:37,373: Not Found: /ws/notifications/
+2025-11-05 05:16:48,826: Announcement email sent to 6 recipients
+2025-11-05 05:21:36,577: Announcement email sent to 6 recipients
+2025-11-05 05:24:38,721: PayMongo source created successfully
+2025-11-05 05:24:38,766: Event payment initiated: User jhovin611, Event Team Building, Source src_wHvAFSgxU5MRQfRKMFAKGFKw
+2025-11-05 05:24:45,204: Invalid webhook signature - proceeding anyway for testing
+2025-11-05 05:24:45,204: Webhook received: source.chargeable
+2025-11-05 05:24:45,205: Processing source.chargeable for source: src_wHvAFSgxU5MRQfRKMFAKGFKw
+2025-11-05 05:24:45,210: Auto-finalizing event registration 5 from source.chargeable
+2025-11-05 05:28:41,103: Not Found: /ws/notifications/
+2025-11-05 05:29:10,375: Not Found: /ws/notifications/
+2025-11-05 09:07:53,171: Not Found: /ws/notifications/
+2025-11-05 13:45:03,265: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 13:45:32,527: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-05 13:46:06,899: Not Found: /ws/notifications/
+2025-11-05 13:49:07,848: PayMongo source created successfully
+2025-11-05 13:49:14,519: Invalid webhook signature - proceeding anyway for testing
+2025-11-05 13:49:14,520: Webhook received: source.chargeable
+2025-11-05 13:49:14,525: Processing source.chargeable for source: src_uRkiS26ZWMgnTwd8iv9FQEgn
+2025-11-05 13:49:14,538: Auto-finalizing registration payment 6 from source.chargeable
+2025-11-05 18:18:24,975: Not Found: /robots.txt
+2025-11-06 01:11:46,238: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-06 01:12:28,693: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-06 01:36:52,769: Not Found: /ws/notifications/
+2025-11-06 01:38:50,351: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-06 01:39:32,769: PayMongo source created successfully
+2025-11-06 01:39:32,801: Event payment initiated: User Justmarc99, Event Team Building, Source src_adfyqeqKoVDB9WPDuZRidy5z
+2025-11-06 06:06:33,461: Not Found: /ws/notifications/
+2025-11-06 06:07:44,991: Not Found: /ws/notifications/
+2025-11-06 07:46:47,303: Not Found: /ws/notifications/
+2025-11-06 07:47:03,379: Not Found: /ws/notifications/
+2025-11-06 07:49:16,690: Not Found: /ws/notifications/
+2025-11-06 14:40:41,775: Not Found: /ws/notifications/
+2025-11-06 14:41:04,382: Not Found: /ws/notifications/
+2025-11-06 14:42:02,778: PayMongo source creation failed: {"errors":[{"code":"parameter_format_invalid","detail":"metadata attributes cannot be nested.","source":{"pointer":"","attribute":"metadata"}}]}
+2025-11-06 16:57:55,332: Not Found: /robots.txt
+2025-11-06 22:26:46,804: Not Found: /ws/notifications/
+2025-11-07 01:25:55,408: Not Found: /ws/notifications/
+2025-11-07 02:26:19,471: Error running WSGI application
+2025-11-07 02:26:19,498: ModuleNotFoundError: No module named 'dateutil'
+2025-11-07 02:26:19,498:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/wsgi.py", line 124, in __call__
+2025-11-07 02:26:19,498:     response = self.get_response(request)
+2025-11-07 02:26:19,499:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,499: 
+2025-11-07 02:26:19,499:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/base.py", line 140, in get_response
+2025-11-07 02:26:19,499:     response = self._middleware_chain(request)
+2025-11-07 02:26:19,499:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,499: 
+2025-11-07 02:26:19,500:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 57, in inner
+2025-11-07 02:26:19,500:     response = response_for_exception(request, exc)
+2025-11-07 02:26:19,500:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,500: 
+2025-11-07 02:26:19,500:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 141, in response_for_exception
+2025-11-07 02:26:19,500:     response = handle_uncaught_exception(
+2025-11-07 02:26:19,501:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,501: 
+2025-11-07 02:26:19,501:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 185, in handle_uncaught_exception
+2025-11-07 02:26:19,501:     callback = resolver.resolve_error_handler(500)
+2025-11-07 02:26:19,501:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,501: 
+2025-11-07 02:26:19,502:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 732, in resolve_error_handler
+2025-11-07 02:26:19,502:     callback = getattr(self.urlconf_module, "handler%s" % view_type, None)
+2025-11-07 02:26:19,502:                        ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,502: 
+2025-11-07 02:26:19,502:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/utils/functional.py", line 47, in __get__
+2025-11-07 02:26:19,502:     res = instance.__dict__[self.name] = self.func(instance)
+2025-11-07 02:26:19,502:                                          ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,503: 
+2025-11-07 02:26:19,503:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 711, in urlconf_module
+2025-11-07 02:26:19,503:     return import_module(self.urlconf_name)
+2025-11-07 02:26:19,503:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:19,503: 
+2025-11-07 02:26:19,503:   File "/home/ScoutConnect/BoyScout-Registration-System/boyscout_system/urls.py", line 21, in <module>
+2025-11-07 02:26:19,504:     from accounts.views import home
+2025-11-07 02:26:19,504: 
+2025-11-07 02:26:19,504:   File "/home/ScoutConnect/BoyScout-Registration-System/accounts/views.py", line 26, in <module>
+2025-11-07 02:26:19,504:     from dateutil.relativedelta import relativedelta
+2025-11-07 02:26:23,469: Error running WSGI application
+2025-11-07 02:26:23,476: ModuleNotFoundError: No module named 'dateutil'
+2025-11-07 02:26:23,476:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/wsgi.py", line 124, in __call__
+2025-11-07 02:26:23,477:     response = self.get_response(request)
+2025-11-07 02:26:23,477:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,477: 
+2025-11-07 02:26:23,477:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/base.py", line 140, in get_response
+2025-11-07 02:26:23,477:     response = self._middleware_chain(request)
+2025-11-07 02:26:23,477:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,477: 
+2025-11-07 02:26:23,477:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 57, in inner
+2025-11-07 02:26:23,478:     response = response_for_exception(request, exc)
+2025-11-07 02:26:23,478:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,478: 
+2025-11-07 02:26:23,478:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 141, in response_for_exception
+2025-11-07 02:26:23,478:     response = handle_uncaught_exception(
+2025-11-07 02:26:23,478:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,478: 
+2025-11-07 02:26:23,479:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 185, in handle_uncaught_exception
+2025-11-07 02:26:23,479:     callback = resolver.resolve_error_handler(500)
+2025-11-07 02:26:23,479:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,479: 
+2025-11-07 02:26:23,479:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 732, in resolve_error_handler
+2025-11-07 02:26:23,479:     callback = getattr(self.urlconf_module, "handler%s" % view_type, None)
+2025-11-07 02:26:23,479:                        ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,479: 
+2025-11-07 02:26:23,479:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/utils/functional.py", line 47, in __get__
+2025-11-07 02:26:23,480:     res = instance.__dict__[self.name] = self.func(instance)
+2025-11-07 02:26:23,480:                                          ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,480: 
+2025-11-07 02:26:23,480:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 711, in urlconf_module
+2025-11-07 02:26:23,480:     return import_module(self.urlconf_name)
+2025-11-07 02:26:23,480:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:23,480: 
+2025-11-07 02:26:23,480:   File "/home/ScoutConnect/BoyScout-Registration-System/boyscout_system/urls.py", line 21, in <module>
+2025-11-07 02:26:23,481:     from accounts.views import home
+2025-11-07 02:26:23,481: 
+2025-11-07 02:26:23,481:   File "/home/ScoutConnect/BoyScout-Registration-System/accounts/views.py", line 26, in <module>
+2025-11-07 02:26:23,481:     from dateutil.relativedelta import relativedelta
+2025-11-07 02:26:25,153: Error running WSGI application
+2025-11-07 02:26:25,168: ModuleNotFoundError: No module named 'dateutil'
+2025-11-07 02:26:25,169:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/wsgi.py", line 124, in __call__
+2025-11-07 02:26:25,169:     response = self.get_response(request)
+2025-11-07 02:26:25,169:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,169: 
+2025-11-07 02:26:25,169:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/base.py", line 140, in get_response
+2025-11-07 02:26:25,169:     response = self._middleware_chain(request)
+2025-11-07 02:26:25,170:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,170: 
+2025-11-07 02:26:25,171:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 57, in inner
+2025-11-07 02:26:25,171:     response = response_for_exception(request, exc)
+2025-11-07 02:26:25,171:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,171: 
+2025-11-07 02:26:25,171:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 141, in response_for_exception
+2025-11-07 02:26:25,172:     response = handle_uncaught_exception(
+2025-11-07 02:26:25,172:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,172: 
+2025-11-07 02:26:25,173:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 185, in handle_uncaught_exception
+2025-11-07 02:26:25,173:     callback = resolver.resolve_error_handler(500)
+2025-11-07 02:26:25,173:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,173: 
+2025-11-07 02:26:25,174:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 732, in resolve_error_handler
+2025-11-07 02:26:25,174:     callback = getattr(self.urlconf_module, "handler%s" % view_type, None)
+2025-11-07 02:26:25,174:                        ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,174: 
+2025-11-07 02:26:25,174:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/utils/functional.py", line 47, in __get__
+2025-11-07 02:26:25,174:     res = instance.__dict__[self.name] = self.func(instance)
+2025-11-07 02:26:25,175:                                          ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,175: 
+2025-11-07 02:26:25,175:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 711, in urlconf_module
+2025-11-07 02:26:25,175:     return import_module(self.urlconf_name)
+2025-11-07 02:26:25,176:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:25,176: 
+2025-11-07 02:26:25,176:   File "/home/ScoutConnect/BoyScout-Registration-System/boyscout_system/urls.py", line 21, in <module>
+2025-11-07 02:26:25,177:     from accounts.views import home
+2025-11-07 02:26:25,177: 
+2025-11-07 02:26:25,177:   File "/home/ScoutConnect/BoyScout-Registration-System/accounts/views.py", line 26, in <module>
+2025-11-07 02:26:25,177:     from dateutil.relativedelta import relativedelta
+2025-11-07 02:26:56,012: Error running WSGI application
+2025-11-07 02:26:56,027: ModuleNotFoundError: No module named 'dateutil'
+2025-11-07 02:26:56,027:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/wsgi.py", line 124, in __call__
+2025-11-07 02:26:56,028:     response = self.get_response(request)
+2025-11-07 02:26:56,028:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,028: 
+2025-11-07 02:26:56,028:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/base.py", line 140, in get_response
+2025-11-07 02:26:56,028:     response = self._middleware_chain(request)
+2025-11-07 02:26:56,028:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,029: 
+2025-11-07 02:26:56,029:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 57, in inner
+2025-11-07 02:26:56,029:     response = response_for_exception(request, exc)
+2025-11-07 02:26:56,029:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,029: 
+2025-11-07 02:26:56,029:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 141, in response_for_exception
+2025-11-07 02:26:56,029:     response = handle_uncaught_exception(
+2025-11-07 02:26:56,029:                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,030: 
+2025-11-07 02:26:56,030:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/core/handlers/exception.py", line 185, in handle_uncaught_exception
+2025-11-07 02:26:56,030:     callback = resolver.resolve_error_handler(500)
+2025-11-07 02:26:56,030:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,030: 
+2025-11-07 02:26:56,030:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 732, in resolve_error_handler
+2025-11-07 02:26:56,030:     callback = getattr(self.urlconf_module, "handler%s" % view_type, None)
+2025-11-07 02:26:56,030:                        ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,031: 
+2025-11-07 02:26:56,031:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/utils/functional.py", line 47, in __get__
+2025-11-07 02:26:56,031:     res = instance.__dict__[self.name] = self.func(instance)
+2025-11-07 02:26:56,031:                                          ^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,031: 
+2025-11-07 02:26:56,031:   File "/home/ScoutConnect/.virtualenvs/boyscout_system/lib/python3.11/site-packages/django/urls/resolvers.py", line 711, in urlconf_module
+2025-11-07 02:26:56,031:     return import_module(self.urlconf_name)
+2025-11-07 02:26:56,031:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-11-07 02:26:56,031: 
+2025-11-07 02:26:56,032:   File "/home/ScoutConnect/BoyScout-Registration-System/boyscout_system/urls.py", line 21, in <module>
+2025-11-07 02:26:56,032:     from accounts.views import home
+2025-11-07 02:26:56,032: 
+2025-11-07 02:26:56,032:   File "/home/ScoutConnect/BoyScout-Registration-System/accounts/views.py", line 26, in <module>
+2025-11-07 02:26:56,032:     from dateutil.relativedelta import relativedelta

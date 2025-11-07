@@ -1,0 +1,745 @@
+2025-10-28 17:33:40 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 17:33:39 2025] ***
+2025-10-28 17:33:40 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 17:33:40 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 17:33:40 nodename: blue-liveweb23
+2025-10-28 17:33:40 machine: x86_64
+2025-10-28 17:33:40 clock source: unix
+2025-10-28 17:33:40 pcre jit disabled
+2025-10-28 17:33:40 detected number of CPU cores: 4
+2025-10-28 17:33:40 current working directory: /home/ScoutConnect
+2025-10-28 17:33:40 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 17:33:40 *** dumping internal routing table ***
+2025-10-28 17:33:40 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 17:33:40 *** end of the internal routing table ***
+2025-10-28 17:33:40 chdir() to /home/ScoutConnect/
+2025-10-28 17:33:40 your processes number limit is 256
+2025-10-28 17:33:40 your memory page size is 4096 bytes
+2025-10-28 17:33:40 detected max file descriptor number: 123456
+2025-10-28 17:33:40 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 17:33:40 1516 entry found
+2025-10-28 17:33:40 lock engine: pthread robust mutexes
+2025-10-28 17:33:40 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 17:33:40 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 17:33:40 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 17:33:40 Python main interpreter initialized at 0x7dcc59c37698
+2025-10-28 17:33:40 python threads support enabled
+2025-10-28 17:33:40 your server socket listen backlog is limited to 100 connections
+2025-10-28 17:33:40 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 17:33:40 setting request body buffering size to 65536 bytes
+2025-10-28 17:33:40 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 17:33:40 *** Operational MODE: single process ***
+2025-10-28 17:33:40 initialized 38 metrics
+2025-10-28 17:33:40 WSGI app 0 (mountpoint='') ready in 0 seconds on interpreter 0x7dcc59c37698 pid: 1 (default app)
+2025-10-28 17:33:40 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 17:33:40 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 17:33:40 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 17:33:40 metrics collector thread started
+2025-10-28 17:33:40 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 17:33:40 announcing my loyalty to the Emperor...
+2025-10-28 17:43:11 Tue Oct 28 17:43:11 2025 - *** /var/www/scoutconnect_pythonanywhere_com_wsgi.py has been touched... grace them all !!! ***
+2025-10-28 17:43:11 ...gracefully killing workers...
+2025-10-28 17:43:11 Gracefully killing worker 1 (pid: 2)...
+2025-10-28 17:43:13 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 17:43:12 2025] ***
+2025-10-28 17:43:13 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 17:43:13 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 17:43:13 nodename: blue-liveweb23
+2025-10-28 17:43:13 machine: x86_64
+2025-10-28 17:43:13 clock source: unix
+2025-10-28 17:43:13 pcre jit disabled
+2025-10-28 17:43:13 detected number of CPU cores: 4
+2025-10-28 17:43:13 current working directory: /home/ScoutConnect
+2025-10-28 17:43:13 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 17:43:13 *** dumping internal routing table ***
+2025-10-28 17:43:13 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 17:43:13 *** end of the internal routing table ***
+2025-10-28 17:43:13 chdir() to /home/ScoutConnect/
+2025-10-28 17:43:13 your processes number limit is 256
+2025-10-28 17:43:13 your memory page size is 4096 bytes
+2025-10-28 17:43:13 detected max file descriptor number: 123456
+2025-10-28 17:43:13 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 17:43:13 1516 entry found
+2025-10-28 17:43:13 lock engine: pthread robust mutexes
+2025-10-28 17:43:13 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 17:43:13 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 8
+2025-10-28 17:43:13 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 17:43:13 Python main interpreter initialized at 0x77fc3ac0e698
+2025-10-28 17:43:13 python threads support enabled
+2025-10-28 17:43:13 your server socket listen backlog is limited to 100 connections
+2025-10-28 17:43:13 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 17:43:13 setting request body buffering size to 65536 bytes
+2025-10-28 17:43:13 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 17:43:13 *** Operational MODE: single process ***
+2025-10-28 17:43:13 initialized 38 metrics
+2025-10-28 17:43:13 WSGI app 0 (mountpoint='') ready in 1 seconds on interpreter 0x77fc3ac0e698 pid: 1 (default app)
+2025-10-28 17:43:13 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 17:43:13 spawned uWSGI master process (pid: 1)
+2025-10-28 17:43:13 spawned uWSGI worker 1 (pid: 7, cores: 1)
+2025-10-28 17:43:13 metrics collector thread started
+2025-10-28 17:43:13 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 17:43:34 Tue Oct 28 17:43:34 2025 - *** /var/www/scoutconnect_pythonanywhere_com_wsgi.py has been touched... grace them all !!! ***
+2025-10-28 17:43:34 ...gracefully killing workers...
+2025-10-28 17:43:34 Gracefully killing worker 1 (pid: 7)...
+2025-10-28 17:43:36 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 17:43:35 2025] ***
+2025-10-28 17:43:36 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 17:43:36 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 17:43:36 nodename: blue-liveweb23
+2025-10-28 17:43:36 machine: x86_64
+2025-10-28 17:43:36 clock source: unix
+2025-10-28 17:43:36 pcre jit disabled
+2025-10-28 17:43:36 detected number of CPU cores: 4
+2025-10-28 17:43:36 current working directory: /home/ScoutConnect
+2025-10-28 17:43:36 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 17:43:36 *** dumping internal routing table ***
+2025-10-28 17:43:36 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 17:43:36 *** end of the internal routing table ***
+2025-10-28 17:43:36 chdir() to /home/ScoutConnect/
+2025-10-28 17:43:36 your processes number limit is 256
+2025-10-28 17:43:36 your memory page size is 4096 bytes
+2025-10-28 17:43:36 detected max file descriptor number: 123456
+2025-10-28 17:43:36 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 17:43:36 1516 entry found
+2025-10-28 17:43:36 lock engine: pthread robust mutexes
+2025-10-28 17:43:36 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 17:43:36 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 7
+2025-10-28 17:43:36 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 17:43:36 Python main interpreter initialized at 0x77a4ce1b2698
+2025-10-28 17:43:36 python threads support enabled
+2025-10-28 17:43:36 your server socket listen backlog is limited to 100 connections
+2025-10-28 17:43:36 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 17:43:36 setting request body buffering size to 65536 bytes
+2025-10-28 17:43:36 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 17:43:36 *** Operational MODE: single process ***
+2025-10-28 17:43:36 initialized 38 metrics
+2025-10-28 17:43:36 WSGI app 0 (mountpoint='') ready in 0 seconds on interpreter 0x77a4ce1b2698 pid: 1 (default app)
+2025-10-28 17:43:36 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 17:43:36 spawned uWSGI master process (pid: 1)
+2025-10-28 17:43:36 spawned uWSGI worker 1 (pid: 12, cores: 1)
+2025-10-28 17:43:36 metrics collector thread started
+2025-10-28 17:43:36 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 18:14:10 Tue Oct 28 18:14:10 2025 - *** /var/www/scoutconnect_pythonanywhere_com_wsgi.py has been touched... grace them all !!! ***
+2025-10-28 18:14:10 ...gracefully killing workers...
+2025-10-28 18:14:10 Gracefully killing worker 1 (pid: 12)...
+2025-10-28 18:14:13 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 18:14:11 2025] ***
+2025-10-28 18:14:13 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 18:14:13 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 18:14:13 nodename: blue-liveweb23
+2025-10-28 18:14:13 machine: x86_64
+2025-10-28 18:14:13 clock source: unix
+2025-10-28 18:14:13 pcre jit disabled
+2025-10-28 18:14:13 detected number of CPU cores: 4
+2025-10-28 18:14:13 current working directory: /home/ScoutConnect
+2025-10-28 18:14:13 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 18:14:13 *** dumping internal routing table ***
+2025-10-28 18:14:13 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 18:14:13 *** end of the internal routing table ***
+2025-10-28 18:14:13 chdir() to /home/ScoutConnect/
+2025-10-28 18:14:13 your processes number limit is 256
+2025-10-28 18:14:13 your memory page size is 4096 bytes
+2025-10-28 18:14:13 detected max file descriptor number: 123456
+2025-10-28 18:14:13 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 18:14:13 1516 entry found
+2025-10-28 18:14:13 lock engine: pthread robust mutexes
+2025-10-28 18:14:13 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 18:14:13 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 8
+2025-10-28 18:14:13 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 18:14:13 Python main interpreter initialized at 0x7c6d3be8a698
+2025-10-28 18:14:13 python threads support enabled
+2025-10-28 18:14:13 your server socket listen backlog is limited to 100 connections
+2025-10-28 18:14:13 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 18:14:13 setting request body buffering size to 65536 bytes
+2025-10-28 18:14:13 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 18:14:13 *** Operational MODE: single process ***
+2025-10-28 18:14:13 initialized 38 metrics
+2025-10-28 18:14:13 WSGI app 0 (mountpoint='') ready in 1 seconds on interpreter 0x7c6d3be8a698 pid: 1 (default app)
+2025-10-28 18:14:13 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 18:14:13 spawned uWSGI master process (pid: 1)
+2025-10-28 18:14:13 spawned uWSGI worker 1 (pid: 17, cores: 1)
+2025-10-28 18:14:13 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 18:14:13 metrics collector thread started
+2025-10-28 18:37:41 Tue Oct 28 18:37:41 2025 - *** /etc/uwsgi/scoutconnect.pythonanywhere.com.ini has been touched... grace them all !!! ***
+2025-10-28 18:37:41 ...gracefully killing workers...
+2025-10-28 18:37:41 Gracefully killing worker 1 (pid: 17)...
+2025-10-28 18:37:55 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 18:37:50 2025] ***
+2025-10-28 18:37:55 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 18:37:55 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 18:37:55 nodename: blue-liveweb23
+2025-10-28 18:37:55 machine: x86_64
+2025-10-28 18:37:55 clock source: unix
+2025-10-28 18:37:55 pcre jit disabled
+2025-10-28 18:37:55 detected number of CPU cores: 4
+2025-10-28 18:37:55 current working directory: /home/ScoutConnect
+2025-10-28 18:37:55 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 18:37:55 *** dumping internal routing table ***
+2025-10-28 18:37:55 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 18:37:55 *** end of the internal routing table ***
+2025-10-28 18:37:55 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-28 18:37:55 your processes number limit is 256
+2025-10-28 18:37:55 your memory page size is 4096 bytes
+2025-10-28 18:37:55 detected max file descriptor number: 123456
+2025-10-28 18:37:55 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 18:37:55 1516 entry found
+2025-10-28 18:37:55 lock engine: pthread robust mutexes
+2025-10-28 18:37:55 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 18:37:55 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 18:37:55 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 18:37:55 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 18:37:55 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 18:37:55 Python main interpreter initialized at 0x7c75c8c59698
+2025-10-28 18:37:55 python threads support enabled
+2025-10-28 18:37:55 your server socket listen backlog is limited to 100 connections
+2025-10-28 18:37:55 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 18:37:55 setting request body buffering size to 65536 bytes
+2025-10-28 18:37:55 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 18:37:55 *** Operational MODE: single process ***
+2025-10-28 18:37:55 initialized 38 metrics
+2025-10-28 18:37:55 WSGI app 0 (mountpoint='') ready in 3 seconds on interpreter 0x7c75c8c59698 pid: 1 (default app)
+2025-10-28 18:37:55 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 18:37:55 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 18:37:55 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 18:37:55 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 18:37:55 metrics collector thread started
+2025-10-28 18:37:55 announcing my loyalty to the Emperor...
+2025-10-28 18:53:06 [WEBHOOK] Event type: source.chargeable
+2025-10-28 18:59:21 Tue Oct 28 18:59:21 2025 - *** /etc/uwsgi/scoutconnect.pythonanywhere.com.ini has been touched... grace them all !!! ***
+2025-10-28 18:59:21 ...gracefully killing workers...
+2025-10-28 18:59:21 Gracefully killing worker 1 (pid: 2)...
+2025-10-28 18:59:21 Tue Oct 28 18:59:21 2025 - received message 0 from emperor
+2025-10-28 18:59:21 SIGINT/SIGTERM received...killing workers...
+2025-10-28 18:59:22 worker 1 buried after 1 seconds
+2025-10-28 18:59:22 goodbye to uWSGI.
+2025-10-28 18:59:22 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-10-28 18:59:32 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 18:59:30 2025] ***
+2025-10-28 18:59:32 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 18:59:32 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 18:59:32 nodename: blue-liveweb23
+2025-10-28 18:59:32 machine: x86_64
+2025-10-28 18:59:32 clock source: unix
+2025-10-28 18:59:32 pcre jit disabled
+2025-10-28 18:59:32 detected number of CPU cores: 4
+2025-10-28 18:59:32 current working directory: /home/ScoutConnect
+2025-10-28 18:59:32 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 18:59:32 *** dumping internal routing table ***
+2025-10-28 18:59:32 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 18:59:32 *** end of the internal routing table ***
+2025-10-28 18:59:32 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-28 18:59:32 your processes number limit is 256
+2025-10-28 18:59:32 your memory page size is 4096 bytes
+2025-10-28 18:59:32 detected max file descriptor number: 123456
+2025-10-28 18:59:32 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 18:59:32 1516 entry found
+2025-10-28 18:59:32 lock engine: pthread robust mutexes
+2025-10-28 18:59:32 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 18:59:32 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 18:59:32 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 18:59:32 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 18:59:32 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 18:59:32 Python main interpreter initialized at 0x76f6997c0698
+2025-10-28 18:59:32 python threads support enabled
+2025-10-28 18:59:32 your server socket listen backlog is limited to 100 connections
+2025-10-28 18:59:32 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 18:59:32 setting request body buffering size to 65536 bytes
+2025-10-28 18:59:32 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 18:59:32 *** Operational MODE: single process ***
+2025-10-28 18:59:32 initialized 38 metrics
+2025-10-28 18:59:32 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x76f6997c0698 pid: 1 (default app)
+2025-10-28 18:59:32 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 18:59:32 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 18:59:32 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 18:59:32 metrics collector thread started
+2025-10-28 18:59:32 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 18:59:34 announcing my loyalty to the Emperor...
+2025-10-28 19:02:57 Tue Oct 28 19:02:57 2025 - received message 0 from emperor
+2025-10-28 19:02:57 SIGINT/SIGTERM received...killing workers...
+2025-10-28 19:02:58 worker 1 buried after 1 seconds
+2025-10-28 19:02:58 goodbye to uWSGI.
+2025-10-28 19:02:58 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-10-28 19:03:06 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 19:03:04 2025] ***
+2025-10-28 19:03:06 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 19:03:06 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 19:03:06 nodename: blue-liveweb23
+2025-10-28 19:03:06 machine: x86_64
+2025-10-28 19:03:06 clock source: unix
+2025-10-28 19:03:06 pcre jit disabled
+2025-10-28 19:03:06 detected number of CPU cores: 4
+2025-10-28 19:03:06 current working directory: /home/ScoutConnect
+2025-10-28 19:03:06 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 19:03:06 *** dumping internal routing table ***
+2025-10-28 19:03:06 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 19:03:06 *** end of the internal routing table ***
+2025-10-28 19:03:06 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-28 19:03:06 your processes number limit is 256
+2025-10-28 19:03:06 your memory page size is 4096 bytes
+2025-10-28 19:03:06 detected max file descriptor number: 123456
+2025-10-28 19:03:06 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 19:03:06 1516 entry found
+2025-10-28 19:03:06 lock engine: pthread robust mutexes
+2025-10-28 19:03:06 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 19:03:06 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 19:03:06 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 19:03:06 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:03:06 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:03:06 Python main interpreter initialized at 0x74362811a698
+2025-10-28 19:03:06 python threads support enabled
+2025-10-28 19:03:06 your server socket listen backlog is limited to 100 connections
+2025-10-28 19:03:06 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 19:03:06 setting request body buffering size to 65536 bytes
+2025-10-28 19:03:06 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 19:03:06 *** Operational MODE: single process ***
+2025-10-28 19:03:06 initialized 38 metrics
+2025-10-28 19:03:06 WSGI app 0 (mountpoint='') ready in 1 seconds on interpreter 0x74362811a698 pid: 1 (default app)
+2025-10-28 19:03:06 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 19:03:06 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 19:03:06 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 19:03:06 metrics collector thread started
+2025-10-28 19:03:06 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 19:03:09 announcing my loyalty to the Emperor...
+2025-10-28 19:08:17 Tue Oct 28 19:08:17 2025 - received message 0 from emperor
+2025-10-28 19:08:17 SIGINT/SIGTERM received...killing workers...
+2025-10-28 19:08:18 worker 1 buried after 1 seconds
+2025-10-28 19:08:18 goodbye to uWSGI.
+2025-10-28 19:08:18 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-10-28 19:08:29 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 19:08:26 2025] ***
+2025-10-28 19:08:29 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 19:08:29 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 19:08:29 nodename: blue-liveweb23
+2025-10-28 19:08:29 machine: x86_64
+2025-10-28 19:08:29 clock source: unix
+2025-10-28 19:08:29 pcre jit disabled
+2025-10-28 19:08:29 detected number of CPU cores: 4
+2025-10-28 19:08:29 current working directory: /home/ScoutConnect
+2025-10-28 19:08:29 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 19:08:29 *** dumping internal routing table ***
+2025-10-28 19:08:29 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 19:08:29 *** end of the internal routing table ***
+2025-10-28 19:08:29 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-28 19:08:29 your processes number limit is 256
+2025-10-28 19:08:29 your memory page size is 4096 bytes
+2025-10-28 19:08:29 detected max file descriptor number: 123456
+2025-10-28 19:08:29 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 19:08:29 1516 entry found
+2025-10-28 19:08:29 lock engine: pthread robust mutexes
+2025-10-28 19:08:29 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 19:08:29 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 19:08:29 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 19:08:29 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:08:29 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:08:29 Python main interpreter initialized at 0x7876b85ef698
+2025-10-28 19:08:29 python threads support enabled
+2025-10-28 19:08:29 your server socket listen backlog is limited to 100 connections
+2025-10-28 19:08:29 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 19:08:29 setting request body buffering size to 65536 bytes
+2025-10-28 19:08:29 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 19:08:29 *** Operational MODE: single process ***
+2025-10-28 19:08:29 initialized 38 metrics
+2025-10-28 19:08:29 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x7876b85ef698 pid: 1 (default app)
+2025-10-28 19:08:29 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 19:08:29 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 19:08:29 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 19:08:29 metrics collector thread started
+2025-10-28 19:08:29 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 19:08:31 announcing my loyalty to the Emperor...
+2025-10-28 19:14:57 Tue Oct 28 19:14:57 2025 - received message 0 from emperor
+2025-10-28 19:14:57 SIGINT/SIGTERM received...killing workers...
+2025-10-28 19:14:58 worker 1 buried after 1 seconds
+2025-10-28 19:14:58 goodbye to uWSGI.
+2025-10-28 19:14:58 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-10-28 19:15:07 *** Starting uWSGI 2.0.28 (64bit) on [Tue Oct 28 19:15:04 2025] ***
+2025-10-28 19:15:07 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-28 19:15:07 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-28 19:15:07 nodename: blue-liveweb23
+2025-10-28 19:15:07 machine: x86_64
+2025-10-28 19:15:07 clock source: unix
+2025-10-28 19:15:07 pcre jit disabled
+2025-10-28 19:15:07 detected number of CPU cores: 4
+2025-10-28 19:15:07 current working directory: /home/ScoutConnect
+2025-10-28 19:15:07 detected binary path: /usr/local/bin/uwsgi
+2025-10-28 19:15:07 *** dumping internal routing table ***
+2025-10-28 19:15:07 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-28 19:15:07 *** end of the internal routing table ***
+2025-10-28 19:15:07 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-28 19:15:07 your processes number limit is 256
+2025-10-28 19:15:07 your memory page size is 4096 bytes
+2025-10-28 19:15:07 detected max file descriptor number: 123456
+2025-10-28 19:15:07 building mime-types dictionary from file /etc/mime.types...
+2025-10-28 19:15:07 1516 entry found
+2025-10-28 19:15:07 lock engine: pthread robust mutexes
+2025-10-28 19:15:07 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-28 19:15:07 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-28 19:15:07 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-28 19:15:07 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:15:07 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-28 19:15:07 Python main interpreter initialized at 0x76491e6cc698
+2025-10-28 19:15:07 python threads support enabled
+2025-10-28 19:15:07 your server socket listen backlog is limited to 100 connections
+2025-10-28 19:15:07 your mercy for graceful operations on workers is 60 seconds
+2025-10-28 19:15:07 setting request body buffering size to 65536 bytes
+2025-10-28 19:15:07 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-28 19:15:07 *** Operational MODE: single process ***
+2025-10-28 19:15:07 initialized 38 metrics
+2025-10-28 19:15:07 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x76491e6cc698 pid: 1 (default app)
+2025-10-28 19:15:07 *** uWSGI is running in multiple interpreter mode ***
+2025-10-28 19:15:07 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-28 19:15:07 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-28 19:15:07 spawned 2 offload threads for uWSGI worker 1
+2025-10-28 19:15:07 metrics collector thread started
+2025-10-28 19:15:09 announcing my loyalty to the Emperor...
+2025-10-28 19:16:49 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] Cybersecurity Seminar: Good Morning Everyone. #015#012#015#012I want to inform you all that this weekend, saturday novemb1, there will be a cybersecurity 101 seminar lectured by DICT cybersecurity unit.
+2025-10-28 19:16:49 
+2025-10-28 19:22:19 [SIMULATED SMS] To: +639619381867 | Message: New event: Cybersecurity Seminar on 2025-11-01
+2025-10-28 19:26:04 [WEBHOOK] Event type: source.chargeable
+2025-10-28 19:27:35 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] Team Building Activity: Team buildign activity at mcauthur park
+2025-10-28 19:27:35 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] Team Building Activity: Team buildign activity at mcauthur park
+2025-10-28 19:28:50 [SIMULATED SMS] To: +639619381867 | Message: New event: Team building on 2025-10-31
+2025-10-28 19:28:53 [SIMULATED SMS] To: +639619381867 | Message: New event: Team building on 2025-10-31
+2025-10-28 19:28:59 Tue Oct 28 19:28:59 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /favicon.ico (ip 10.0.4.218) !!!
+2025-10-28 19:28:59 Tue Oct 28 19:28:59 2025 - uwsgi_response_writev_headers_and_body_do(): Broken pipe [core/writer.c line 306] during GET /favicon.ico (10.0.4.218)
+2025-10-28 19:29:54 [WEBHOOK] Event type: source.chargeable
+2025-10-28 23:14:46 [WEBHOOK] Event type: source.chargeable
+2025-10-28 23:17:37 [WEBHOOK] Event type: source.chargeable
+2025-10-29 00:06:29 [WEBHOOK] Event type: source.chargeable
+2025-10-29 00:06:40 Wed Oct 29 00:06:40 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /accounts/login/?next=/payments/success/ (ip 10.0.4.218) !!!
+2025-10-29 00:06:40 Wed Oct 29 00:06:40 2025 - uwsgi_response_write_headers_do(): Broken pipe [core/writer.c line 248] during POST /accounts/login/?next=/payments/success/ (10.0.4.218)
+2025-10-29 00:07:19 Wed Oct 29 00:07:19 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /events/ (ip 10.0.4.218) !!!
+2025-10-29 00:07:19 Wed Oct 29 00:07:19 2025 - uwsgi_response_writev_headers_and_body_do(): Broken pipe [core/writer.c line 306] during GET /events/ (10.0.4.218)
+2025-10-29 03:59:54 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 03:59:54 [DEBUG] admin_required: Access granted
+2025-10-29 04:09:12 Wed Oct 29 04:09:12 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /accounts/profile/ (ip 10.0.4.218) !!!
+2025-10-29 04:09:12 Wed Oct 29 04:09:12 2025 - uwsgi_response_writev_headers_and_body_do(): Broken pipe [core/writer.c line 306] during GET /accounts/profile/ (10.0.4.218)
+2025-10-29 10:20:23 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:20:23 [DEBUG] admin_required: Access granted
+2025-10-29 10:21:11 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:21:11 [DEBUG] admin_required: Access granted
+2025-10-29 10:21:30 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:21:30 [DEBUG] admin_required: Access granted
+2025-10-29 10:21:30 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:21:30 [DEBUG] admin_required: Access granted
+2025-10-29 10:22:31 Wed Oct 29 10:22:31 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /accounts/login/ (ip 10.0.4.218) !!!
+2025-10-29 10:22:31 Wed Oct 29 10:22:31 2025 - uwsgi_response_writev_headers_and_body_do(): Broken pipe [core/writer.c line 306] during POST /accounts/login/ (10.0.4.218)
+2025-10-29 10:26:18 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:26:18 [DEBUG] admin_required: Access granted
+2025-10-29 10:30:37 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:30:37 [DEBUG] admin_required: Access granted
+2025-10-29 10:31:03 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:31:03 [DEBUG] admin_required: Access granted
+2025-10-29 10:40:49 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:40:49 [DEBUG] admin_required: Access granted
+2025-10-29 10:40:54 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:40:54 [DEBUG] admin_required: Access granted
+2025-10-29 10:41:03 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:41:03 [DEBUG] admin_required: Access granted
+2025-10-29 10:41:23 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:41:23 [DEBUG] admin_required: Access granted
+2025-10-29 10:41:33 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:41:33 [DEBUG] admin_required: Access granted
+2025-10-29 10:41:42 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:41:42 [DEBUG] admin_required: Access granted
+2025-10-29 10:46:49 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:46:49 [DEBUG] admin_required: Access granted
+2025-10-29 10:46:58 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:46:58 [DEBUG] admin_required: Access granted
+2025-10-29 10:49:14 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-10-29 10:49:14 [DEBUG] admin_required: Access granted
+2025-10-29 10:53:30 Wed Oct 29 10:53:30 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /accounts/scout-dashboard/ (ip 10.0.4.218) !!!
+2025-10-29 10:53:30 Wed Oct 29 10:53:30 2025 - uwsgi_response_write_headers_do(): Broken pipe [core/writer.c line 248] during GET /accounts/scout-dashboard/ (10.0.4.218)
+2025-10-29 10:55:57 [WEBHOOK] Event type: source.chargeable
+2025-10-31 04:04:28 *** Starting uWSGI 2.0.28 (64bit) on [Fri Oct 31 04:04:26 2025] ***
+2025-10-31 04:04:28 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-10-31 04:04:28 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-10-31 04:04:28 nodename: blue-liveweb23
+2025-10-31 04:04:28 machine: x86_64
+2025-10-31 04:04:28 clock source: unix
+2025-10-31 04:04:28 pcre jit disabled
+2025-10-31 04:04:28 detected number of CPU cores: 4
+2025-10-31 04:04:28 current working directory: /home/ScoutConnect
+2025-10-31 04:04:28 detected binary path: /usr/local/bin/uwsgi
+2025-10-31 04:04:28 *** dumping internal routing table ***
+2025-10-31 04:04:28 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-10-31 04:04:28 *** end of the internal routing table ***
+2025-10-31 04:04:28 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-10-31 04:04:28 your processes number limit is 256
+2025-10-31 04:04:28 your memory page size is 4096 bytes
+2025-10-31 04:04:28 detected max file descriptor number: 123456
+2025-10-31 04:04:28 building mime-types dictionary from file /etc/mime.types...
+2025-10-31 04:04:28 1516 entry found
+2025-10-31 04:04:28 lock engine: pthread robust mutexes
+2025-10-31 04:04:28 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-10-31 04:04:28 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-10-31 04:04:28 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-10-31 04:04:28 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-31 04:04:28 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-10-31 04:04:28 Python main interpreter initialized at 0x704247843698
+2025-10-31 04:04:28 python threads support enabled
+2025-10-31 04:04:28 your server socket listen backlog is limited to 100 connections
+2025-10-31 04:04:28 your mercy for graceful operations on workers is 60 seconds
+2025-10-31 04:04:28 setting request body buffering size to 65536 bytes
+2025-10-31 04:04:28 mapped 334256 bytes (326 KB) for 1 cores
+2025-10-31 04:04:28 *** Operational MODE: single process ***
+2025-10-31 04:04:28 initialized 38 metrics
+2025-10-31 04:04:28 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x704247843698 pid: 1 (default app)
+2025-10-31 04:04:28 *** uWSGI is running in multiple interpreter mode ***
+2025-10-31 04:04:28 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-10-31 04:04:28 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-10-31 04:04:28 metrics collector thread started
+2025-10-31 04:04:28 spawned 2 offload threads for uWSGI worker 1
+2025-10-31 04:04:29 Fri Oct 31 04:04:29 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /robots.txt (ip 10.0.4.218) !!!
+2025-10-31 04:04:29 Fri Oct 31 04:04:29 2025 - uwsgi_response_writev_headers_and_body_do(): Broken pipe [core/writer.c line 306] during GET /robots.txt (10.0.4.218)
+2025-10-31 04:04:29 announcing my loyalty to the Emperor...
+2025-11-02 00:54:59 *** Starting uWSGI 2.0.28 (64bit) on [Sun Nov  2 00:54:56 2025] ***
+2025-11-02 00:54:59 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-11-02 00:54:59 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-11-02 00:54:59 nodename: blue-liveweb23
+2025-11-02 00:54:59 machine: x86_64
+2025-11-02 00:54:59 clock source: unix
+2025-11-02 00:54:59 pcre jit disabled
+2025-11-02 00:54:59 detected number of CPU cores: 4
+2025-11-02 00:54:59 current working directory: /home/ScoutConnect
+2025-11-02 00:54:59 detected binary path: /usr/local/bin/uwsgi
+2025-11-02 00:54:59 *** dumping internal routing table ***
+2025-11-02 00:54:59 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-11-02 00:54:59 *** end of the internal routing table ***
+2025-11-02 00:54:59 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-11-02 00:54:59 your processes number limit is 256
+2025-11-02 00:54:59 your memory page size is 4096 bytes
+2025-11-02 00:54:59 detected max file descriptor number: 123456
+2025-11-02 00:54:59 building mime-types dictionary from file /etc/mime.types...
+2025-11-02 00:54:59 1516 entry found
+2025-11-02 00:54:59 lock engine: pthread robust mutexes
+2025-11-02 00:54:59 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-11-02 00:54:59 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-11-02 00:54:59 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-11-02 00:54:59 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-02 00:54:59 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-02 00:54:59 Python main interpreter initialized at 0x794dc5201698
+2025-11-02 00:54:59 python threads support enabled
+2025-11-02 00:54:59 your server socket listen backlog is limited to 100 connections
+2025-11-02 00:54:59 your mercy for graceful operations on workers is 60 seconds
+2025-11-02 00:54:59 setting request body buffering size to 65536 bytes
+2025-11-02 00:54:59 mapped 334256 bytes (326 KB) for 1 cores
+2025-11-02 00:54:59 *** Operational MODE: single process ***
+2025-11-02 00:54:59 initialized 38 metrics
+2025-11-02 00:54:59 WSGI app 0 (mountpoint='') ready in 3 seconds on interpreter 0x794dc5201698 pid: 1 (default app)
+2025-11-02 00:54:59 *** uWSGI is running in multiple interpreter mode ***
+2025-11-02 00:54:59 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-11-02 00:54:59 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-11-02 00:54:59 metrics collector thread started
+2025-11-02 00:54:59 spawned 2 offload threads for uWSGI worker 1
+2025-11-02 00:55:00 announcing my loyalty to the Emperor...
+2025-11-05 04:36:17 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 04:36:17 [DEBUG] admin_required: Access granted
+2025-11-05 04:36:59 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 04:36:59 [DEBUG] admin_required: Access granted
+2025-11-05 04:44:23 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 04:44:23 [DEBUG] admin_required: Access granted
+2025-11-05 04:46:17 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 04:46:17 [DEBUG] admin_required: Access granted
+2025-11-05 05:03:59 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:03:59 [SIMULATED SMS] To: +639619381867 | Message: New event: Team Building on 2025-11-10
+2025-11-05 05:04:00 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:04:01 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:04:01 [SIMULATED SMS] To: +639619381867 | Message: New event: Team Building on 2025-11-10
+2025-11-05 05:04:02 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:04:02 [SIMULATED SMS] To: +639544969708 | Message: New event: Team Building on 2025-11-10
+2025-11-05 05:04:03 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:04:04 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:04:04 [SIMULATED SMS] To: +639917827088 | Message: New event: Team Building on 2025-11-10
+2025-11-05 05:08:20 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:20 [SIMULATED SMS] To: +639619381867 | Message: New event: Cybersecurity Seminar on 2025-11-12
+2025-11-05 05:08:22 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:23 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:23 [SIMULATED SMS] To: +639619381867 | Message: New event: Cybersecurity Seminar on 2025-11-12
+2025-11-05 05:08:24 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:24 [SIMULATED SMS] To: +639544969708 | Message: New event: Cybersecurity Seminar on 2025-11-12
+2025-11-05 05:08:25 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:26 Email sending failed: [Errno 101] Network is unreachable
+2025-11-05 05:08:26 [SIMULATED SMS] To: +639917827088 | Message: New event: Cybersecurity Seminar on 2025-11-12
+2025-11-05 05:09:19 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:09:19 [DEBUG] admin_required: Access granted
+2025-11-05 05:09:28 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:09:28 [DEBUG] admin_required: Access granted
+2025-11-05 05:09:41 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:09:41 [DEBUG] admin_required: Access granted
+2025-11-05 05:10:36 Wed Nov  5 05:10:36 2025 - SIGPIPE: writing to a closed pipe/socket/fd (probably the client disconnected) on request /accounts/admin-dashboard/ (ip 10.0.4.218) !!!
+2025-11-05 05:10:36 Wed Nov  5 05:10:36 2025 - uwsgi_response_write_headers_do(): Broken pipe [core/writer.c line 248] during GET /accounts/admin-dashboard/ (10.0.4.218)
+2025-11-05 05:11:15 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:15 [DEBUG] admin_required: Access granted
+2025-11-05 05:11:27 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:27 [DEBUG] admin_required: Access granted
+2025-11-05 05:11:36 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:36 [DEBUG] admin_required: Access granted
+2025-11-05 05:11:37 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:37 [DEBUG] admin_required: Access granted
+2025-11-05 05:11:41 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:41 [DEBUG] admin_required: Access granted
+2025-11-05 05:11:44 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:11:44 [DEBUG] admin_required: Access granted
+2025-11-05 05:16:47 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] Team Building Activity: Team building activity at McArthur Park.
+2025-11-05 05:16:47 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] Team Building Activity: Team building activity at McArthur Park.
+2025-11-05 05:16:47 [SIMULATED SMS] To: +639544969708 | Message: [Announcement] Team Building Activity: Team building activity at McArthur Park.
+2025-11-05 05:16:48 [SIMULATED SMS] To: +639917827088 | Message: [Announcement] Team Building Activity: Team building activity at McArthur Park.
+2025-11-05 05:16:48 Email sending failed: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials af79cd13be357-8b0f51e2201sm334585785a.4 - gsmtp')
+2025-11-05 05:21:35 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] CyberSecurity Seminar: Good Afternoon Everyone.#015#012#015#012I want to inform you all that on next week, Wednesday November 12, 2025, there will be a cybersecurity 101 seminar lectured by DICT cybersecurity unit.
+2025-11-05 05:21:35 
+2025-11-05 05:21:35 [SIMULATED SMS] To: +639619381867 | Message: [Announcement] CyberSecurity Seminar: Good Afternoon Everyone.#015#012#015#012I want to inform you all that on next week, Wednesday November 12, 2025, there will be a cybersecurity 101 seminar lectured by DICT cybersecurity unit.
+2025-11-05 05:21:35 
+2025-11-05 05:21:35 [SIMULATED SMS] To: +639544969708 | Message: [Announcement] CyberSecurity Seminar: Good Afternoon Everyone.#015#012#015#012I want to inform you all that on next week, Wednesday November 12, 2025, there will be a cybersecurity 101 seminar lectured by DICT cybersecurity unit.
+2025-11-05 05:21:35 
+2025-11-05 05:21:35 [SIMULATED SMS] To: +639917827088 | Message: [Announcement] CyberSecurity Seminar: Good Afternoon Everyone.#015#012#015#012I want to inform you all that on next week, Wednesday November 12, 2025, there will be a cybersecurity 101 seminar lectured by DICT cybersecurity unit.
+2025-11-05 05:21:35 
+2025-11-05 05:21:36 Email sending failed: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials d75a77b69052e-4ed5f96f201sm29823811cf.0 - gsmtp')
+2025-11-05 05:22:57 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:22:57 [DEBUG] admin_required: Access granted
+2025-11-05 05:24:45 [WEBHOOK] Event type: source.chargeable
+2025-11-05 05:25:30 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 05:25:30 [DEBUG] admin_required: Access granted
+2025-11-05 09:08:55 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 09:08:55 [DEBUG] admin_required: Access granted
+2025-11-05 09:09:10 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 09:09:10 [DEBUG] admin_required: Access granted
+2025-11-05 13:45:56 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 13:45:56 [DEBUG] admin_required: Access granted
+2025-11-05 13:46:07 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 13:46:07 [DEBUG] admin_required: Access granted
+2025-11-05 13:46:08 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-05 13:46:08 [DEBUG] admin_required: Access granted
+2025-11-05 13:49:14 [WEBHOOK] Event type: source.chargeable
+2025-11-06 01:41:05 Email sending failed: (535, b'5.7.8 Username and Password not accepted. For more information, go to\n5.7.8  https://support.google.com/mail/?p=BadCredentials d75a77b69052e-4ed8131b8d7sm8443521cf.2 - gsmtp')
+2025-11-06 01:41:23 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-06 01:41:23 [DEBUG] admin_required: Access granted
+2025-11-06 07:45:03 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-06 07:45:03 [DEBUG] admin_required: Access granted
+2025-11-06 07:45:17 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-06 07:45:17 [DEBUG] admin_required: Access granted
+2025-11-06 07:46:38 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-06 07:46:38 [DEBUG] admin_required: Access granted
+2025-11-06 07:48:20 [DEBUG] admin_required decorator: user=admin admin (Administrator), is_authenticated=True, is_admin=True
+2025-11-06 07:48:20 [DEBUG] admin_required: Access granted
+2025-11-06 14:40:36 *** Starting uWSGI 2.0.28 (64bit) on [Thu Nov  6 14:40:34 2025] ***
+2025-11-06 14:40:36 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-11-06 14:40:36 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-11-06 14:40:36 nodename: blue-liveweb2
+2025-11-06 14:40:36 machine: x86_64
+2025-11-06 14:40:36 clock source: unix
+2025-11-06 14:40:36 pcre jit disabled
+2025-11-06 14:40:36 detected number of CPU cores: 4
+2025-11-06 14:40:36 current working directory: /home/ScoutConnect
+2025-11-06 14:40:36 detected binary path: /usr/local/bin/uwsgi
+2025-11-06 14:40:36 *** dumping internal routing table ***
+2025-11-06 14:40:36 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-11-06 14:40:36 *** end of the internal routing table ***
+2025-11-06 14:40:36 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-11-06 14:40:36 your processes number limit is 256
+2025-11-06 14:40:36 your memory page size is 4096 bytes
+2025-11-06 14:40:36 detected max file descriptor number: 123456
+2025-11-06 14:40:36 building mime-types dictionary from file /etc/mime.types...
+2025-11-06 14:40:36 1516 entry found
+2025-11-06 14:40:36 lock engine: pthread robust mutexes
+2025-11-06 14:40:36 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-11-06 14:40:36 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-11-06 14:40:36 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-11-06 14:40:36 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-06 14:40:36 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-06 14:40:36 Python main interpreter initialized at 0x7412f8efb698
+2025-11-06 14:40:36 python threads support enabled
+2025-11-06 14:40:36 your server socket listen backlog is limited to 100 connections
+2025-11-06 14:40:36 your mercy for graceful operations on workers is 60 seconds
+2025-11-06 14:40:36 setting request body buffering size to 65536 bytes
+2025-11-06 14:40:36 mapped 334256 bytes (326 KB) for 1 cores
+2025-11-06 14:40:36 *** Operational MODE: single process ***
+2025-11-06 14:40:36 initialized 38 metrics
+2025-11-06 14:40:36 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x7412f8efb698 pid: 1 (default app)
+2025-11-06 14:40:36 *** uWSGI is running in multiple interpreter mode ***
+2025-11-06 14:40:36 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-11-06 14:40:36 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-11-06 14:40:36 spawned 2 offload threads for uWSGI worker 1
+2025-11-06 14:40:36 metrics collector thread started
+2025-11-06 14:40:39 announcing my loyalty to the Emperor...
+2025-11-07 02:26:10 Fri Nov  7 02:26:10 2025 - received message 0 from emperor
+2025-11-07 02:26:10 SIGINT/SIGTERM received...killing workers...
+2025-11-07 02:26:11 worker 1 buried after 1 seconds
+2025-11-07 02:26:11 goodbye to uWSGI.
+2025-11-07 02:26:11 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-11-07 02:26:19 *** Starting uWSGI 2.0.28 (64bit) on [Fri Nov  7 02:26:17 2025] ***
+2025-11-07 02:26:19 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-11-07 02:26:19 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-11-07 02:26:19 nodename: blue-liveweb2
+2025-11-07 02:26:19 machine: x86_64
+2025-11-07 02:26:19 clock source: unix
+2025-11-07 02:26:19 pcre jit disabled
+2025-11-07 02:26:19 detected number of CPU cores: 4
+2025-11-07 02:26:19 current working directory: /home/ScoutConnect
+2025-11-07 02:26:19 detected binary path: /usr/local/bin/uwsgi
+2025-11-07 02:26:19 *** dumping internal routing table ***
+2025-11-07 02:26:19 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-11-07 02:26:19 *** end of the internal routing table ***
+2025-11-07 02:26:19 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-11-07 02:26:19 your processes number limit is 256
+2025-11-07 02:26:19 your memory page size is 4096 bytes
+2025-11-07 02:26:19 detected max file descriptor number: 123456
+2025-11-07 02:26:19 building mime-types dictionary from file /etc/mime.types...
+2025-11-07 02:26:19 1516 entry found
+2025-11-07 02:26:19 lock engine: pthread robust mutexes
+2025-11-07 02:26:19 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-11-07 02:26:19 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-11-07 02:26:19 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-11-07 02:26:19 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-07 02:26:19 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-07 02:26:19 Python main interpreter initialized at 0x77d6b139d698
+2025-11-07 02:26:19 python threads support enabled
+2025-11-07 02:26:19 your server socket listen backlog is limited to 100 connections
+2025-11-07 02:26:19 your mercy for graceful operations on workers is 60 seconds
+2025-11-07 02:26:19 setting request body buffering size to 65536 bytes
+2025-11-07 02:26:19 mapped 334256 bytes (326 KB) for 1 cores
+2025-11-07 02:26:19 *** Operational MODE: single process ***
+2025-11-07 02:26:19 initialized 38 metrics
+2025-11-07 02:26:19 WSGI app 0 (mountpoint='') ready in 2 seconds on interpreter 0x77d6b139d698 pid: 1 (default app)
+2025-11-07 02:26:19 *** uWSGI is running in multiple interpreter mode ***
+2025-11-07 02:26:19 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-11-07 02:26:19 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-11-07 02:26:19 metrics collector thread started
+2025-11-07 02:26:19 spawned 2 offload threads for uWSGI worker 1
+2025-11-07 02:26:19 announcing my loyalty to the Emperor...
+2025-11-07 02:26:45 Fri Nov  7 02:26:45 2025 - received message 0 from emperor
+2025-11-07 02:26:45 SIGINT/SIGTERM received...killing workers...
+2025-11-07 02:26:46 worker 1 buried after 1 seconds
+2025-11-07 02:26:46 goodbye to uWSGI.
+2025-11-07 02:26:46 VACUUM: unix socket /var/sockets/scoutconnect.pythonanywhere.com/socket removed.
+2025-11-07 02:26:52 *** Starting uWSGI 2.0.28 (64bit) on [Fri Nov  7 02:26:51 2025] ***
+2025-11-07 02:26:52 compiled with version: 11.4.0 on 16 January 2025 20:41:13
+2025-11-07 02:26:52 os: Linux-6.8.0-1029-aws #31~22.04.1-Ubuntu SMP Thu Apr 24 21:16:18 UTC 2025
+2025-11-07 02:26:52 nodename: blue-liveweb2
+2025-11-07 02:26:52 machine: x86_64
+2025-11-07 02:26:52 clock source: unix
+2025-11-07 02:26:52 pcre jit disabled
+2025-11-07 02:26:52 detected number of CPU cores: 4
+2025-11-07 02:26:52 current working directory: /home/ScoutConnect
+2025-11-07 02:26:52 detected binary path: /usr/local/bin/uwsgi
+2025-11-07 02:26:52 *** dumping internal routing table ***
+2025-11-07 02:26:52 [rule: 0] subject: path_info regexp: \.svgz$ action: addheader:Content-Encoding:gzip
+2025-11-07 02:26:52 *** end of the internal routing table ***
+2025-11-07 02:26:52 chdir() to /home/ScoutConnect/BoyScout-Registration-System
+2025-11-07 02:26:52 your processes number limit is 256
+2025-11-07 02:26:52 your memory page size is 4096 bytes
+2025-11-07 02:26:52 detected max file descriptor number: 123456
+2025-11-07 02:26:52 building mime-types dictionary from file /etc/mime.types...
+2025-11-07 02:26:52 1516 entry found
+2025-11-07 02:26:52 lock engine: pthread robust mutexes
+2025-11-07 02:26:52 thunder lock: disabled (you can enable it with --thunder-lock)
+2025-11-07 02:26:52 uwsgi socket 0 bound to UNIX address /var/sockets/scoutconnect.pythonanywhere.com/socket fd 3
+2025-11-07 02:26:52 Python version: 3.11.11 (main, Jan 16 2025, 11:48:26) [GCC 11.4.0]
+2025-11-07 02:26:52 PEP 405 virtualenv detected: /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-07 02:26:52 Set PythonHome to /home/ScoutConnect/.virtualenvs/boyscout_system
+2025-11-07 02:26:52 Python main interpreter initialized at 0x79a476c32698
+2025-11-07 02:26:52 python threads support enabled
+2025-11-07 02:26:52 your server socket listen backlog is limited to 100 connections
+2025-11-07 02:26:52 your mercy for graceful operations on workers is 60 seconds
+2025-11-07 02:26:52 setting request body buffering size to 65536 bytes
+2025-11-07 02:26:52 mapped 334256 bytes (326 KB) for 1 cores
+2025-11-07 02:26:52 *** Operational MODE: single process ***
+2025-11-07 02:26:52 initialized 38 metrics
+2025-11-07 02:26:52 WSGI app 0 (mountpoint='') ready in 0 seconds on interpreter 0x79a476c32698 pid: 1 (default app)
+2025-11-07 02:26:52 *** uWSGI is running in multiple interpreter mode ***
+2025-11-07 02:26:52 gracefully (RE)spawned uWSGI master process (pid: 1)
+2025-11-07 02:26:52 spawned uWSGI worker 1 (pid: 2, cores: 1)
+2025-11-07 02:26:52 metrics collector thread started
+2025-11-07 02:26:52 spawned 2 offload threads for uWSGI worker 1
+2025-11-07 02:26:56 announcing my loyalty to the Emperor...
