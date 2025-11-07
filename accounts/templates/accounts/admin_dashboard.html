@@ -487,9 +487,9 @@ if (paymentStatusCtx) {
       labels: ['Verified', 'Pending', 'Rejected'],
       datasets: [{
         data: [
-          {{ payment_total|default:0 }},
-          {{ unpaid_count|default:0 }},
-          5  // Example rejected count
+          {{ payment_verified_count|default:0 }},
+          {{ payment_pending_count|default:0 }},
+          {{ payment_rejected_count|default:0 }}
         ],
         backgroundColor: [
           '#16a34a',

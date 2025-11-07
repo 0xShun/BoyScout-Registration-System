@@ -36,8 +36,11 @@ def admin_dashboard(request):
     # Analytics
     member_count = User.objects.count()
     payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
-    # No pending payments - all payments are full payment upfront
-    unpaid_count = Payment.objects.filter(status__in=['pending', 'for_verification']).count()
+    # Payment status counts for the chart
+    payment_verified_count = Payment.objects.filter(status='verified').count()
+    payment_pending_count = Payment.objects.filter(status__in=['pending', 'for_verification']).count()
+    payment_rejected_count = Payment.objects.filter(status='rejected').count()
+    unpaid_count = payment_pending_count  # Keep for backward compatibility
     announcement_count = Announcement.objects.count()
     
     # Role distribution
@@ -145,6 +148,9 @@ def admin_dashboard(request):
         'member_count': member_count,
         'payment_total': payment_total,
         'unpaid_count': unpaid_count,  # Unpaid platform registrations
+        'payment_verified_count': payment_verified_count,
+        'payment_pending_count': payment_pending_count,
+        'payment_rejected_count': payment_rejected_count,
         'announcement_count': announcement_count,
         'role_distribution': role_distribution,
         'member_growth': member_growth_json,
