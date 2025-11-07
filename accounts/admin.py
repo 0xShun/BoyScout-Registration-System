@@ -92,7 +92,7 @@ class BatchRegistrationAdmin(admin.ModelAdmin):
     status_badge.short_description = 'Status'
     status_badge.admin_order_field = 'status'
     
-    actions = ['mark_as_verified', 'mark_as_rejected']
+    actions = ['mark_as_verified', 'mark_as_rejected', 'delete_batch_and_users']
     
     def mark_as_verified(self, request, queryset):
         queryset.update(status='verified', verified_by=request.user)
@@ -103,6 +103,62 @@ class BatchRegistrationAdmin(admin.ModelAdmin):
         queryset.update(status='rejected')
         self.message_user(request, f'{queryset.count()} batch registration(s) marked as rejected.')
     mark_as_rejected.short_description = 'Mark selected as rejected'
+    
+    def delete_batch_and_users(self, request, queryset):
+        """Delete batch registration(s) and all associated user accounts"""
+        from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
+        from django.db import transaction
+        
+        # Get confirmation from user
+        if 'apply' in request.POST:
+            deleted_count = 0
+            user_count = 0
+            
+            with transaction.atomic():
+                for batch in queryset:
+                    # Get all associated student data
+                    student_data = batch.student_data.all()
+                    
+                    # Delete all created users
+                    for student in student_data:
+                        if student.created_user:
+                            user_count += 1
+                            student.created_user.delete()
+                    
+                    # Delete the batch (cascades to student_data and payments)
+                    batch.delete()
+                    deleted_count += 1
+            
+            self.message_user(
+                request,
+                f'✅ Deleted {deleted_count} batch registration(s) and {user_count} user account(s).',
+                level='success'
+            )
+            return None
+        
+        # Show confirmation page
+        from django.template.response import TemplateResponse
+        
+        # Count users that will be deleted
+        total_users = 0
+        for batch in queryset:
+            total_users += batch.student_data.filter(created_user__isnull=False).count()
+        
+        context = {
+            'title': 'Confirm Batch Deletion',
+            'queryset': queryset,
+            'total_users': total_users,
+            'action_checkbox_name': ACTION_CHECKBOX_NAME,
+            'opts': self.model._meta,
+        }
+        
+        return TemplateResponse(
+            request,
+            'admin/batch_registration_delete_confirm.html',
+            context
+        )
+    
+    delete_batch_and_users.short_description = '⚠️ Delete batch and all associated users'
 
 
 @admin.register(RegistrationPayment)

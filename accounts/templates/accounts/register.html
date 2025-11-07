@@ -118,18 +118,21 @@
             </div>
             <div class="card-body">
               <p class="text-muted mb-3">
-                <i class="fas fa-info-circle"></i> Specify the number of students above, then proceed to payment. 
-                You'll provide individual student details after payment confirmation.
+                <i class="fas fa-info-circle"></i> Enter each student's details below. All students will be registered with active accounts immediately.
               </p>
               
-              <!-- Student details will be collected after payment -->
-              <div class="alert alert-info">
+              <!-- Dynamic student forms will be inserted here -->
+              <div id="studentFormsContainer"></div>
+              
+              <!-- Info about the process -->
+              <div class="alert alert-info mt-3">
                 <h6 class="alert-heading">📝 How Batch Registration Works:</h6>
                 <ol class="mb-0 ps-3">
-                  <li>Enter the number of students you want to register</li>
-                  <li>Complete the payment for all students</li>
-                  <li>After payment, you'll receive a link to provide each student's details</li>
-                  <li>All student accounts will be created once you submit their information</li>
+                  <li>Enter the number of students above to generate the forms</li>
+                  <li>Fill in each student's details (all fields required)</li>
+                  <li>Click submit - all student accounts will be created immediately</li>
+                  <li>You'll be redirected to PayMongo payment page</li>
+                  <li>Each student will receive welcome email with their login credentials</li>
                 </ol>
               </div>
             </div>
@@ -151,22 +154,22 @@
           <!-- Batch Payment Information -->
           <div class="alert alert-primary">
             <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Batch Payment - One Payment for All Students!</h6>
-            <p class="mb-2">After submitting, you'll pay once for all students via:</p>
+            <p class="mb-2">After submitting student details, you'll complete payment via:</p>
             <div class="d-flex gap-3 justify-content-center my-3">
               <span class="badge bg-light text-dark fs-6">GCash</span>
               <span class="badge bg-light text-dark fs-6">PayMaya</span>
               <span class="badge bg-light text-dark fs-6">GrabPay</span>
             </div>
             <ul class="mb-2">
+              <li><strong>Accounts activated immediately</strong> - Students can login right away</li>
               <li><strong>Single payment</strong> - Pay for all students at once</li>
-              <li><strong>Secure checkout</strong> - Protected by PayMongo</li>
-              <li><strong>Student details later</strong> - Provide info after payment</li>
+              <li><strong>Email notifications</strong> - Each student receives their login credentials</li>
             </ul>
-            <p class="mb-0 small">Complete payment first, then add student details to activate all accounts!</p>
+            <p class="mb-0 small"><i class="fas fa-info-circle"></i> All student accounts will be active immediately after you click submit!</p>
           </div>
           
-          <button type="submit" class="btn btn-success w-100 py-2 mt-3" id="batchSubmitBtn" disabled>
-            <i class="fas fa-shopping-cart"></i> Proceed to Payment (Pay for <span id="submitStudentCount">0</span> Students)
+          <button type="submit" class="btn btn-success w-100 py-3 fw-bold mt-3" id="batchSubmitBtn" disabled>
+            <i class="fas fa-user-plus me-2"></i> Create <span id="submitStudentCount">0</span> Student Accounts & Proceed to Payment
           </button>
           
           <div id="batchValidationMessage" class="alert alert-warning mt-3" style="display: none;">
@@ -415,6 +418,9 @@
             const total = numStudents * 500;
             if (totalAmountSpan) totalAmountSpan.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
             
+            // Generate student forms
+            generateStudentForms(numStudents);
+            
             // Enable/disable submit button based on number of students
             if (batchSubmitBtn) {
                 if (numStudents > 0 && numStudents <= 50) {
@@ -430,6 +436,68 @@
                     batchSubmitBtn.style.cursor = 'not-allowed';
                     if (batchValidationMessage) batchValidationMessage.style.display = 'block';
                 }
+            }
+        }
+        
+        function generateStudentForms(numStudents) {
+            const container = document.getElementById('studentFormsContainer');
+            if (!container) return;
+            
+            // Clear existing forms
+            container.innerHTML = '';
+            
+            if (numStudents < 1 || numStudents > 50) {
+                return;
+            }
+            
+            // Generate form for each student
+            for (let i = 0; i < numStudents; i++) {
+                const studentCard = document.createElement('div');
+                studentCard.className = 'card mb-3';
+                studentCard.innerHTML = `
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0"><i class="fas fa-user-graduate"></i> Student ${i + 1}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">First Name *</label>
+                                <input type="text" name="student_${i}_first_name" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Last Name *</label>
+                                <input type="text" name="student_${i}_last_name" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Email Address *</label>
+                                <input type="email" name="student_${i}_email" class="form-control" required>
+                                <small class="form-text text-muted">Student will receive login credentials here</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Phone Number</label>
+                                <input type="tel" name="student_${i}_phone_number" class="form-control" placeholder="+639XXXXXXXXX">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Date of Birth *</label>
+                                <input type="date" name="student_${i}_date_of_birth" class="form-control" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Username *</label>
+                                <input type="text" name="student_${i}_username" class="form-control" required>
+                                <small class="form-text text-muted">Used for login</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Address *</label>
+                            <textarea name="student_${i}_address" class="form-control" rows="2" required></textarea>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(studentCard);
             }
         }
         

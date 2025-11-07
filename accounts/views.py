@@ -331,7 +331,7 @@ def register(request):
         registration_type = request.POST.get('registration_type', 'single')
         
         if registration_type == 'batch':
-            # Handle batch registration
+            # Handle batch registration with inline student details
             registrar_form = BatchRegistrarForm(request.POST)
             
             if registrar_form.is_valid():
@@ -343,7 +343,57 @@ def register(request):
                         from .models import SystemSettings
                         registration_fee = SystemSettings.get_registration_fee()
                         
-                        # Create BatchRegistration record (student details will be collected after payment)
+                        # Collect student data from POST
+                        student_data_list = []
+                        duplicate_emails = []
+                        duplicate_usernames = []
+                        
+                        for i in range(number_of_students):
+                            student_data = {
+                                'first_name': request.POST.get(f'student_{i}_first_name', '').strip(),
+                                'last_name': request.POST.get(f'student_{i}_last_name', '').strip(),
+                                'email': request.POST.get(f'student_{i}_email', '').strip().lower(),
+                                'username': request.POST.get(f'student_{i}_username', '').strip(),
+                                'phone_number': request.POST.get(f'student_{i}_phone_number', '').strip(),
+                                'date_of_birth': request.POST.get(f'student_{i}_date_of_birth', ''),
+                                'address': request.POST.get(f'student_{i}_address', '').strip(),
+                            }
+                            
+                            # Validate required fields
+                            if not all([student_data['first_name'], student_data['last_name'], 
+                                       student_data['email'], student_data['username'], 
+                                       student_data['date_of_birth'], student_data['address']]):
+                                messages.error(request, f'All required fields must be filled for Student {i+1}.')
+                                return redirect('accounts:register')
+                            
+                            # Check for duplicate emails
+                            if User.objects.filter(email=student_data['email']).exists():
+                                duplicate_emails.append(student_data['email'])
+                            
+                            # Check for duplicate usernames
+                            if User.objects.filter(username=student_data['username']).exists():
+                                duplicate_usernames.append(student_data['username'])
+                            
+                            # Check for duplicates within the batch
+                            for existing in student_data_list:
+                                if existing['email'] == student_data['email']:
+                                    duplicate_emails.append(student_data['email'])
+                                if existing['username'] == student_data['username']:
+                                    duplicate_usernames.append(student_data['username'])
+                            
+                            student_data_list.append(student_data)
+                        
+                        # If duplicates found, fail the batch
+                        if duplicate_emails or duplicate_usernames:
+                            error_msg = 'Batch registration failed due to duplicates: '
+                            if duplicate_emails:
+                                error_msg += f' Emails already exist: {", ".join(set(duplicate_emails))}.'
+                            if duplicate_usernames:
+                                error_msg += f' Usernames already exist: {", ".join(set(duplicate_usernames))}.'
+                            messages.error(request, error_msg)
+                            return redirect('accounts:register')
+                        
+                        # Create BatchRegistration record
                         batch_reg = BatchRegistration.objects.create(
                             registrar_name=registrar_form.cleaned_data['registrar_name'],
                             registrar_email=registrar_form.cleaned_data['registrar_email'],
@@ -351,12 +401,96 @@ def register(request):
                             number_of_students=number_of_students,
                             amount_per_student=registration_fee,
                             total_amount=registration_fee * number_of_students,
-                            status='paid'  # Set to paid immediately (equivalent to active)
+                            status='paid'  # Set to paid immediately - users are activated
                         )
                         
-                        # Create PayMongo payment source for batch
+                        # Create users and store BatchStudentData
+                        import secrets
+                        import string
+                        from django.contrib.auth.hashers import make_password
+                        from notifications.services import NotificationService
+                        
+                        created_users = []
+                        
+                        for idx, student_data in enumerate(student_data_list, 1):
+                            # Generate secure random password
+                            password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+                            
+                            # Create user account - ACTIVE immediately
+                            user = User.objects.create(
+                                username=student_data['username'],
+                                first_name=student_data['first_name'],
+                                last_name=student_data['last_name'],
+                                email=student_data['email'],
+                                phone_number=student_data.get('phone_number', ''),
+                                date_of_birth=student_data.get('date_of_birth'),
+                                address=student_data.get('address', ''),
+                                password=make_password(password),
+                                role='scout',
+                                is_active=True,  # ACTIVE IMMEDIATELY
+                                registration_status='active',
+                            )
+                            
+                            # Create BatchStudentData record
+                            BatchStudentData.objects.create(
+                                batch_registration=batch_reg,
+                                username=student_data['username'],
+                                first_name=student_data['first_name'],
+                                last_name=student_data['last_name'],
+                                email=student_data['email'],
+                                phone_number=student_data.get('phone_number', ''),
+                                date_of_birth=student_data['date_of_birth'],
+                                address=student_data['address'],
+                                password_hash=user.password,
+                                created_user=user
+                            )
+                            
+                            # Create RegistrationPayment record - VERIFIED immediately
+                            RegistrationPayment.objects.create(
+                                user=user,
+                                batch_registration=batch_reg,
+                                amount=registration_fee,
+                                status='verified'  # VERIFIED IMMEDIATELY
+                            )
+                            
+                            created_users.append(user)
+                            
+                            # Send welcome email to student
+                            try:
+                                welcome_subject = 'Welcome to ScoutConnect - Your Account is Ready!'
+                                welcome_message = f'''
+Dear {user.first_name} {user.last_name},
+
+Welcome to ScoutConnect! Your account has been created as part of a batch registration by {batch_reg.registrar_name}.
+
+Your Login Credentials:
+━━━━━━━━━━━━━━━━━━━━
+Email: {user.email}
+Username: {user.username}
+Password: {password}
+━━━━━━━━━━━━━━━━━━━━
+
+🔐 IMPORTANT: Please login and change your password immediately for security.
+
+Login here: {request.build_absolute_uri('/accounts/login/')}
+
+Your account is now ACTIVE and ready to use!
+
+Best regards,
+The ScoutConnect Team
+'''
+                                NotificationService.send_email(
+                                    subject=welcome_subject,
+                                    message=welcome_message,
+                                    recipient_list=[user.email]
+                                )
+                            except Exception as e:
+                                # Log error but don't fail the registration
+                                print(f'Failed to send welcome email to {user.email}: {str(e)}')
+                        
+                        # Create PayMongo payment source for batch (for show)
                         paymongo = PayMongoService()
-                        batch_desc = "Batch Registration - " + str(batch_reg.registrar_name) + " (" + str(number_of_students) + " students)"
+                        batch_desc = f"Batch Registration - {batch_reg.registrar_name} ({number_of_students} students)"
                         success, source_data = paymongo.create_source(
                             amount=float(batch_reg.total_amount),
                             description=batch_desc,
@@ -375,16 +509,13 @@ def register(request):
                             batch_reg.paymongo_source_id = source['id']
                             batch_reg.save()
                             
-                            # Student details will be collected AFTER payment
-                            # No need to create BatchStudentData records here
-                            
                             # Get checkout URL
                             checkout_url = source['attributes'].get('redirect', {}).get('checkout_url')
                             
                             if checkout_url:
                                 # Notify admins
                                 admins = User.objects.filter(role='admin')
-                                batch_notif = "New batch registration: " + str(batch_reg.registrar_name) + " (" + str(number_of_students) + " students) - Total: ₱" + str(batch_reg.total_amount) + " - awaiting payment"
+                                batch_notif = f"✅ Batch registration completed: {batch_reg.registrar_name} - {number_of_students} students created and activated!"
                                 for admin in admins:
                                     send_realtime_notification(
                                         admin.id,
@@ -392,30 +523,25 @@ def register(request):
                                         type='registration'
                                     )
                                 
-                                batch_msg = "Batch registration initiated! Please complete payment for " + str(number_of_students) + " students (Total: ₱" + str(batch_reg.total_amount) + ")"
-                                messages.success(request, batch_msg)
+                                success_msg = f'✅ Success! {number_of_students} student accounts created and activated! Each student will receive their login credentials via email. Redirecting to payment...'
+                                messages.success(request, success_msg)
                                 return redirect(checkout_url)
                             else:
-                                batch_reg.delete()
-                                messages.error(request, 'Payment gateway error. Please try again.')
-                                return redirect('accounts:register')
+                                # PayMongo failed but users already created - that's OK
+                                messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway unavailable.')
+                                return redirect('accounts:login')
                         else:
-                            batch_reg.delete()
-                            messages.error(request, 'Payment gateway error. Please try again.')
-                            return redirect('accounts:register')
+                            # PayMongo failed but users already created - that's OK
+                            messages.warning(request, f'{number_of_students} student accounts created successfully! Payment gateway unavailable.')
+                            return redirect('accounts:login')
                             
                 except Exception as e:
-                    messages.error(request, 'Error creating batch registration: ' + str(e))
+                    messages.error(request, f'Error creating batch registration: {str(e)}')
                     return redirect('accounts:register')
             else:
                 # Form has errors - show them
-                context = {
-                    'form': UserRegisterForm(),
-                    'registrar_form': registrar_form,
-                    'formset': BatchStudentFormSet(initial=[{}]),
-                    'registration_type': 'batch',
-                }
-                return render(request, 'accounts/register.html', context)
+                messages.error(request, 'Please correct the errors in the registrar information.')
+                return redirect('accounts:register')
         
         else:
             # Handle single registration (existing logic)
