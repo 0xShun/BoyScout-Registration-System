@@ -263,10 +263,11 @@ def event_detail(request, pk):
         
         # Handle payment based on event requirements
         if event.has_payment_required:
-            # Auto-complete payment immediately (skip PayMongo for testing)
+            # Auto-complete payment in database FIRST (before PayMongo redirect)
+            from payments.services.paymongo_service import PayMongoService
             from decimal import Decimal
             
-            # Set registration as verified and paid
+            # Set registration as verified and paid immediately
             registration.payment_status = 'complete'
             registration.verified = True
             registration.save()
@@ -279,14 +280,48 @@ def event_detail(request, pk):
                 payment_method='qr_ph',
                 verified_by=request.user,
                 verification_date=timezone.now(),
-                notes="Auto-completed payment (test mode)"
+                notes="Auto-completed payment (test mode - payment already verified)"
             )
             
             # Log the auto-completion
             logger.info(f"Event payment auto-completed for user {request.user.username}, event {event.title}")
             
-            messages.success(request, f'You have successfully registered for this event! Payment of ₱{event.payment_amount} has been recorded.')
-            return _redirect_to_event(event)
+            # Now create PayMongo redirect (just for demo purposes)
+            try:
+                paymongo = PayMongoService()
+                success, response = paymongo.create_source(
+                    amount=event.payment_amount,
+                    description=f"Event Registration: {event.title}",
+                    redirect_success=request.build_absolute_uri(f'/events/{event.pk}/'),
+                    redirect_failed=request.build_absolute_uri(f'/events/{event.pk}/'),
+                    metadata={
+                        'payment_type': 'event_registration',
+                        'event_id': str(event.pk),
+                        'event_registration_id': str(registration.pk),
+                        'user_id': str(request.user.pk),
+                        'event_title': event.title,
+                        'note': 'Payment already completed - this is demo redirect only'
+                    }
+                )
+                
+                if success and 'data' in response:
+                    source_data = response['data']
+                    checkout_url = source_data['attributes']['redirect']['checkout_url']
+                    event_payment.paymongo_source_id = source_data['id']
+                    event_payment.save()
+                    
+                    messages.success(request, f'Registration complete! Payment of ₱{event.payment_amount} has been recorded. Redirecting to PayMongo for demo...')
+                    return redirect(checkout_url)
+                else:
+                    # PayMongo failed but payment is already complete in our system
+                    messages.success(request, f'You have successfully registered for this event! Payment of ₱{event.payment_amount} has been recorded.')
+                    return _redirect_to_event(event)
+                    
+            except Exception as e:
+                # PayMongo error but payment is already complete in our system
+                logger.error(f"PayMongo redirect failed but payment already complete: {str(e)}")
+                messages.success(request, f'You have successfully registered for this event! Payment of ₱{event.payment_amount} has been recorded.')
+                return _redirect_to_event(event)
         else:
             # Free event - auto-approve registration
             registration.payment_status = 'not_required'
