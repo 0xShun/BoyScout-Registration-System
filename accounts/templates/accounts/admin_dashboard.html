@@ -481,21 +481,24 @@ if (memberGrowthCtx) {
 // Payment Status Chart
 const paymentStatusCtx = document.getElementById('paymentStatusChart');
 if (paymentStatusCtx) {
+  const verified = {{ payment_verified_count|default:0 }};
+  const pending = {{ payment_pending_count|default:0 }};
+  const rejected = {{ payment_rejected_count|default:0 }};
+  const hasData = verified > 0 || pending > 0 || rejected > 0;
+  
+  console.log('Payment Status Data:', {verified, pending, rejected, hasData});
+  
   new Chart(paymentStatusCtx, {
     type: 'doughnut',
     data: {
-      labels: ['Verified', 'Pending', 'Rejected'],
+      labels: hasData ? ['Verified', 'Pending', 'Rejected'] : ['No Data'],
       datasets: [{
-        data: [
-          {{ payment_verified_count|default:0 }},
-          {{ payment_pending_count|default:0 }},
-          {{ payment_rejected_count|default:0 }}
-        ],
-        backgroundColor: [
+        data: hasData ? [verified, pending, rejected] : [1],
+        backgroundColor: hasData ? [
           '#16a34a',
           '#f59e0b',
           '#ef4444'
-        ],
+        ] : ['#e5e7eb'],
         borderWidth: 0
       }]
     },
