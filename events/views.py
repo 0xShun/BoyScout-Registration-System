@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
@@ -262,72 +263,30 @@ def event_detail(request, pk):
         
         # Handle payment based on event requirements
         if event.has_payment_required:
-            # Create PayMongo payment source for QR PH
-            from payments.services.paymongo_service import PayMongoService
+            # Auto-complete payment immediately (skip PayMongo for testing)
             from decimal import Decimal
             
-            try:
-                # Initialize PayMongo service
-                paymongo = PayMongoService()
-                
-                # Create payment source
-                success, response = paymongo.create_source(
-                    amount=event.payment_amount,
-                    description=f"Event Registration: {event.title}",
-                    redirect_success=request.build_absolute_uri(f'/events/{event.pk}/'),
-                    redirect_failed=request.build_absolute_uri(f'/events/{event.pk}/'),
-                    metadata={
-                        'payment_type': 'event_registration',
-                        'event_id': str(event.pk),
-                        'event_registration_id': str(registration.pk),
-                        'user_id': str(request.user.pk),
-                        'event_title': event.title,
-                    }
-                )
-                
-                if success and 'data' in response:
-                    source_data = response['data']
-                    source_id = source_data['id']
-                    checkout_url = source_data['attributes']['redirect']['checkout_url']
-                    
-                    # Create EventPayment record to track this payment
-                    event_payment = EventPayment.objects.create(
-                        registration=registration,
-                        amount=event.payment_amount,
-                        status='pending',
-                        payment_method='qr_ph',
-                        paymongo_source_id=source_id,
-                        notes=f"PayMongo QR PH payment for {event.title}"
-                    )
-                    # Remember this pending event payment in session so that
-                    # when the user is redirected back we can attempt a
-                    # fallback reconciliation if the webhook hasn't arrived.
-                    request.session['pending_event_payment_id'] = event_payment.id
-                    request.session.modified = True
-                    
-                    # Log the payment initiation
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.info(f"Event payment initiated: User {request.user.username}, Event {event.title}, Source {source_id}")
-                    
-                    # Redirect to PayMongo checkout
-                    return redirect(checkout_url)
-                else:
-                    # PayMongo source creation failed
-                    messages.error(request, 'Unable to process payment at this time. Please try again later.')
-                    # Delete the registration since payment failed
-                    registration.delete()
-                    return _redirect_to_event(event)
-                    
-            except Exception as e:
-                # Handle any errors
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Event payment error: {str(e)}")
-                messages.error(request, 'An error occurred while processing your registration. Please try again.')
-                # Delete the registration since payment failed
-                registration.delete()
-                return _redirect_to_event(event)
+            # Set registration as verified and paid
+            registration.payment_status = 'complete'
+            registration.verified = True
+            registration.save()
+            
+            # Create EventPayment record with verified status
+            event_payment = EventPayment.objects.create(
+                registration=registration,
+                amount=event.payment_amount,
+                status='verified',
+                payment_method='qr_ph',
+                verified_by=request.user,
+                verification_date=timezone.now(),
+                notes="Auto-completed payment (test mode)"
+            )
+            
+            # Log the auto-completion
+            logger.info(f"Event payment auto-completed for user {request.user.username}, event {event.title}")
+            
+            messages.success(request, f'You have successfully registered for this event! Payment of ₱{event.payment_amount} has been recorded.')
+            return _redirect_to_event(event)
         else:
             # Free event - auto-approve registration
             registration.payment_status = 'not_required'
