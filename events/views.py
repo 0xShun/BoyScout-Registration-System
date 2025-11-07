@@ -252,6 +252,9 @@ def event_detail(request, pk):
             messages.info(request, 'You are already registered for this event.')
             return _redirect_to_event(event)
         
+        # Import Decimal at the top
+        from decimal import Decimal
+        
         # Create registration with appropriate payment status and amounts
         payment_status = 'pending' if event.has_payment_required else 'not_required'
         registration = EventRegistration.objects.create(
@@ -267,7 +270,6 @@ def event_detail(request, pk):
         if event.has_payment_required:
             # Auto-complete payment in database FIRST (before PayMongo redirect)
             from payments.services.paymongo_service import PayMongoService
-            from decimal import Decimal
             
             # Set registration as verified and paid immediately with FULL payment amount
             registration.payment_status = 'paid'  # Mark as paid
