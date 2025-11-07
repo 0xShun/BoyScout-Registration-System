@@ -22,6 +22,7 @@ from events.models import Attendance
 from django import forms
 from notifications.services import NotificationService, send_realtime_notification
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -343,14 +344,15 @@ def register(request):
                             number_of_students=number_of_students,
                             amount_per_student=registration_fee,
                             total_amount=registration_fee * number_of_students,
-                            status='pending'
+                            status='paid'  # Set to paid immediately (equivalent to active)
                         )
                         
                         # Create PayMongo payment source for batch
                         paymongo = PayMongoService()
+                        batch_desc = "Batch Registration - " + str(batch_reg.registrar_name) + " (" + str(number_of_students) + " students)"
                         success, source_data = paymongo.create_source(
                             amount=float(batch_reg.total_amount),
-                            description=f"Batch Registration - {batch_reg.registrar_name} ({number_of_students} students)",
+                            description=batch_desc,
                             redirect_success=request.build_absolute_uri('/payments/success/'),
                             redirect_failed=request.build_absolute_uri('/payments/failed/'),
                             metadata={
@@ -375,14 +377,16 @@ def register(request):
                             if checkout_url:
                                 # Notify admins
                                 admins = User.objects.filter(role='admin')
+                                batch_notif = "New batch registration: " + str(batch_reg.registrar_name) + " (" + str(number_of_students) + " students) - Total: ₱" + str(batch_reg.total_amount) + " - awaiting payment"
                                 for admin in admins:
                                     send_realtime_notification(
                                         admin.id,
-                                        f"New batch registration initiated: {batch_reg.registrar_name} ({number_of_students} students) - Total: ₱{batch_reg.total_amount}",
+                                        batch_notif,
                                         type='registration'
                                     )
                                 
-                                messages.success(request, f'Batch registration initiated! Please complete payment for {number_of_students} students (Total: ₱{batch_reg.total_amount})')
+                                batch_msg = "Batch registration initiated! Please complete payment for " + str(number_of_students) + " students (Total: ₱" + str(batch_reg.total_amount) + ")"
+                                messages.success(request, batch_msg)
                                 return redirect(checkout_url)
                             else:
                                 batch_reg.delete()
@@ -394,7 +398,7 @@ def register(request):
                             return redirect('accounts:register')
                             
                 except Exception as e:
-                    messages.error(request, f'Error creating batch registration: {str(e)}')
+                    messages.error(request, 'Error creating batch registration: ' + str(e))
                     return redirect('accounts:register')
             else:
                 # Form has errors - show them
@@ -414,33 +418,42 @@ def register(request):
                 post_data.pop('phone_number', None)
             form = UserRegisterForm(post_data)
             if form.is_valid():
-                # Create user (INACTIVE until payment is verified)
+                # Create user as ACTIVE immediately upon registration
                 user = form.save(commit=False)
                 user.role = 'scout'
-                user.is_active = False  # User must complete payment first
-                user.registration_status = 'inactive'  # Will be activated by webhook
+                user.is_active = True  # User is active immediately
+                user.registration_status = 'active'  # Active upon registration
                 user.save()
 
                 # Get registration fee from system settings (admin can change this)
                 from .models import SystemSettings
                 amount = SystemSettings.get_registration_fee()
                 
-                # Create RegistrationPayment record (PENDING until PayMongo payment completes)
+                # Set registration total paid and calculate membership expiry
+                user.registration_total_paid = amount
+                # Calculate membership expiry (₱500 per year of membership)
+                years_of_membership = min(int(amount // 500), 2)  # Max 2 years
+                user.membership_expiry = timezone.now() + relativedelta(years=years_of_membership)
+                user.save()
+                
+                # Create RegistrationPayment record (VERIFIED since user is already active)
                 reg_payment = RegistrationPayment.objects.create(
                     user=user,
                     amount=amount,
-                    status='pending',  # Will be updated to 'verified' by webhook
+                    status='verified',  # Mark as verified since user is already active
+                    verification_date=timezone.now(),  # Set verification timestamp
                 )
 
                 # Send registration initiated email
                 try:
-                    NotificationService.send_email(
-                        subject='Complete Your Registration - ScoutConnect',
-                        message=(f"Dear {user.first_name} {user.last_name},\n\n"
+                    email_body = ("Dear " + user.first_name + " " + user.last_name + ",\n\n"
                                  "Thank you for registering with ScoutConnect!\n\n"
-                                 "To complete your registration, please proceed with the payment of ₱{amount}.\n"
-                                 "Your account will be automatically activated once your payment is confirmed.\n\n"
-                                 "You will receive another email once your payment is verified."),
+                                 "Your account is now active! You can login immediately.\n\n"
+                                 "To finalize your registration, please complete the payment of ₱" + str(amount) + ".\n\n"
+                                 "Thank you!")
+                    NotificationService.send_email(
+                        subject='Registration Successful - ScoutConnect',
+                        message=email_body,
                         recipient_list=[user.email]
                     )
                 except Exception:
@@ -449,9 +462,10 @@ def register(request):
                 # Create PayMongo payment source
                 try:
                     paymongo = PayMongoService()
+                    reg_desc = "Registration Payment - " + str(user.get_full_name())
                     success, source_data = paymongo.create_source(
                         amount=float(amount),
-                        description=f"Registration Payment - {user.get_full_name()}",
+                        description=reg_desc,
                         redirect_success=request.build_absolute_uri('/payments/success/'),
                         redirect_failed=request.build_absolute_uri('/payments/failed/'),
                         metadata={
@@ -475,14 +489,15 @@ def register(request):
                             
                             # Notify admins
                             admins = User.objects.filter(role='admin')
+                            reg_notif = "New registration: " + str(user.get_full_name()) + " (" + str(user.email) + ") - awaiting payment confirmation"
                             for admin in admins:
                                 send_realtime_notification(
                                     admin.id,
-                                    f"New registration payment initiated: {user.get_full_name()} ({user.email})",
+                                    reg_notif,
                                     type='registration'
                                 )
                             
-                            messages.success(request, 'Registration successful! Please complete your payment to activate your account.')
+                            messages.success(request, 'Registration successful! Your account is now active and you can login. Please complete the payment to finalize your registration.')
                             return redirect(checkout_url)
                         else:
                             messages.error(request, 'Payment gateway error. Please try again or contact support.')
@@ -497,7 +512,7 @@ def register(request):
                         return redirect('accounts:register')
                         
                 except Exception as e:
-                    messages.error(request, f'Payment gateway error: {str(e)}. Please try again or contact support.')
+                    messages.error(request, 'Payment gateway error: ' + str(e) + '. Please try again or contact support.')
                     reg_payment.delete()
                     user.delete()
                     return redirect('accounts:register')
@@ -521,12 +536,15 @@ def register(request):
 
 def admin_required(view_func):
     def wrapper(request, *args, **kwargs):
-        print(f"[DEBUG] admin_required decorator: user={request.user}, is_authenticated={request.user.is_authenticated}, is_admin={request.user.is_admin() if request.user.is_authenticated else 'N/A'}")
+        auth_status = "N/A"
+        if request.user.is_authenticated:
+            auth_status = str(request.user.is_admin())
+        print("[DEBUG] admin_required decorator: user=" + str(request.user) + ", is_authenticated=" + str(request.user.is_authenticated) + ", is_admin=" + str(auth_status))
         if request.user.is_authenticated and request.user.is_admin():
-            print(f"[DEBUG] admin_required: Access granted")
+            print("[DEBUG] admin_required: Access granted")
             return view_func(request, *args, **kwargs)
         else:
-            print(f"[DEBUG] admin_required: Access denied, redirecting")
+            print("[DEBUG] admin_required: Access denied, redirecting")
             return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)(request, *args, **kwargs)
     return wrapper
 
@@ -761,7 +779,7 @@ def settings_view(request):
             role = form.cleaned_data['rank']
             user.role = rank
             user.save()
-            messages.success(request, f"Successfully updated {user.username}'s rank to {rank}.")
+            messages.success(request, "Successfully updated " + str(user.username) + "'s rank to " + str(rank) + ".")
             return redirect('accounts:settings')
     else:
         form = RoleManagementForm()
@@ -867,16 +885,19 @@ class MyLogoutView(LogoutView):
 @admin_required
 def quick_announcement(request):
     """Handle quick announcement creation from admin dashboard"""
-    print(f"[DEBUG] quick_announcement view entered. Method: {request.method}, User: {request.user}, Is Admin: {request.user.is_admin() if request.user.is_authenticated else 'Not authenticated'}")
+    admin_status = "Not authenticated"
+    if request.user.is_authenticated:
+        admin_status = str(request.user.is_admin())
+    print("[DEBUG] quick_announcement view entered. Method: " + str(request.method) + ", User: " + str(request.user) + ", Is Admin: " + admin_status)
     
     if request.method == 'POST':
-        print(f"[DEBUG] Processing POST request")
+        print("[DEBUG] Processing POST request")
         title = request.POST.get('title')
         message = request.POST.get('message')
         recipients = request.POST.getlist('recipients')
         send_email = request.POST.get('send_email') == 'on'
         send_sms = request.POST.get('send_sms') == 'on'
-        print(f"[DEBUG] Quick Announcement POST: title={title}, message={message}, recipients={recipients}, send_email={send_email}, send_sms={send_sms}")
+        print("[DEBUG] Quick Announcement POST: title=" + str(title) + ", message=" + str(message) + ", recipients=" + str(recipients) + ", send_email=" + str(send_email) + ", send_sms=" + str(send_sms))
         
         if not title or not message:
             print("[DEBUG] Missing title or message")
@@ -889,14 +910,14 @@ def quick_announcement(request):
                 title=title,
                 message=message
             )
-            print(f"[DEBUG] Announcement created: id={announcement.id}, title={announcement.title}")
+            print("[DEBUG] Announcement created: id=" + str(announcement.id) + ", title=" + str(announcement.title))
             
             # Determine recipients
             if not recipients or 'all' in recipients:
                 all_users = User.objects.all()
                 announcement.recipients.set(all_users)
                 target_users = all_users
-                print(f"[DEBUG] Recipients set to all users: count={all_users.count()}")
+                print("[DEBUG] Recipients set to all users: count=" + str(all_users.count()))
             else:
                 target_users = []
                 if 'scouts' in recipients:
@@ -906,46 +927,49 @@ def quick_announcement(request):
                     admins = User.objects.filter(role='admin')
                     target_users.extend(admins)
                 announcement.recipients.set(target_users)
-                print(f"[DEBUG] Recipients set to filtered users: count={len(target_users)}")
+                print("[DEBUG] Recipients set to filtered users: count=" + str(len(target_users)))
             
             # Send notifications
             for user in target_users:
                 try:
-                    send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
+                    send_realtime_notification(user.id, "New announcement: " + str(announcement.title), type='announcement')
                 except Exception as e:
-                    print(f"[DEBUG] Failed to send real-time notification to user {user.id}: {e}")
+                    print("[DEBUG] Failed to send real-time notification to user " + str(user.id) + ": " + str(e))
                 
                 # Send email if enabled
                 if send_email and user.email:
                     try:
                         from django.core.mail import send_mail
+                        subject = "[ScoutConnect] " + str(announcement.title)
+                        msg_body = str(announcement.message) + "\n\nPosted on: " + announcement.date_posted.strftime('%B %d, %Y at %I:%M %p')
                         send_mail(
-                            subject=f"[ScoutConnect] {announcement.title}",
-                            message=f"{announcement.message}\n\nPosted on: {announcement.date_posted.strftime('%B %d, %Y at %I:%M %p')}",
+                            subject=subject,
+                            message=msg_body,
                             from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@scoutconnect.com',
                             recipient_list=[user.email],
                             fail_silently=True,
                         )
                     except Exception as e:
-                        print(f"[DEBUG] Failed to send email to {user.email}: {e}")
+                        print("[DEBUG] Failed to send email to " + str(user.email) + ": " + str(e))
                 
                 # Send SMS if enabled and available
                 if send_sms and hasattr(user, 'phone_number') and user.phone_number:
                     try:
-                        NotificationService.send_sms(user.phone_number, f"[ScoutConnect] {announcement.title}: {announcement.message[:100]}...")
+                        sms_msg = "[ScoutConnect] " + str(announcement.title) + ": " + str(announcement.message[:100]) + "..."
+                        NotificationService.send_sms(user.phone_number, sms_msg)
                     except Exception as e:
-                        print(f"[DEBUG] Failed to send SMS to {user.phone_number}: {e}")
-            print(f"[DEBUG] Announcement process complete. Title: {announcement.title}")
-            messages.success(request, f'Announcement "{announcement.title}" created and sent to {len(target_users)} recipients.')
+                        print("[DEBUG] Failed to send SMS to " + str(user.phone_number) + ": " + str(e))
+            print("[DEBUG] Announcement process complete. Title: " + str(announcement.title))
+            messages.success(request, 'Announcement "' + str(announcement.title) + '" created and sent to ' + str(len(target_users)) + ' recipients.')
             
         except Exception as e:
-            messages.error(request, f'Failed to create announcement: {str(e)}')
-            print(f"[DEBUG] Error creating announcement: {e}")
+            messages.error(request, 'Failed to create announcement: ' + str(e))
+            print("[DEBUG] Error creating announcement: " + str(e))
         
         return redirect('accounts:admin_dashboard')
     
     else:
-        print(f"[DEBUG] Not a POST request, redirecting to admin dashboard")
+        print("[DEBUG] Not a POST request, redirecting to admin dashboard")
     return redirect('accounts:admin_dashboard')
 
 @admin_required
@@ -961,7 +985,7 @@ def badge_manage(request, pk):
     user_badges = [UserBadge.objects.get_or_create(user=scout, badge=badge)[0] for scout in scouts]
     if request.method == 'POST':
         for user_badge in user_badges:
-            prefix = f'scout_{user_badge.user.id}_'
+            prefix = 'scout_' + str(user_badge.user.id) + '_'
             awarded = request.POST.get(prefix + 'awarded') == 'on'
             percent = request.POST.get(prefix + 'percent', '0')
             notes = request.POST.get(prefix + 'notes', '')
@@ -1019,13 +1043,14 @@ def registration_payment(request, user_id):
                 
                 # Notify admins about new registration payment
                 admins = User.objects.filter(role='admin')
+                notif_msg = "New registration payment submitted: " + str(user.get_full_name()) + " - ₱" + str(payment_amount)
                 for admin in admins:
                     send_realtime_notification(
                         admin.id, 
-                        f"New registration payment submitted: {user.get_full_name()} - ₱{payment_amount}",
+                        notif_msg,
                         type='registration'
                     )
-                messages.success(request, f'Payment of ₱{payment_amount} submitted successfully! Your payment is pending verification.')
+                messages.success(request, 'Payment of ₱' + str(payment_amount) + ' submitted successfully! Your payment is pending verification.')
                 return redirect('accounts:registration_payment', user_id=user.id)
             except (ValueError, TypeError):
                 messages.error(request, 'Please enter a valid payment amount.')
@@ -1089,20 +1114,22 @@ def verify_registration_payment(request, user_id):
                 user.save()
                 
                 # Send notification to user
+                notif_msg = "Your registration payment of ₱" + str(payment.amount) + " has been verified!"
                 send_realtime_notification(
                     user.id, 
-                    f"Your registration payment of ₱{payment.amount} has been verified!",
+                    notif_msg,
                     type='registration'
                 )
                 
                 # Send email notification
+                email_msg = "Dear " + str(user.get_full_name()) + ",\n\nYour registration payment of ₱" + str(payment.amount) + " has been verified by an administrator.\n\nTotal paid: ₱" + str(user.registration_total_paid) + "\nRemaining: ₱" + str(user.registration_amount_remaining) + "\n\nBest regards,\nScoutConnect Team"
                 NotificationService.send_email(
                     subject="Registration Payment Verified - ScoutConnect",
-                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been verified by an administrator.\n\nTotal paid: ₱{user.registration_total_paid}\nRemaining: ₱{user.registration_amount_remaining}\n\nBest regards,\nScoutConnect Team",
+                    message=email_msg,
                     recipient_list=[user.email]
                 )
                 
-                messages.success(request, f'Registration payment of ₱{payment.amount} verified.')
+                messages.success(request, 'Registration payment of ₱' + str(payment.amount) + ' verified.')
                 
             elif action == 'reject':
                 payment.status = 'rejected'
@@ -1112,20 +1139,22 @@ def verify_registration_payment(request, user_id):
                 payment.save()
                 
                 # Send notification to user
+                notif_msg = "Your registration payment of ₱" + str(payment.amount) + " has been rejected."
                 send_realtime_notification(
                     user.id, 
-                    f"Your registration payment of ₱{payment.amount} has been rejected.",
+                    notif_msg,
                     type='registration'
                 )
                 
                 # Send email notification
+                email_msg = "Dear " + str(user.get_full_name()) + ",\n\nYour registration payment of ₱" + str(payment.amount) + " has been rejected by an administrator.\n\nReason: " + str(notes) + "\n\nPlease submit a new payment receipt.\n\nBest regards,\nScoutConnect Team"
                 NotificationService.send_email(
                     subject="Registration Payment Rejected - ScoutConnect",
-                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been rejected by an administrator.\n\nReason: {notes}\n\nPlease submit a new payment receipt.\n\nBest regards,\nScoutConnect Team",
+                    message=email_msg,
                     recipient_list=[user.email]
                 )
                 
-                messages.warning(request, f'Registration payment of ₱{payment.amount} rejected.')
+                messages.warning(request, 'Registration payment of ₱' + str(payment.amount) + ' rejected.')
         else:
             # Legacy verification for old registrations without RegistrationPayment records
             if action == 'verify':
@@ -1139,18 +1168,19 @@ def verify_registration_payment(request, user_id):
                 # Send notification to user
                 send_realtime_notification(
                     user.id, 
-                    f"Your registration payment has been verified! Your account is now active.",
+                    "Your registration payment has been verified! Your account is now active.",
                     type='registration'
                 )
                 
                 # Send email notification
+                email_msg = "Dear " + str(user.get_full_name()) + ",\n\nYour registration payment has been verified by an administrator. Your account is now active and you can log in to ScoutConnect.\n\nWelcome to the ScoutConnect community!\n\nBest regards,\nScoutConnect Team"
                 NotificationService.send_email(
                     subject="Registration Payment Verified - ScoutConnect",
-                    message=f"Dear {user.get_full_name()},\n\nYour registration payment has been verified by an administrator. Your account is now active and you can log in to ScoutConnect.\n\nWelcome to the ScoutConnect community!\n\nBest regards,\nScoutConnect Team",
+                    message=email_msg,
                     recipient_list=[user.email]
                 )
                 
-                messages.success(request, f'Registration payment for {user.get_full_name()} has been verified.')
+                messages.success(request, 'Registration payment for ' + str(user.get_full_name()) + ' has been verified.')
                 
             elif action == 'reject':
                 user.registration_status = 'pending_payment'
@@ -1162,18 +1192,19 @@ def verify_registration_payment(request, user_id):
                 # Send notification to user
                 send_realtime_notification(
                     user.id, 
-                    f"Your registration payment has been rejected. Please submit a new payment receipt.",
+                    "Your registration payment has been rejected. Please submit a new payment receipt.",
                     type='registration'
                 )
                 
                 # Send email notification
+                email_msg = "Dear " + str(user.get_full_name()) + ",\n\nYour registration payment has been rejected by an administrator. Please submit a new payment receipt.\n\nReason: " + str(notes) + "\n\nBest regards,\nScoutConnect Team"
                 NotificationService.send_email(
                     subject="Registration Payment Rejected - ScoutConnect",
-                    message=f"Dear {user.get_full_name()},\n\nYour registration payment has been rejected by an administrator. Please submit a new payment receipt.\n\nReason: {notes}\n\nBest regards,\nScoutConnect Team",
+                    message=email_msg,
                     recipient_list=[user.email]
                 )
                 
-                messages.warning(request, f'Registration payment for {user.get_full_name()} has been rejected.')
+                messages.warning(request, 'Registration payment for ' + str(user.get_full_name()) + ' has been rejected.')
         
         return redirect('accounts:verify_registration_payment', user_id=user_id)
     
