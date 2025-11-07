@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Fix admin2@test.com role from 'scout' to 'admin'
+Fix admin@test.com role from 'scout' to 'admin'
 Run this script on PythonAnywhere after pulling the latest code.
 """
 import os
@@ -14,7 +14,7 @@ from accounts.models import User
 
 def fix_admin2_role():
     try:
-        user = User.objects.get(email='admin2@test.com')
+        user = User.objects.get(email='admin@test.com')
         print(f"\nFound user: {user.username} ({user.email})")
         print(f"Current role: {user.role}")
         print(f"Current rank (deprecated): {user.rank}")
@@ -34,7 +34,7 @@ def fix_admin2_role():
             print("\n✅ User already has 'admin' role - no changes needed.")
             
     except User.DoesNotExist:
-        print("❌ Error: User with email 'admin2@test.com' not found.")
+        print("❌ Error: User with email 'admin@test.com' not found.")
         print("\nAvailable users:")
         for u in User.objects.filter(email__icontains='admin').order_by('email'):
             print(f"  - {u.email}: role={u.role}, is_superuser={u.is_superuser}")
