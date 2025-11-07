@@ -135,7 +135,7 @@
         <img src="{% static 'img/logo1.png' %}" alt="Logo" style="height: 48px;">
       </div>
       <div class="profile">
-        <img src="{% static 'img/placeholder-avatar.png' %}" alt="{{ user.get_full_name }}">
+        <img src="{% if user.profile_image %}{{ user.profile_image.url }}{% else %}{% static 'img/placeholder-avatar.png' %}{% endif %}" alt="{{ user.get_full_name }}">
         <div class="name">{{ user.get_full_name }}</div>
         <div class="role">{{ user.get_role_display }}</div>
       </div>
