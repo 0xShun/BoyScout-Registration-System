@@ -363,8 +363,18 @@ def register(request):
                             if not all([student_data['first_name'], student_data['last_name'], 
                                        student_data['email'], student_data['username'], 
                                        student_data['date_of_birth'], student_data['address']]):
-                                messages.error(request, f'All required fields must be filled for Student {i+1}.')
-                                return redirect('accounts:register')
+                                error_msg = f'❌ All required fields must be filled for Student {i+1}.'
+                                messages.error(request, error_msg)
+                                # Preserve form data and return to form
+                                import json
+                                context = {
+                                    'form': UserRegisterForm(),
+                                    'registrar_form': registrar_form,
+                                    'registration_type': 'batch',
+                                    'student_data_list': json.dumps(student_data_list),
+                                    'number_of_students': number_of_students,
+                                }
+                                return render(request, 'accounts/register.html', context)
                             
                             # Check for duplicate emails
                             if User.objects.filter(email=student_data['email']).exists():
@@ -383,15 +393,26 @@ def register(request):
                             
                             student_data_list.append(student_data)
                         
-                        # If duplicates found, fail the batch
+                        # If duplicates found, preserve data and show errors
                         if duplicate_emails or duplicate_usernames:
-                            error_msg = 'Batch registration failed due to duplicates: '
+                            error_msg = '❌ Batch registration failed due to duplicates:<br>'
                             if duplicate_emails:
-                                error_msg += f' Emails already exist: {", ".join(set(duplicate_emails))}.'
+                                error_msg += f'<strong>Emails already exist:</strong> {", ".join(set(duplicate_emails))}<br>'
                             if duplicate_usernames:
-                                error_msg += f' Usernames already exist: {", ".join(set(duplicate_usernames))}.'
+                                error_msg += f'<strong>Usernames already exist:</strong> {", ".join(set(duplicate_usernames))}'
                             messages.error(request, error_msg)
-                            return redirect('accounts:register')
+                            # Preserve form data and return to form
+                            import json
+                            context = {
+                                'form': UserRegisterForm(),
+                                'registrar_form': registrar_form,
+                                'registration_type': 'batch',
+                                'student_data_list': json.dumps(student_data_list),
+                                'number_of_students': number_of_students,
+                                'duplicate_emails': json.dumps(list(set(duplicate_emails))),
+                                'duplicate_usernames': json.dumps(list(set(duplicate_usernames))),
+                            }
+                            return render(request, 'accounts/register.html', context)
                         
                         # Create BatchRegistration record
                         batch_reg = BatchRegistration.objects.create(

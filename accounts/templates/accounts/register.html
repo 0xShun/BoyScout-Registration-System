@@ -443,6 +443,11 @@
             const container = document.getElementById('studentFormsContainer');
             if (!container) return;
             
+            // Get pre-filled data if exists (from server-side validation errors)
+            const studentDataList = {{ student_data_list|safe|default:"[]" }};
+            const duplicateEmails = {{ duplicate_emails|safe|default:"[]" }};
+            const duplicateUsernames = {{ duplicate_usernames|safe|default:"[]" }};
+            
             // Clear existing forms
             container.innerHTML = '';
             
@@ -452,6 +457,10 @@
             
             // Generate form for each student
             for (let i = 0; i < numStudents; i++) {
+                const studentData = studentDataList[i] || {};
+                const emailHasError = duplicateEmails.includes(studentData.email);
+                const usernameHasError = duplicateUsernames.includes(studentData.username);
+                
                 const studentCard = document.createElement('div');
                 studentCard.className = 'card mb-3';
                 studentCard.innerHTML = `
@@ -462,38 +471,40 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">First Name *</label>
-                                <input type="text" name="student_${i}_first_name" class="form-control" required>
+                                <input type="text" name="student_${i}_first_name" class="form-control" value="${studentData.first_name || ''}" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Last Name *</label>
-                                <input type="text" name="student_${i}_last_name" class="form-control" required>
+                                <input type="text" name="student_${i}_last_name" class="form-control" value="${studentData.last_name || ''}" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Email Address *</label>
-                                <input type="email" name="student_${i}_email" class="form-control" required>
+                                <input type="email" name="student_${i}_email" class="form-control ${emailHasError ? 'is-invalid' : ''}" value="${studentData.email || ''}" required>
+                                ${emailHasError ? '<div class="invalid-feedback">❌ This email already exists in the system</div>' : ''}
                                 <small class="form-text text-muted">Student will receive login credentials here</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Phone Number</label>
-                                <input type="tel" name="student_${i}_phone_number" class="form-control" placeholder="+639XXXXXXXXX">
+                                <input type="tel" name="student_${i}_phone_number" class="form-control" value="${studentData.phone_number || ''}" placeholder="+639XXXXXXXXX">
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Date of Birth *</label>
-                                <input type="date" name="student_${i}_date_of_birth" class="form-control" required>
+                                <input type="date" name="student_${i}_date_of_birth" class="form-control" value="${studentData.date_of_birth || ''}" required>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Username *</label>
-                                <input type="text" name="student_${i}_username" class="form-control" required>
+                                <input type="text" name="student_${i}_username" class="form-control ${usernameHasError ? 'is-invalid' : ''}" value="${studentData.username || ''}" required>
+                                ${usernameHasError ? '<div class="invalid-feedback">❌ This username already exists</div>' : ''}
                                 <small class="form-text text-muted">Used for login</small>
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">Address *</label>
-                            <textarea name="student_${i}_address" class="form-control" rows="2" required></textarea>
+                            <textarea name="student_${i}_address" class="form-control" rows="2" required>${studentData.address || ''}</textarea>
                         </div>
                     </div>
                 `;
@@ -580,9 +591,38 @@
   // On page load, ensure only visible form's fields are enabled
   const singleForm = document.getElementById('singleRegistrationForm');
   const batchForm = document.getElementById('batchRegistrationForm');
-  // Enable single, disable batch by default
-  if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
-  if (batchForm) Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+  
+  // Check if we're returning from an error (batch registration preserved)
+  {% if registration_type == 'batch' %}
+    // Switch to batch mode
+    const registrationType = document.getElementById('registrationType');
+    const typeLabel = document.getElementById('registrationTypeLabel');
+    const typeIcon = document.getElementById('registrationTypeIcon');
+    const typeDesc = document.getElementById('registrationTypeDesc');
+    const toggleSwitch = document.getElementById('registrationTypeSwitch');
+    
+    if (toggleSwitch) toggleSwitch.checked = true;
+    if (registrationType) registrationType.value = 'batch';
+    if (typeLabel) typeLabel.textContent = 'Batch Registration';
+    if (typeIcon) typeIcon.className = 'fas fa-users me-2';
+    if (typeDesc) typeDesc.textContent = 'Register multiple students (Teachers)';
+    
+    if (singleForm) {
+      singleForm.style.display = 'none';
+      Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+    }
+    if (batchForm) {
+      batchForm.style.display = 'block';
+      Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+    }
+    
+    // Trigger form generation with preserved data
+    updateBatchTotal();
+  {% else %}
+    // Enable single, disable batch by default
+    if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+    if (batchForm) Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+  {% endif %}
         }
     });
 </script>
