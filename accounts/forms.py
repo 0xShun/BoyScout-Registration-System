@@ -113,11 +113,10 @@ class UserRegisterForm(UserCreationForm):
         return username
 
 class UserEditForm(forms.ModelForm):
-    profile_image = forms.ImageField(required=False, label="Profile Picture")
     class Meta:
         model = User
         fields = [
-            'profile_image', 'username', 'email', 'first_name', 'last_name', 'rank',
+            'username', 'email', 'first_name', 'last_name', 'role',
             'date_of_birth', 'phone_number', 'address', 'emergency_contact',
             'emergency_phone', 'medical_conditions', 'allergies'
         ]
