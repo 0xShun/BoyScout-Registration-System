@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Flow / Architecture Request",
+  "type": "object",
+  "required": ["goal", "audience", "deliverables"],
+  "properties": {
+    "goal": { "type": "string", "minLength": 5 },
+    "audience": { "type": "string" },
+    "constraints": { "type": "string" },
+    "deliverables": { "type": "array", "items": { "type": "string" } },
+    "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+  },
+  "additionalProperties": false
+}

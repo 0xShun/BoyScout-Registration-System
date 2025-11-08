@@ -163,6 +163,141 @@ def payment_list(request):
     })
 
 @login_required
+@admin_required
+def payments_overview(request):
+    """
+    Admin-only view to see all payments across the system.
+    Displays Registration, Event, and General payments with filtering and search.
+    """
+    from accounts.models import RegistrationPayment
+    from events.models import EventRegistration
+    from datetime import datetime, timedelta
+    
+    # Get filter parameters
+    payment_type = request.GET.get('type', 'all')  # all, registration, event, general
+    date_range = request.GET.get('range', 'all')  # all, today, week, month
+    search_email = request.GET.get('search', '').strip()
+    
+    # Initialize date filter
+    date_filter = Q()
+    today = timezone.now().date()
+    
+    if date_range == 'today':
+        date_filter = Q(created_at__date=today) | Q(date__date=today)
+    elif date_range == 'week':
+        week_ago = today - timedelta(days=7)
+        date_filter = Q(created_at__date__gte=week_ago) | Q(date__gte=week_ago)
+    elif date_range == 'month':
+        month_ago = today - timedelta(days=30)
+        date_filter = Q(created_at__date__gte=month_ago) | Q(date__gte=month_ago)
+    
+    # Collect all payments
+    all_payments = []
+    
+    # Registration Payments
+    if payment_type in ['all', 'registration']:
+        reg_payments = RegistrationPayment.objects.select_related('user').all()
+        
+        # Apply date filter
+        if date_range != 'all':
+            reg_payments = reg_payments.filter(created_at__date__gte=today - timedelta(days=30 if date_range == 'month' else 7 if date_range == 'week' else 0))
+            if date_range == 'today':
+                reg_payments = reg_payments.filter(created_at__date=today)
+        
+        # Apply email search
+        if search_email:
+            reg_payments = reg_payments.filter(user__email__icontains=search_email)
+        
+        for payment in reg_payments:
+            all_payments.append({
+                'user_name': payment.user.get_full_name(),
+                'user_email': payment.user.email,
+                'type': 'Registration',
+                'type_detail': 'Platform Registration',
+                'amount': payment.amount,
+                'date': payment.created_at,
+                'sort_date': payment.created_at,
+            })
+    
+    # Event Payments
+    if payment_type in ['all', 'event']:
+        event_payments = EventRegistration.objects.filter(
+            payment_status='paid',
+            event__payment_amount__gt=0
+        ).select_related('user', 'event')
+        
+        # Apply date filter
+        if date_range != 'all':
+            days = 30 if date_range == 'month' else 7 if date_range == 'week' else 0
+            event_payments = event_payments.filter(registered_at__date__gte=today - timedelta(days=days))
+            if date_range == 'today':
+                event_payments = event_payments.filter(registered_at__date=today)
+        
+        # Apply email search
+        if search_email:
+            event_payments = event_payments.filter(user__email__icontains=search_email)
+        
+        for payment in event_payments:
+            all_payments.append({
+                'user_name': payment.user.get_full_name(),
+                'user_email': payment.user.email,
+                'type': 'Event',
+                'type_detail': payment.event.title,
+                'amount': payment.event.payment_amount,
+                'date': payment.registered_at,
+                'sort_date': payment.registered_at,
+            })
+    
+    # General Payments
+    if payment_type in ['all', 'general']:
+        general_payments = Payment.objects.filter(
+            status='verified'
+        ).select_related('user')
+        
+        # Apply date filter
+        if date_range != 'all':
+            days = 30 if date_range == 'month' else 7 if date_range == 'week' else 0
+            general_payments = general_payments.filter(date__gte=today - timedelta(days=days))
+            if date_range == 'today':
+                general_payments = general_payments.filter(date=today)
+        
+        # Apply email search
+        if search_email:
+            general_payments = general_payments.filter(user__email__icontains=search_email)
+        
+        for payment in general_payments:
+            all_payments.append({
+                'user_name': payment.user.get_full_name(),
+                'user_email': payment.user.email,
+                'type': 'General',
+                'type_detail': payment.get_payment_type_display() if payment.payment_type else 'General Payment',
+                'amount': payment.amount,
+                'date': payment.date,
+                'sort_date': payment.date,
+            })
+    
+    # Sort by date (newest first)
+    all_payments.sort(key=lambda x: x['sort_date'], reverse=True)
+    
+    # Pagination
+    paginator = Paginator(all_payments, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Calculate totals
+    total_amount = sum(p['amount'] for p in all_payments)
+    total_count = len(all_payments)
+    
+    return render(request, 'payments/payments_overview.html', {
+        'page_obj': page_obj,
+        'payment_type': payment_type,
+        'date_range': date_range,
+        'search_email': search_email,
+        'total_amount': total_amount,
+        'total_count': total_count,
+    })
+
+@login_required
 def payment_submit(request):
     from payments.services.paymongo_service import PayMongoService
     from decimal import Decimal

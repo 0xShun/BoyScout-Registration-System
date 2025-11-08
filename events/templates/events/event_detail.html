@@ -279,6 +279,14 @@
                 <i class="fas fa-check-circle"></i> <strong>Verified</strong>
               </div>
             {% endif %}
+            {# Student scanner button for paid registrations #}
+            {% if registration.payment_status == 'paid' %}
+              <div style="margin-top:12px;">
+                <button id="open-scanner-btn" class="btn-register" style="background:#0ea5b0;">
+                  <i class="fas fa-camera"></i> Open camera to scan attendance QR
+                </button>
+              </div>
+            {% endif %}
           </div>
         {% else %}
           {# Not Registered - Show Registration Form #}
@@ -395,6 +403,14 @@
               <a href="{% url 'events:event_attendance' event.pk %}" class="btn-admin btn-attendance">
                 <i class="fas fa-clipboard-check"></i> Manage Attendance
               </a>
+              {% if user.is_admin or user.is_staff or user.role == 'teacher' %}
+                <form method="post" action="{% url 'events:generate_attendance_qr' event.pk %}" style="display:inline; margin:0;">
+                  {% csrf_token %}
+                  <button type="submit" class="btn-admin btn-attendance" style="background:#06b6d4; color:white;">
+                    <i class="fas fa-qrcode"></i> Generate Attendance QR
+                  </button>
+                </form>
+              {% endif %}
               <a href="{% url 'events:event_delete' event.pk %}" class="btn-admin btn-delete" 
                  onclick="return confirm('Are you sure you want to delete this event?')">
                 <i class="fas fa-trash"></i> Delete Event
@@ -402,7 +418,42 @@
             </div>
           </div>
         </div>
-
+        
+        {# Attendance QR display for teachers/admins #}
+        {% if user.is_authenticated %}
+          {% if user.is_admin or user.is_staff or user.role == 'teacher' %}
+          <div class="event-card" style="margin-top: 16px;">
+            <div class="event-card-header">
+              <h5><i class="fas fa-qrcode me-2"></i> Attendance QR</h5>
+            </div>
+            <div class="event-card-body" style="text-align: center;">
+              {% if qr_data_uri %}
+                <div style="margin-bottom: 12px;">
+                  <img src="{{ qr_data_uri }}" alt="Attendance QR" style="max-width:260px; height:auto; border:1px solid #e5e7eb; border-radius:8px; background:white; padding:8px;"/>
+                </div>
+                <div style="margin-bottom:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+                  <a href="{{ qr_data_uri }}" download="attendance_qr_{{ event.pk }}.png" class="btn-admin" style="background:#06b6d4;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
+                    <i class="fas fa-download"></i> Download QR PNG
+                  </a>
+                  <a href="{% url 'events:download_attendance_qr' event.pk %}" class="btn-admin" style="background:#0b74ef;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
+                    <i class="fas fa-file-arrow-down"></i> Server Download
+                  </a>
+                  {% if active_qr %}
+                    <a href="{% url 'events:public_attendance_qr' active_qr.token %}" target="_blank" class="btn-admin" style="background:#06b6d4;opacity:0.95;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
+                      <i class="fas fa-share-alt"></i> Open Shareable Link
+                    </a>
+                  {% endif %}
+                </div>
+                {% if active_qr and active_qr.expires_at %}
+                  <div class="meta-text">Expires at: {{ active_qr.expires_at|date:'M d, Y g:i A' }}</div>
+                {% endif %}
+              {% else %}
+                <div class="meta-text">No active attendance QR. Click "Generate Attendance QR" to create one valid for 24 hours.</div>
+              {% endif %}
+            </div>
+          </div>
+  {% endif %}
+  {% endif %}
         {# Registrations List #}
         {% if registrations %}
           <div class="event-card" style="margin-top: 24px;">
@@ -457,6 +508,49 @@
                           </div>
                         </td>
                       </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        {% endif %}
+        
+        {# Attendance table for paid students #}
+        {% if paid_registrations %}
+          <div class="event-card" style="margin-top: 16px;">
+            <div class="event-card-header">
+              <h5><i class="fas fa-users me-2"></i> Attendance — Paid Students</h5>
+            </div>
+            <div class="event-card-body">
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin: 0;">
+                  <thead>
+                    <tr style="border-bottom: 2px solid #e5e7eb;">
+                      <th style="text-align: left; padding: 12px 0; font-weight: 600; color: #374151;">Student</th>
+                      <th style="text-align: left; padding: 12px 0; font-weight: 600; color: #374151;">Email</th>
+                      <th style="text-align: left; padding: 12px 0; font-weight: 600; color: #374151;">Paid</th>
+                      <th style="text-align: left; padding: 12px 0; font-weight: 600; color: #374151;">Attendance</th>
+                      <th style="text-align: left; padding: 12px 0; font-weight: 600; color: #374151;">Timestamp</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for item in paid_registrations %}
+                      {% with reg=item.registration att=item.attendance %}
+                        <tr style="border-bottom: 1px solid #f3f4f6;" data-user-id="{{ reg.user.id }}">
+                          <td style="padding: 16px 0;"><strong>{{ reg.user.get_full_name }}</strong></td>
+                          <td style="padding: 16px 0;">{{ reg.user.email }}</td>
+                          <td style="padding: 16px 0;">₱{{ reg.total_paid }}</td>
+                          <td style="padding: 16px 0;" class="attendance-cell">
+                            {% if att and att.status == 'present' %}
+                              <span class="attendance-status" style="color:#16a34a; font-weight:600;">Present</span>
+                            {% else %}
+                              <span class="attendance-status" style="color:#dc2626; font-weight:600;">Absent</span>
+                            {% endif %}
+                          </td>
+                          <td style="padding: 16px 0;" class="attendance-ts">{% if att %}{{ att.timestamp|date:'M d, Y g:i A' }}{% else %}-{% endif %}</td>
+                        </tr>
+                      {% endwith %}
                     {% endfor %}
                   </tbody>
                 </table>
@@ -632,6 +726,184 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     observer.observe(observerTarget, { childList: true, subtree: true, characterData: true });
   }
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+<script>
+// Simple modal and scanner logic for student attendance scanning
+document.addEventListener('DOMContentLoaded', function() {
+  const openBtn = document.getElementById('open-scanner-btn');
+  if (!openBtn) return; // not a paid/registered student
+
+  // Create modal markup
+  const modal = document.createElement('div');
+  modal.id = 'qr-modal';
+  modal.style = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);z-index:1200;';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:8px;padding:12px;max-width:420px;width:100%;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong>Scan Attendance QR</strong>
+        <button id="qr-close" style="background:transparent;border:none;font-size:1.1rem;cursor:pointer;">&times;</button>
+      </div>
+      <div id="qr-reader" style="width:100%;height:320px;background:#f3f4f6;border-radius:6px;overflow:hidden;display:flex;align-items:center;justify-content:center;"></div>
+      <div id="qr-feedback" style="margin-top:8px;text-align:center;color:#374151"></div>
+    </div>
+  `;
+  modal.style.display = 'none';
+  document.body.appendChild(modal);
+
+  const qrReaderElm = document.getElementById('qr-reader');
+  const qrFeedback = document.getElementById('qr-feedback');
+  const qrClose = document.getElementById('qr-close');
+
+  let scanner = null;
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  openBtn.addEventListener('click', function() {
+    modal.style.display = 'flex';
+    qrFeedback.textContent = 'Starting camera...';
+
+    scanner = new Html5Qrcode(/* element id */ 'qr-reader');
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    scanner.start(
+      { facingMode: 'environment' },
+      config,
+      (decodedText, decodedResult) => {
+        // Stop scanning immediately
+        scanner.stop().then(() => {
+          qrFeedback.textContent = 'Token scanned — sending...';
+          // POST token to verify endpoint
+          const csrftoken = getCookie('csrftoken');
+          fetch("{% url 'events:verify_attendance' %}", {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': csrftoken,
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+            },
+            body: new URLSearchParams({ token: decodedText })
+          }).then(r => r.json()).then(data => {
+            if (data && data.success) {
+              qrFeedback.style.color = '#16a34a';
+              qrFeedback.textContent = 'Attendance recorded ✓';
+              showTopAlert('Attendance recorded', 'success');
+              setTimeout(() => { modal.style.display = 'none'; }, 1100);
+            } else {
+              qrFeedback.style.color = '#dc2626';
+              const errMsg = data && data.error ? data.error : 'Failed to record attendance';
+              qrFeedback.textContent = errMsg;
+              showTopAlert(errMsg, 'error');
+            }
+          }).catch(err => {
+            qrFeedback.style.color = '#dc2626';
+            qrFeedback.textContent = 'Network error while verifying token';
+            console.error(err);
+            showTopAlert('Network error while verifying token', 'error');
+          });
+        }).catch(err => {
+          qrFeedback.style.color = '#dc2626';
+          qrFeedback.textContent = 'Failed to stop scanner';
+          console.error(err);
+          showTopAlert('Scanner error', 'error');
+        });
+      },
+      (errorMessage) => {
+        // optional failure callback
+      }
+    ).catch(err => {
+      qrFeedback.style.color = '#dc2626';
+      qrFeedback.textContent = 'Unable to start camera. Make sure permission is granted.';
+      console.error(err);
+    });
+  });
+
+  qrClose.addEventListener('click', function() {
+    if (scanner) {
+      scanner.stop().catch(()=>{}).finally(() => { scanner.clear(); scanner = null; });
+    }
+    modal.style.display = 'none';
+  });
+});
+</script>
+<script>
+// Top-page alert helper
+function showTopAlert(message, type='info'){
+  // remove existing
+  const existing = document.getElementById('top-alert');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'top-alert';
+  el.style = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:2000;padding:12px 18px;border-radius:8px;color:white;font-weight:600;box-shadow:0 6px 18px rgba(0,0,0,0.12);';
+  if (type === 'success') el.style.background = '#16a34a';
+  else if (type === 'error') el.style.background = '#dc2626';
+  else el.style.background = '#2563eb';
+  el.textContent = message;
+  document.body.appendChild(el);
+  setTimeout(()=>{ el.style.opacity = '0'; setTimeout(()=>el.remove(),300); }, 3000);
+}
+</script>
+
+<script>
+// Admin/Teacher WebSocket client for live attendance updates
+document.addEventListener('DOMContentLoaded', function(){
+  {% if user.is_authenticated %}
+    {% if user.is_admin or user.is_staff or user.role == 'teacher' %}
+      var isAdmin = true;
+    {% else %}
+      var isAdmin = false;
+    {% endif %}
+  {% else %}
+    var isAdmin = false;
+  {% endif %}
+  if (!isAdmin) return;
+  const eventId = '{{ event.pk }}';
+  const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const wsUrl = `${protocol}://${window.location.host}/ws/events/${eventId}/attendance/`;
+  let socket = null;
+  try{
+    socket = new WebSocket(wsUrl);
+  }catch(e){
+    console.error('WebSocket failed', e);
+    return;
+  }
+  socket.onopen = function(){ console.log('Attendance WS connected'); };
+  socket.onmessage = function(event){
+    try{
+      const data = JSON.parse(event.data);
+      if (data && data['type'] === 'attendance.update'){
+        const userId = data.user_id;
+        const ts = data.timestamp;
+        const status = data.status;
+        // find row
+        const row = document.querySelector(`tr[data-user-id="${userId}"]`);
+        if (row){
+          const statusEl = row.querySelector('.attendance-status');
+          const tsEl = row.querySelector('.attendance-ts');
+          if (statusEl) { statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1); statusEl.style.color = '#16a34a'; }
+          if (tsEl) { tsEl.textContent = new Date(ts).toLocaleString(); }
+        }
+      }
+    }catch(e){ console.error('Invalid WS message', e); }
+  };
+  socket.onclose = function(){ console.log('Attendance WS closed'); };
+  socket.onerror = function(err){ console.error('Attendance WS error', err); };
 });
 </script>
 {% endblock %}

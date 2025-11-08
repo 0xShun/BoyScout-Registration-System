@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+import uuid
 from accounts.models import User
 from decimal import Decimal
 
@@ -65,6 +66,33 @@ class Attendance(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.event.title} ({self.status})"
+
+
+class AttendanceQRCode(models.Model):
+    """One QR token per event (active for a configured period). Teachers/admins generate this and
+    students scan the teacher's QR to mark attendance. Multiple students can scan the same token
+    while it's active (expires_at) but the token can be invalidated by regenerating.
+    """
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='attendance_qrcodes')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_attendance_qrcodes')
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"QR {self.token} for {self.event.title} (active={self.active})"
+
+    @property
+    def is_valid(self):
+        if not self.active:
+            return False
+        if self.expires_at and timezone.now() > self.expires_at:
+            return False
+        return True
 
 class EventPayment(models.Model):
     """Model to track individual payments for event registrations with QR PH integration"""

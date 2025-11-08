@@ -1,0 +1,280 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin-enhanced.css' %}">
+<style>
+  .filter-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+  }
+  .tab-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+  .tab-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+  }
+  .tab-btn:hover {
+    border-color: #321414;
+    background: #f9fafb;
+  }
+  .tab-btn.active {
+    background: #321414;
+    color: white;
+    border-color: #321414;
+  }
+  .search-box {
+    position: relative;
+  }
+  .search-box input {
+    padding-left: 2.5rem;
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+  }
+  .search-box i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9ca3af;
+  }
+  .payments-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .payments-table table {
+    margin: 0;
+  }
+  .payments-table th {
+    background: #f9fafb;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 600;
+    color: #374151;
+    padding: 1rem;
+  }
+  .payments-table td {
+    padding: 1rem;
+    vertical-align: middle;
+  }
+  .type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .type-registration {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  .type-event {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .type-general {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .summary-cards {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .summary-card {
+    flex: 1;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .summary-card .label {
+    font-size: 0.875rem;
+    color: #6b7280;
+    margin-bottom: 0.5rem;
+  }
+  .summary-card .value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #321414;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Page Header -->
+  <div class="page-header">
+    <h2><i class="fas fa-chart-line"></i> Payments Overview</h2>
+    <p>View and analyze all payments across the system</p>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <div class="label"><i class="fas fa-receipt"></i> Total Payments</div>
+      <div class="value">{{ total_count }}</div>
+    </div>
+    <div class="summary-card">
+      <div class="label"><i class="fas fa-peso-sign"></i> Total Amount</div>
+      <div class="value">₱{{ total_amount|floatformat:2 }}</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-card">
+    <form method="get" action="{% url 'payments:payments_overview' %}" id="filterForm">
+      <div class="row g-3">
+        <!-- Payment Type Tabs -->
+        <div class="col-12">
+          <label class="form-label fw-bold"><i class="fas fa-filter"></i> Payment Type</label>
+          <div class="tab-buttons">
+            <button type="button" class="tab-btn {% if payment_type == 'all' %}active{% endif %}" onclick="setFilter('type', 'all')">
+              <i class="fas fa-list"></i> All Payments
+            </button>
+            <button type="button" class="tab-btn {% if payment_type == 'registration' %}active{% endif %}" onclick="setFilter('type', 'registration')">
+              <i class="fas fa-user-plus"></i> Registration
+            </button>
+            <button type="button" class="tab-btn {% if payment_type == 'event' %}active{% endif %}" onclick="setFilter('type', 'event')">
+              <i class="fas fa-calendar-alt"></i> Event
+            </button>
+            <button type="button" class="tab-btn {% if payment_type == 'general' %}active{% endif %}" onclick="setFilter('type', 'general')">
+              <i class="fas fa-money-bill-wave"></i> General
+            </button>
+          </div>
+          <input type="hidden" name="type" id="typeInput" value="{{ payment_type }}">
+        </div>
+
+        <!-- Date Range -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold"><i class="fas fa-calendar"></i> Date Range</label>
+          <select name="range" class="form-select" onchange="document.getElementById('filterForm').submit()">
+            <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time</option>
+            <option value="today" {% if date_range == 'today' %}selected{% endif %}>Today</option>
+            <option value="week" {% if date_range == 'week' %}selected{% endif %}>This Week</option>
+            <option value="month" {% if date_range == 'month' %}selected{% endif %}>This Month</option>
+          </select>
+        </div>
+
+        <!-- Search by Email -->
+        <div class="col-md-6">
+          <label class="form-label fw-bold"><i class="fas fa-search"></i> Search by Email</label>
+          <div class="search-box">
+            <i class="fas fa-envelope"></i>
+            <input type="text" name="search" class="form-control" placeholder="Enter email address..." value="{{ search_email }}">
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary me-2">
+            <i class="fas fa-search"></i> Apply Filters
+          </button>
+          <a href="{% url 'payments:payments_overview' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-redo"></i> Reset
+          </a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Payments Table -->
+  <div class="payments-table">
+    {% if page_obj.object_list %}
+      <table class="table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Type</th>
+            <th>Details</th>
+            <th class="text-end">Amount</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in page_obj %}
+            <tr>
+              <td><strong>{{ payment.user_name }}</strong></td>
+              <td><small class="text-muted">{{ payment.user_email }}</small></td>
+              <td>
+                <span class="type-badge type-{{ payment.type|lower }}">
+                  {% if payment.type == 'Registration' %}
+                    <i class="fas fa-user-plus"></i>
+                  {% elif payment.type == 'Event' %}
+                    <i class="fas fa-calendar-alt"></i>
+                  {% else %}
+                    <i class="fas fa-money-bill-wave"></i>
+                  {% endif %}
+                  {{ payment.type }}
+                </span>
+              </td>
+              <td>{{ payment.type_detail }}</td>
+              <td class="text-end"><strong>₱{{ payment.amount|floatformat:2 }}</strong></td>
+              <td><small class="text-muted">{{ payment.date|date:"M d, Y" }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      {% if page_obj.has_other_pages %}
+        <div class="p-3 border-top">
+          <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mb-0">
+              {% if page_obj.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1&type={{ payment_type }}&range={{ date_range }}&search={{ search_email }}">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.previous_page_number }}&type={{ payment_type }}&range={{ date_range }}&search={{ search_email }}">Previous</a>
+                </li>
+              {% endif %}
+
+              <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+              </li>
+
+              {% if page_obj.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.next_page_number }}&type={{ payment_type }}&range={{ date_range }}&search={{ search_email }}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&type={{ payment_type }}&range={{ date_range }}&search={{ search_email }}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
+    {% else %}
+      <div class="text-center py-5">
+        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+        <p class="text-muted">No payments found matching your filters.</p>
+        <a href="{% url 'payments:payments_overview' %}" class="btn btn-outline-primary">
+          <i class="fas fa-redo"></i> Reset Filters
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  function setFilter(key, value) {
+    document.getElementById(key + 'Input').value = value;
+    document.getElementById('filterForm').submit();
+  }
+</script>
+{% endblock %}

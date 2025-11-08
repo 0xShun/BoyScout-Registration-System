@@ -2,13 +2,21 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.utils import timezone
 from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayment
+import qrcode
+import io
+import base64
+from datetime import timedelta
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from .forms import EventForm, EventPhotoForm, EventRegistrationForm
 from accounts.views import admin_required # Reusing the admin_required decorator
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden, JsonResponse
+from django.http import HttpResponse
 from django.conf import settings
 import os
 from PIL import Image
@@ -177,7 +185,27 @@ def event_detail(request, pk):
         messages.warning(request, 'Events are locked until your account is activated.')
         return redirect('accounts:registration_payment', user_id=request.user.id)
     
+    # entry logged via module logger when needed
     event = get_object_or_404(Event, pk=pk)
+    # Include active attendance QR (if any) and render as inline data URI for teacher/admin view
+    active_qr = None
+    qr_data_uri = None
+    try:
+        from .models import AttendanceQRCode
+        active_qr = AttendanceQRCode.objects.filter(event=event, active=True).order_by('-created_at').first()
+        if active_qr and active_qr.is_valid:
+            # generate PNG data URI for the token verification URL
+            token_url = request.build_absolute_uri(f"/events/attendance/verify/")
+            # We will embed only the token in the QR so the scanner UI will POST the token to the verify endpoint
+            qr_payload = str(active_qr.token)
+            qr_img = qrcode.make(qr_payload)
+            buf = io.BytesIO()
+            qr_img.save(buf, format='PNG')
+            buf.seek(0)
+            qr_b64 = base64.b64encode(buf.read()).decode('ascii')
+            qr_data_uri = f"data:image/png;base64,{qr_b64}"
+    except Exception:
+        logger.exception('Failed to generate inline QR image for event_detail')
 
     # If user was redirected back from PayMongo, try fallback reconciliation
     # using a session-stored pending EventPayment id. This mirrors the
@@ -225,9 +253,10 @@ def event_detail(request, pk):
                         )
                     except Exception:
                         logger.exception('Failed to send event payment confirmation email in fallback')
-
         except Exception:
             logger.exception('Fallback reconciliation for pending event payment failed')
+    # (generate_attendance_qr and verify_attendance are defined below)
+    
     
     # Get event photos
     photos = event.photos.all().order_by('-is_featured', '-uploaded_at')
@@ -339,7 +368,26 @@ def event_detail(request, pk):
     registrations = None
     if request.user.is_authenticated and request.user.is_admin():
         registrations = EventRegistration.objects.filter(event=event).select_related('user')
+        paid_qs = EventRegistration.objects.filter(event=event, payment_status='paid').select_related('user')
+        # Build a list including attendance info for admin display
+        paid_registrations = []
+        attendance_map = {}
+        for att in event.attendances.select_related('user'):
+            attendance_map[att.user_id] = {
+                'status': att.status,
+                'timestamp': att.timestamp,
+            }
+        for reg in paid_qs:
+            att = attendance_map.get(reg.user_id)
+            paid_registrations.append({
+                'registration': reg,
+                'attendance': att,
+            })
+    else:
+        paid_registrations = None
+        attendance_map = {}
 
+    # render logged at debug level when needed
     return render(request, 'events/event_detail.html', {
         'event': event,
         'photos': photos,
@@ -350,7 +398,167 @@ def event_detail(request, pk):
         'total_scouts': total_scouts,
         'registration': registration,
         'registrations': registrations,
+        'paid_registrations': paid_registrations,
+        'attendance_map': attendance_map,
     })
+
+@login_required
+def generate_attendance_qr(request, pk):
+    """Generate a new AttendanceQRCode for the given event.
+
+    Only users with teacher or admin privileges can generate a QR. This view
+    creates a new token valid for 24 hours (multiple concurrent tokens allowed).
+    """
+    event = get_object_or_404(Event, pk=pk)
+    # Permission: teacher or admin
+    user_role = getattr(request.user, 'role', '')
+    if not (request.user.is_staff or user_role == 'teacher' or getattr(request.user, 'is_admin', lambda: False)()):
+        raise PermissionDenied()
+
+    # Create a new token without invalidating existing ones — support multiple concurrent tokens
+    from .models import AttendanceQRCode
+    try:
+        expires_at = timezone.now() + timedelta(hours=24)
+        qr = AttendanceQRCode.objects.create(event=event, created_by=request.user, expires_at=expires_at, active=True)
+        messages.success(request, 'Attendance QR generated successfully.')
+    except Exception:
+        logger.exception('Failed to generate attendance QR')
+        messages.error(request, 'Failed to generate attendance QR. See logs.')
+
+    return _redirect_to_event(event)
+
+
+@login_required
+def download_attendance_qr(request, pk):
+    """Server-side PNG download for the latest active AttendanceQRCode for an event.
+
+    Only teachers/admins may download. Returns a PNG attachment.
+    """
+    event = get_object_or_404(Event, pk=pk)
+    user_role = getattr(request.user, 'role', '')
+    if not (request.user.is_staff or user_role == 'teacher' or getattr(request.user, 'is_admin', lambda: False)()):
+        raise PermissionDenied()
+
+    from .models import AttendanceQRCode
+    qr = AttendanceQRCode.objects.filter(event=event, active=True).order_by('-created_at').first()
+    if not qr or not qr.is_valid:
+        messages.error(request, 'No active attendance QR available to download.')
+        return _redirect_to_event(event)
+
+    # Generate PNG bytes
+    try:
+        img = qrcode.make(str(qr.token))
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        response = HttpResponse(buf.getvalue(), content_type='image/png')
+        filename = f"attendance_qr_{event.pk}.png"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    except Exception:
+        logger.exception('Failed to generate attendance QR PNG for download')
+        messages.error(request, 'Failed to generate QR image.')
+        return _redirect_to_event(event)
+
+
+def public_attendance_qr(request, token):
+    """Public shareable PNG endpoint for a QR token UUID.
+
+    This returns the PNG for the token if it's active/valid. The token itself
+    is the UUID in the URL; verify endpoint still enforces auth+paid checks.
+    """
+    from .models import AttendanceQRCode
+    try:
+        qr = AttendanceQRCode.objects.filter(token=token, active=True).first()
+        if not qr or not qr.is_valid:
+            return HttpResponse(status=404)
+
+        img = qrcode.make(str(qr.token))
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        response = HttpResponse(buf.getvalue(), content_type='image/png')
+        # Let browsers display inline when opened
+        response['Content-Disposition'] = f'inline; filename="attendance_qr_{qr.event.pk}.png"'
+        return response
+    except Exception:
+        logger.exception('Failed to serve public attendance QR PNG')
+        return HttpResponse(status=500)
+
+
+@login_required
+def verify_attendance(request):
+    """AJAX endpoint that students call to verify attendance by token.
+
+    Expects POST with 'token'. Requires authenticated user and a paid EventRegistration.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required'}, status=405)
+
+    token = request.POST.get('token') or request.POST.get('qr_token')
+    if not token:
+        # Support JSON body too
+        try:
+            import json
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+            token = payload.get('token') or payload.get('qr_token')
+        except Exception:
+            token = None
+
+    if not token:
+        return JsonResponse({'success': False, 'error': 'token missing'}, status=400)
+
+    try:
+        from .models import AttendanceQRCode
+        qr = AttendanceQRCode.objects.filter(token=token, active=True).first()
+
+        if not qr or not qr.is_valid:
+            return JsonResponse({'success': False, 'error': 'invalid_or_expired_token'}, status=400)
+
+        event = qr.event
+
+        # Ensure user has a paid registration
+        reg_qs = EventRegistration.objects.filter(event=event, user=request.user, payment_status='paid')
+        reg = reg_qs.first()
+        if not reg:
+            return JsonResponse({'success': False, 'error': 'registration_not_paid_or_missing'}, status=403)
+
+        # Check if attendance already recorded
+        existing = Attendance.objects.filter(event=event, user=request.user).first()
+        if existing:
+            return JsonResponse({'success': True, 'already_marked': True, 'timestamp': existing.timestamp.isoformat()})
+
+        attendance = Attendance.objects.create(event=event, user=request.user, status='present', marked_by=request.user)
+
+        # Broadcast via Channels group
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'event_{event.pk}_attendance',
+                {
+                    'type': 'attendance.update',
+                    'event_id': event.pk,
+                    'user_id': request.user.pk,
+                    'user_full_name': request.user.get_full_name(),
+                    'timestamp': attendance.timestamp.isoformat(),
+                    'status': attendance.status,
+                }
+            )
+        except Exception:
+            logger.exception('Failed to send channels attendance update')
+
+        # Fallback notification to event creator (if available)
+        try:
+            if event.created_by and event.created_by.pk:
+                send_realtime_notification(event.created_by.pk, f"{request.user.get_full_name()} marked present for {event.title}")
+        except Exception:
+            logger.exception('Failed to send fallback realtime notification')
+
+        return JsonResponse({'success': True, 'timestamp': attendance.timestamp.isoformat()})
+
+    except Exception:
+        logger.exception('Attendance verification failed')
+        return JsonResponse({'success': False, 'error': 'internal_error'}, status=500)
 
 @admin_required
 def event_edit(request, pk):

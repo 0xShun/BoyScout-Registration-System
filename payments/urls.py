@@ -5,6 +5,7 @@ app_name = 'payments'
 
 urlpatterns = [
     path('', views.payment_list, name='payment_list'),
+    path('overview/', views.payments_overview, name='payments_overview'),
     path('submit/', views.payment_submit, name='payment_submit'),
     path('verify/<int:payment_id>/', views.payment_verify, name='payment_verify'),
     

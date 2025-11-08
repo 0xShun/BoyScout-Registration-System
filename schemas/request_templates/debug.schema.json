@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Debug / Investigation Request",
+  "type": "object",
+  "required": ["summary", "symptoms", "environment", "priority"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 5 },
+    "symptoms": { "type": "string", "minLength": 5 },
+    "reproduction_steps": { "type": "string" },
+    "environment": { "type": "string" },
+    "what_tried": { "type": "string" },
+    "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "UI / Visual Design Request",
+  "type": "object",
+  "required": ["summary", "scope", "deliverables", "acceptance_criteria"],
+  "properties": {
+    "summary": { "type": "string", "minLength": 5 },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "ui": { "type": "array", "items": { "type": "string" } },
+        "responsive": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "deliverables": { "type": "array", "items": { "type": "string" } },
+    "design_tokens": { "type": "object" },
+    "acceptance_criteria": { "type": "array", "items": { "type": "string" } },
+    "priority": { "type": "string", "enum": ["low", "medium", "high"] }
+  },
+  "additionalProperties": false
+}

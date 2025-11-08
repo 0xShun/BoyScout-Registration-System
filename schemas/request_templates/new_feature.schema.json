@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "New Feature Request",
+  "type": "object",
+  "required": ["summary", "why", "scope", "acceptance_criteria", "priority"],
+  "properties": {
+    "summary": {
+      "type": "string",
+      "minLength": 5,
+      "description": "One-line description of the feature"
+    },
+    "why": {
+      "type": "string",
+      "minLength": 10,
+      "description": "Business reason or user need"
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "ui": { "type": "array", "items": { "type": "string" } },
+        "integrations": { "type": "array", "items": { "type": "string" } },
+        "tests": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "deadline": {
+      "type": ["string", "null"],
+      "format": "date",
+      "description": "Optional ISO date"
+    },
+    "example_data": {
+      "type": "object",
+      "description": "Optional sample JSON payload"
+    }
+  },
+  "additionalProperties": false
+}
