@@ -438,8 +438,8 @@
                   <a href="{% url 'events:download_attendance_qr' event.pk %}" class="btn-admin" style="background:#0b74ef;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
                     <i class="fas fa-file-arrow-down"></i> Server Download
                   </a>
-                  {% if active_qr %}
-                    <a href="{% url 'events:public_attendance_qr' active_qr.token %}" target="_blank" class="btn-admin" style="background:#06b6d4;opacity:0.95;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
+                  {% if public_qr_signed_url %}
+                    <a href="{{ public_qr_signed_url }}" target="_blank" class="btn-admin" style="background:#06b6d4;opacity:0.95;color:white;text-decoration:none;padding:8px 12px;border-radius:6px;display:inline-block;">
                       <i class="fas fa-share-alt"></i> Open Shareable Link
                     </a>
                   {% endif %}

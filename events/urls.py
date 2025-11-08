@@ -18,6 +18,8 @@ urlpatterns = [
     path('<int:pk>/attendance/', views.event_attendance, name='event_attendance'),
     path('attendance/verify/', views.verify_attendance, name='verify_attendance'),
     path('attendance/qrcode/<uuid:token>.png', views.public_attendance_qr, name='public_attendance_qr'),
+    # Signed short-lived public QR (safer to share)
+    path('attendance/qrcode/s/<slug:signed>.png', views.public_attendance_qr_signed, name='public_attendance_qr_signed'),
     path('<int:event_pk>/registration/<int:reg_pk>/verify/', views.verify_event_registration, name='verify_event_registration'),
     path('pending-payments/', views.pending_payments, name='pending_payments'),
     path('pending-payments/verify-ajax/', views.verify_event_registration_ajax, name='pending_payments_verify_ajax'),

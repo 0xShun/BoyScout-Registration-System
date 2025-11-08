@@ -27,6 +27,8 @@ from django.utils import timezone
 from notifications.services import send_realtime_notification, NotificationService
 from decimal import Decimal
 import logging
+from django.core import signing
+from django.urls import reverse
 
 # Module logger
 logger = logging.getLogger(__name__)
@@ -204,6 +206,12 @@ def event_detail(request, pk):
             buf.seek(0)
             qr_b64 = base64.b64encode(buf.read()).decode('ascii')
             qr_data_uri = f"data:image/png;base64,{qr_b64}"
+            # Create a signed, short-lived public URL (24 hours by default)
+            try:
+                signed_token = signing.dumps(str(active_qr.token))
+                public_qr_signed_url = request.build_absolute_uri(reverse('events:public_attendance_qr_signed', args=[signed_token]))
+            except Exception:
+                public_qr_signed_url = None
     except Exception:
         logger.exception('Failed to generate inline QR image for event_detail')
 
@@ -400,6 +408,7 @@ def event_detail(request, pk):
         'registrations': registrations,
         'paid_registrations': paid_registrations,
         'attendance_map': attendance_map,
+        'public_qr_signed_url': locals().get('public_qr_signed_url', None),
     })
 
 @login_required
@@ -483,6 +492,38 @@ def public_attendance_qr(request, token):
         return response
     except Exception:
         logger.exception('Failed to serve public attendance QR PNG')
+        return HttpResponse(status=500)
+
+
+def public_attendance_qr_signed(request, signed):
+    """Public PNG endpoint for signed token strings.
+
+    The signed value is created by signing.dumps(token) and is validated with
+    a lifetime (max_age) — default 24 hours. This avoids exposing the raw
+    UUID token in the URL and allows time-limited sharing.
+    """
+    max_age = getattr(settings, 'ATTENDANCE_QR_SIGNED_MAX_AGE_SECONDS', 60 * 60 * 24)  # 24 hours
+    try:
+        token = signing.loads(signed, max_age=max_age)
+    except Exception:
+        logger.exception('Invalid or expired signed QR token requested')
+        return HttpResponse(status=404)
+
+    try:
+        from .models import AttendanceQRCode
+        qr = AttendanceQRCode.objects.filter(token=token, active=True).first()
+        if not qr or not qr.is_valid:
+            return HttpResponse(status=404)
+
+        img = qrcode.make(str(qr.token))
+        buf = io.BytesIO()
+        img.save(buf, format='PNG')
+        buf.seek(0)
+        response = HttpResponse(buf.getvalue(), content_type='image/png')
+        response['Content-Disposition'] = f'inline; filename="attendance_qr_{qr.event.pk}.png"'
+        return response
+    except Exception:
+        logger.exception('Failed to serve signed public attendance QR PNG')
         return HttpResponse(status=500)
 
 
