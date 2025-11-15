@@ -54,61 +54,6 @@ class Group(models.Model):
         return self.name
 
 
-class BatchRegistration(models.Model):
-    """Model to track batch registrations (for teachers registering multiple students)"""
-    STATUS_CHOICES = [
-        ('pending', 'Pending Payment'),
-        ('paid', 'Payment Successful'),
-        ('verified', 'Verified'),
-        ('rejected', 'Rejected'),
-    ]
-    
-    batch_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    registrar = models.ForeignKey('User', on_delete=models.CASCADE, related_name='batch_registrations_created', null=True, blank=True)
-    registrar_name = models.CharField(max_length=200, verbose_name="Teacher/Registrar Name")
-    registrar_email = models.EmailField(verbose_name="Teacher/Registrar Email")
-    registrar_phone = PhoneNumberField(blank=True, region="PH", verbose_name="Teacher/Registrar Phone")
-    
-    number_of_students = models.PositiveIntegerField(default=1, verbose_name="Number of Students")
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Total Amount")
-    amount_per_student = models.DecimalField(
-        max_digits=10, 
-        decimal_places=2, 
-        default=500.00, 
-        verbose_name="Amount per Student",
-        help_text="Will be set to current platform registration fee automatically"
-    )
-    
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    notes = models.TextField(blank=True, verbose_name="Notes")
-    
-    # PayMongo fields
-    paymongo_source_id = models.CharField(max_length=255, blank=True, null=True)
-    paymongo_payment_id = models.CharField(max_length=255, blank=True, null=True)
-    
-    verified_by = models.ForeignKey('User', null=True, blank=True, on_delete=models.SET_NULL, related_name='verified_batch_registrations')
-    verification_date = models.DateTimeField(null=True, blank=True)
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-created_at']
-        indexes = [
-            models.Index(fields=["batch_id"]),
-            models.Index(fields=["status", "created_at"]),
-        ]
-
-    def __str__(self):
-        return f"Batch {self.batch_id} - {self.registrar_name} - {self.number_of_students} students - ₱{self.total_amount}"
-    
-    def save(self, *args, **kwargs):
-        # Auto-calculate total amount
-        if self.number_of_students and self.amount_per_student:
-            self.total_amount = self.number_of_students * self.amount_per_student
-        super().save(*args, **kwargs)
-
-
 class RegistrationPayment(models.Model):
     """Model to track individual registration payments"""
     STATUS_CHOICES = [
@@ -118,7 +63,16 @@ class RegistrationPayment(models.Model):
     ]
     
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='registration_payments')
-    batch_registration = models.ForeignKey(BatchRegistration, on_delete=models.CASCADE, related_name='student_payments', null=True, blank=True, verbose_name="Part of Batch Registration")
+    paid_by_teacher = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='teacher_paid_registrations',
+        limit_choices_to={'role': 'teacher'},
+        verbose_name="Paid by Teacher",
+        help_text="If this registration was paid by a teacher during bulk registration"
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Payment Amount")
     receipt_image = models.ImageField(upload_to='registration_payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
@@ -155,6 +109,7 @@ class User(AbstractUser):
     # User role (system access level)
     ROLE_CHOICES = (
         ('scout', 'Scout'),                # Regular member
+        ('teacher', 'Teacher'),            # Teacher who can register and manage students
         ('leader', 'Scout Leader'),        # Troop leader/coordinator
         ('admin', 'Administrator'),        # Full system admin
     )
@@ -219,6 +174,18 @@ class User(AbstractUser):
     is_active = models.BooleanField(default=True)
     groups_membership = models.ManyToManyField(Group, related_name='members', blank=True)
     
+    # Teacher-Student relationship
+    registered_by_teacher = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='registered_students',
+        limit_choices_to={'role': 'teacher'},
+        verbose_name="Registered by Teacher",
+        help_text="The teacher who registered this student (if applicable)"
+    )
+    
     # Registration payment fields
     registration_status = models.CharField(max_length=30, choices=REGISTRATION_STATUS_CHOICES, default='inactive')
     registration_payment_amount = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, verbose_name="Registration Fee")
@@ -233,6 +200,10 @@ class User(AbstractUser):
     def is_admin(self):
         """Check if user is a system administrator (callable from Python code)"""
         return self.role == 'admin'
+
+    def is_teacher(self):
+        """Check if user is a teacher (callable from Python code)"""
+        return self.role == 'teacher'
 
     def is_leader(self):
         """Check if user is a scout leader (callable from Python code)"""
@@ -393,38 +364,3 @@ class UserBadge(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name()} - {self.badge.name}"
-
-
-class BatchStudentData(models.Model):
-    """Stores student information for batch registration before user creation"""
-    batch_registration = models.ForeignKey(
-        BatchRegistration,
-        on_delete=models.CASCADE,
-        related_name='student_data'
-    )
-    username = models.CharField(max_length=150)
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
-    email = models.EmailField()
-    phone_number = models.CharField(max_length=20, blank=True)
-    date_of_birth = models.DateField()
-    address = models.TextField()
-    password_hash = models.CharField(max_length=128)
-    
-    created_user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='batch_student_data'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        ordering = ['id']
-        indexes = [
-            models.Index(fields=['batch_registration', 'email']),
-        ]
-    
-    def __str__(self):
-        return f"{self.first_name} {self.last_name} - {self.email}"

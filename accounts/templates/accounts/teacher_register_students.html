@@ -1,0 +1,363 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .registration-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+  }
+  .student-form-card {
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    margin-bottom: 20px;
+    transition: all 0.3s;
+  }
+  .student-form-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+  .student-form-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    border-bottom: 2px solid #e5e7eb;
+    padding: 15px 20px;
+    border-radius: 10px 10px 0 0;
+  }
+  .fee-summary-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #10b981;
+  }
+  .payment-method-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .payment-method-card:hover {
+    border-color: #667eea;
+    background: #f9fafb;
+  }
+  .remove-student-btn {
+    transition: all 0.3s;
+  }
+  .remove-student-btn:hover {
+    transform: scale(1.1);
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}Register New Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="registration-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="fw-bold mb-2">
+          <i class="fas fa-user-plus me-2"></i>
+          Register New Students
+        </h2>
+        <p class="mb-0 opacity-90">
+          Register multiple students in one go. You'll pay the registration fee for all students.
+        </p>
+      </div>
+      <a href="{% url 'accounts:teacher_students' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left me-2"></i>Back to Students
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8">
+      <form method="post" id="registration-form">
+        {% csrf_token %}
+        {{ formset.management_form }}
+        
+        <!-- Instructions Card -->
+        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-3">
+              <i class="fas fa-info-circle text-primary me-2"></i>
+              Instructions
+            </h5>
+            <ul class="mb-0">
+              <li class="mb-2">Fill in details for each student you want to register</li>
+              <li class="mb-2"><strong>Passwords will be auto-generated</strong> and sent to each student's email</li>
+              <li class="mb-2">You can add up to <strong>10 students</strong> at once</li>
+              <li class="mb-2">Review the total fee before submitting</li>
+              <li class="mb-0">Payment will be processed via PayMongo (GCash, PayMaya, GrabPay)</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Student Forms -->
+        <div id="student-forms-container">
+          {% for form in formset %}
+          <div class="student-form-card">
+            <div class="student-form-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold mb-0">
+                  <i class="fas fa-user me-2"></i>
+                  Student #<span class="student-number">{{ forloop.counter }}</span>
+                </h6>
+                {% if not forloop.first %}
+                <button type="button" class="btn btn-sm btn-outline-danger remove-student-btn">
+                  <i class="fas fa-times"></i> Remove
+                </button>
+                {% endif %}
+              </div>
+            </div>
+            <div class="card-body p-4">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">First Name *</label>
+                  {{ form.first_name }}
+                  {% if form.first_name.errors %}
+                    <div class="text-danger small mt-1">{{ form.first_name.errors }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Last Name *</label>
+                  {{ form.last_name }}
+                  {% if form.last_name.errors %}
+                    <div class="text-danger small mt-1">{{ form.last_name.errors }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Email *</label>
+                  {{ form.email }}
+                  {% if form.email.errors %}
+                    <div class="text-danger small mt-1">{{ form.email.errors }}</div>
+                  {% endif %}
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label fw-bold">Phone Number</label>
+                  {{ form.phone_number }}
+                  {% if form.phone_number.errors %}
+                    <div class="text-danger small mt-1">{{ form.phone_number.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              {{ form.id }}
+              {{ form.DELETE }}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <!-- Add More Button -->
+        <div class="text-center mb-4">
+          <button type="button" id="add-student-btn" class="btn btn-outline-primary">
+            <i class="fas fa-plus me-2"></i>Add Another Student
+          </button>
+        </div>
+
+        <!-- Form Errors -->
+        {% if formset.non_form_errors %}
+        <div class="alert alert-danger" role="alert">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          {{ formset.non_form_errors }}
+        </div>
+        {% endif %}
+
+        <!-- Submit Button -->
+        <div class="d-grid">
+          <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-check-circle me-2"></i>
+            Register Students & Proceed to Payment
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Sidebar - Fee Summary -->
+    <div class="col-lg-4">
+      <div class="position-sticky" style="top: 20px;">
+        <!-- Fee Summary -->
+        <div class="fee-summary-card mb-4">
+          <h5 class="fw-bold mb-3">
+            <i class="fas fa-calculator me-2"></i>
+            Fee Summary
+          </h5>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Registration Fee per Student:</span>
+            <strong>₱{{ registration_fee }}</strong>
+          </div>
+          <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
+            <span>Number of Students:</span>
+            <strong id="student-count">{{ formset.total_form_count }}</strong>
+          </div>
+          <div class="d-flex justify-content-between align-items-center">
+            <h4 class="mb-0 fw-bold">Total:</h4>
+            <h3 class="mb-0 fw-bold text-success" id="total-fee">₱{{ total_fee }}</h3>
+          </div>
+        </div>
+
+        <!-- Payment Methods -->
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+          <div class="card-body p-4">
+            <h6 class="fw-bold mb-3">
+              <i class="fas fa-credit-card me-2"></i>
+              Accepted Payment Methods
+            </h6>
+            <div class="row g-3">
+              <div class="col-6">
+                <div class="payment-method-card">
+                  <i class="fab fa-cc-mastercard" style="font-size: 2rem; color: #EB001B;"></i>
+                  <small class="d-block mt-2 fw-bold">GCash</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="payment-method-card">
+                  <i class="fas fa-wallet" style="font-size: 2rem; color: #00B14F;"></i>
+                  <small class="d-block mt-2 fw-bold">PayMaya</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="payment-method-card">
+                  <i class="fas fa-mobile-alt" style="font-size: 2rem; color: #00B14F;"></i>
+                  <small class="d-block mt-2 fw-bold">GrabPay</small>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="payment-method-card">
+                  <i class="fas fa-credit-card" style="font-size: 2rem; color: #667eea;"></i>
+                  <small class="d-block mt-2 fw-bold">Card</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Benefits -->
+        <div class="card border-0 shadow-sm mt-4" style="border-radius: 12px;">
+          <div class="card-body p-4">
+            <h6 class="fw-bold mb-3">
+              <i class="fas fa-star text-warning me-2"></i>
+              What Students Get
+            </h6>
+            <ul class="list-unstyled mb-0">
+              <li class="mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                Auto-generated secure passwords
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                Email with login credentials
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                Access to all scout events
+              </li>
+              <li class="mb-2">
+                <i class="fas fa-check text-success me-2"></i>
+                Progress tracking dashboard
+              </li>
+              <li class="mb-0">
+                <i class="fas fa-check text-success me-2"></i>
+                Notifications and updates
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const registrationFee = {{ registration_fee }};
+  const maxStudents = 10;
+  
+  function updateFeeCalculation() {
+    const visibleForms = document.querySelectorAll('.student-form-card:not([style*="display: none"])');
+    const count = visibleForms.length;
+    const total = count * registrationFee;
+    
+    document.getElementById('student-count').textContent = count;
+    document.getElementById('total-fee').textContent = '₱' + total.toFixed(2);
+    
+    // Update student numbers
+    visibleForms.forEach((form, index) => {
+      form.querySelector('.student-number').textContent = index + 1;
+    });
+    
+    // Toggle add button
+    const addBtn = document.getElementById('add-student-btn');
+    if (count >= maxStudents) {
+      addBtn.disabled = true;
+      addBtn.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Maximum 10 students reached';
+    } else {
+      addBtn.disabled = false;
+      addBtn.innerHTML = '<i class="fas fa-plus me-2"></i>Add Another Student';
+    }
+  }
+  
+  // Remove student button
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.remove-student-btn')) {
+      const card = e.target.closest('.student-form-card');
+      const deleteCheckbox = card.querySelector('input[name$="-DELETE"]');
+      
+      if (deleteCheckbox) {
+        deleteCheckbox.checked = true;
+        card.style.display = 'none';
+        updateFeeCalculation();
+      }
+    }
+  });
+  
+  // Add student button
+  document.getElementById('add-student-btn').addEventListener('click', function() {
+    const totalForms = document.getElementById('id_form-TOTAL_FORMS');
+    const currentTotal = parseInt(totalForms.value);
+    
+    if (currentTotal >= maxStudents) {
+      alert('Maximum 10 students allowed at once');
+      return;
+    }
+    
+    // Clone the last form
+    const container = document.getElementById('student-forms-container');
+    const lastForm = container.querySelector('.student-form-card:last-of-type');
+    const newForm = lastForm.cloneNode(true);
+    
+    // Update form index
+    const formIndex = currentTotal;
+    newForm.querySelectorAll('input, select, textarea').forEach(field => {
+      if (field.name) {
+        field.name = field.name.replace(/form-\d+/, 'form-' + formIndex);
+        field.id = field.id.replace(/id_form-\d+/, 'id_form-' + formIndex);
+        field.value = '';
+        if (field.type === 'checkbox') {
+          field.checked = false;
+        }
+      }
+    });
+    
+    // Clear errors
+    newForm.querySelectorAll('.text-danger').forEach(el => el.remove());
+    
+    // Show remove button
+    const removeBtn = newForm.querySelector('.remove-student-btn');
+    if (removeBtn) {
+      removeBtn.style.display = 'block';
+    }
+    
+    container.appendChild(newForm);
+    totalForms.value = formIndex + 1;
+    updateFeeCalculation();
+  });
+  
+  updateFeeCalculation();
+});
+</script>
+{% endblock %}

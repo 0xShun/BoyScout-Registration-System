@@ -1,0 +1,247 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .edit-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 16px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+  }
+  .avatar-large {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 2.5rem;
+    margin: 0 auto 20px;
+  }
+  .info-badge {
+    background: #f0f9ff;
+    border: 1px solid #0284c7;
+    border-radius: 8px;
+    padding: 10px 15px;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}Edit Student{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="edit-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="fw-bold mb-2">
+          <i class="fas fa-user-edit me-2"></i>
+          Edit Student Profile
+        </h2>
+        <p class="mb-0 opacity-90">
+          Update information for {{ student.get_full_name }}
+        </p>
+      </div>
+      <a href="{% url 'accounts:teacher_students' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left me-2"></i>Back to Students
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-4">
+      <!-- Student Info Card -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <div class="card-body p-4 text-center">
+          <div class="avatar-large">
+            {{ student.first_name.0 }}{{ student.last_name.0 }}
+          </div>
+          <h4 class="fw-bold mb-1">{{ student.get_full_name }}</h4>
+          <p class="text-muted mb-3">@{{ student.username }}</p>
+          
+          <div class="info-badge mb-3 text-start">
+            <small class="text-muted d-block mb-1">
+              <i class="fas fa-calendar me-2"></i>
+              Registered: {{ student.date_joined|date:"M d, Y" }}
+            </small>
+            <small class="text-muted d-block">
+              <i class="fas fa-user-tie me-2"></i>
+              Teacher: {{ student.registered_by_teacher.get_full_name }}
+            </small>
+          </div>
+
+          {% if student.is_active %}
+            <span class="badge bg-success px-3 py-2">
+              <i class="fas fa-check-circle me-1"></i>Active
+            </span>
+          {% else %}
+            <span class="badge bg-warning px-3 py-2">
+              <i class="fas fa-pause-circle me-1"></i>Inactive
+            </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-bolt text-warning me-2"></i>Quick Actions
+          </h6>
+          <div class="d-grid gap-2">
+            <a href="{% url 'accounts:teacher_view_student_payments' student.id %}" class="btn btn-outline-info btn-sm">
+              <i class="fas fa-receipt me-2"></i>View Payments
+            </a>
+            <a href="{% url 'accounts:teacher_view_student_events' student.id %}" class="btn btn-outline-success btn-sm">
+              <i class="fas fa-calendar-check me-2"></i>View Events
+            </a>
+            <a href="{% url 'accounts:teacher_reset_student_password' student.id %}" class="btn btn-outline-warning btn-sm">
+              <i class="fas fa-key me-2"></i>Reset Password
+            </a>
+            <form method="post" action="{% url 'accounts:teacher_toggle_student_active' student.id %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-outline-{% if student.is_active %}warning{% else %}success{% endif %} btn-sm w-100">
+                <i class="fas fa-{% if student.is_active %}pause{% else %}play{% endif %}-circle me-2"></i>
+                {% if student.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+            <a href="{% url 'accounts:teacher_delete_student' student.id %}" class="btn btn-outline-danger btn-sm">
+              <i class="fas fa-trash me-2"></i>Delete Student
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-8">
+      <!-- Edit Form -->
+      <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">
+            <i class="fas fa-edit text-primary me-2"></i>
+            Student Information
+          </h5>
+
+          {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+              <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %} me-2"></i>
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endfor %}
+          {% endif %}
+
+          <form method="post">
+            {% csrf_token %}
+            
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-user me-1"></i>First Name *
+                </label>
+                {{ form.first_name }}
+                {% if form.first_name.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-user me-1"></i>Last Name *
+                </label>
+                {{ form.last_name }}
+                {% if form.last_name.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-envelope me-1"></i>Email *
+                </label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.email.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-bold">
+                  <i class="fas fa-phone me-1"></i>Phone Number
+                </label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.phone_number.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+                <small class="text-muted d-block mt-1">Optional</small>
+              </div>
+
+              <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Note:</strong> Username and registration date cannot be changed. 
+                  To reset the password, use the "Reset Password" action.
+                </div>
+              </div>
+
+              <div class="col-12">
+                <hr>
+                <div class="d-flex justify-content-between">
+                  <a href="{% url 'accounts:teacher_students' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Cancel
+                  </a>
+                  <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Save Changes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Additional Information -->
+      <div class="card border-0 shadow-sm mt-4" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3">
+            <i class="fas fa-database text-primary me-2"></i>
+            System Information
+          </h6>
+          <div class="row g-3">
+            <div class="col-md-6">
+              <small class="text-muted d-block mb-1">Username</small>
+              <strong>{{ student.username }}</strong>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block mb-1">Role</small>
+              <span class="badge bg-secondary">{{ student.get_role_display }}</span>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block mb-1">Date Joined</small>
+              <strong>{{ student.date_joined|date:"F d, Y g:i A" }}</strong>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block mb-1">Last Updated</small>
+              <strong>{{ student.date_joined|date:"F d, Y g:i A" }}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

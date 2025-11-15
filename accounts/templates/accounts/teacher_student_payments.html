@@ -1,0 +1,188 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .payments-header {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 16px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+  }
+  .payment-card {
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    margin-bottom: 15px;
+    transition: all 0.3s;
+  }
+  .payment-card:hover {
+    border-color: #10b981;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  }
+  .stat-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border-radius: 12px;
+    padding: 20px;
+    border: 2px solid #10b981;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}Student Payments{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="payments-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="fw-bold mb-2">
+          <i class="fas fa-receipt me-2"></i>
+          Payment History
+        </h2>
+        <p class="mb-0 opacity-90">
+          View all payments for {{ student.get_full_name }}
+        </p>
+      </div>
+      <a href="{% url 'accounts:teacher_edit_student' student.id %}" class="btn btn-light">
+        <i class="fas fa-arrow-left me-2"></i>Back to Student
+      </a>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Student Info Sidebar -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <h6 class="fw-bold mb-3">Student Details</h6>
+          <div class="mb-3">
+            <small class="text-muted d-block">Name</small>
+            <strong>{{ student.get_full_name }}</strong>
+          </div>
+          <div class="mb-3">
+            <small class="text-muted d-block">Email</small>
+            <strong>{{ student.email }}</strong>
+          </div>
+          <div class="mb-3">
+            <small class="text-muted d-block">Username</small>
+            <strong>{{ student.username }}</strong>
+          </div>
+          <div>
+            <small class="text-muted d-block">Registered</small>
+            <strong>{{ student.date_joined|date:"M d, Y" }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Summary -->
+      <div class="stat-card">
+        <h6 class="fw-bold mb-3">
+          <i class="fas fa-chart-line me-2"></i>Payment Summary
+        </h6>
+        <div class="mb-3 pb-3 border-bottom">
+          <div class="d-flex justify-content-between mb-2">
+            <span>Total Payments:</span>
+            <strong>{{ total_payments }}</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Total Amount:</span>
+            <strong class="text-success">₱{{ total_amount|default:"0.00" }}</strong>
+          </div>
+        </div>
+        <div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Paid by You:</span>
+            <strong>{{ paid_by_teacher }}</strong>
+          </div>
+          <div class="d-flex justify-content-between">
+            <span>Amount:</span>
+            <strong class="text-primary">₱{{ teacher_paid_amount|default:"0.00" }}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payments List -->
+    <div class="col-lg-8">
+      {% if payments %}
+      <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-4">
+          <h5 class="fw-bold mb-4">
+            <i class="fas fa-list me-2"></i>All Payments ({{ total_payments }})
+          </h5>
+
+          {% for payment in payments %}
+          <div class="payment-card">
+            <div class="card-body p-3">
+              <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                  <h6 class="fw-bold mb-1">
+                    <i class="fas fa-file-invoice-dollar me-2 text-success"></i>
+                    Payment #{{ payment.id }}
+                  </h6>
+                  <small class="text-muted">
+                    {{ payment.created_at|date:"F d, Y g:i A" }}
+                  </small>
+                </div>
+                <h5 class="mb-0 text-success">₱{{ payment.amount }}</h5>
+              </div>
+
+              <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Type</small>
+                  <span class="badge bg-info">{{ payment.payment_type|title }}</span>
+                </div>
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Status</small>
+                  <span class="badge bg-{% if payment.payment_status == 'completed' %}success{% elif payment.payment_status == 'pending' %}warning{% else %}danger{% endif %}">
+                    {{ payment.payment_status|title }}
+                  </span>
+                </div>
+                {% if payment.paid_by_teacher %}
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Paid By</small>
+                  <span class="badge bg-primary">
+                    <i class="fas fa-user-tie me-1"></i>
+                    {{ payment.paid_by_teacher.get_full_name }}
+                  </span>
+                </div>
+                {% endif %}
+                {% if payment.payment_method %}
+                <div class="col-md-6">
+                  <small class="text-muted d-block">Method</small>
+                  <strong>{{ payment.payment_method|title }}</strong>
+                </div>
+                {% endif %}
+              </div>
+
+              {% if payment.paymongo_payment_id %}
+              <div class="alert alert-light mb-0" role="alert">
+                <small class="text-muted d-block">PayMongo ID</small>
+                <code class="small">{{ payment.paymongo_payment_id }}</code>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <!-- No Payments -->
+      <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-receipt" style="font-size: 4rem; color: #d1d5db; margin-bottom: 20px;"></i>
+          <h4 class="fw-bold mb-3">No Payments Found</h4>
+          <p class="text-muted mb-4">
+            This student doesn't have any payment records yet.
+          </p>
+          <a href="{% url 'accounts:teacher_edit_student' student.id %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Student Profile
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

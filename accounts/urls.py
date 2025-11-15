@@ -50,4 +50,16 @@ urlpatterns = [
     path('reset/done/', auth_views.PasswordResetCompleteView.as_view(
         template_name='accounts/password_reset_complete.html'
     ), name='password_reset_complete'),
-] 
+    
+    # Teacher registration and dashboard URLs
+    path('register/teacher/', views.register_teacher, name='register_teacher'),
+    path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+    path('teacher/students/', views.teacher_students, name='teacher_students'),
+    path('teacher/register-students/', views.teacher_register_students, name='teacher_register_students'),
+    path('teacher/student/<int:student_id>/edit/', views.teacher_edit_student, name='teacher_edit_student'),
+    path('teacher/student/<int:student_id>/delete/', views.teacher_delete_student, name='teacher_delete_student'),
+    path('teacher/student/<int:student_id>/reset-password/', views.teacher_reset_student_password, name='teacher_reset_student_password'),
+    path('teacher/student/<int:student_id>/toggle-active/', views.teacher_toggle_student_active, name='teacher_toggle_student_active'),
+    path('teacher/student/<int:student_id>/payments/', views.teacher_view_student_payments, name='teacher_view_student_payments'),
+    path('teacher/student/<int:student_id>/events/', views.teacher_view_student_events, name='teacher_view_student_events'),
+]

@@ -1,0 +1,133 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .toggle-header {
+    background: linear-gradient(135deg, {% if student.is_active %}#f59e0b{% else %}#10b981{% endif %} 0%, {% if student.is_active %}#d97706{% else %}#059669{% endif %} 100%);
+    border-radius: 16px;
+    padding: 30px;
+    color: white;
+    margin-bottom: 30px;
+  }
+  .status-icon {
+    width: 100px;
+    height: 100px;
+    background: {% if student.is_active %}#fffbeb{% else %}#ecfdf5{% endif %};
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}{% if student.is_active %}Deactivate{% else %}Activate{% endif %} Student{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="toggle-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="fw-bold mb-2">
+          <i class="fas fa-{% if student.is_active %}pause{% else %}play{% endif %}-circle me-2"></i>
+          {% if student.is_active %}Deactivate{% else %}Activate{% endif %} Student
+        </h2>
+        <p class="mb-0 opacity-90">
+          Change account status for {{ student.get_full_name }}
+        </p>
+      </div>
+      <a href="{% url 'accounts:teacher_students' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left me-2"></i>Back to Students
+      </a>
+    </div>
+  </div>
+
+  <div class="row justify-content-center">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-5 text-center">
+          <div class="status-icon">
+            <i class="fas fa-{% if student.is_active %}pause{% else %}play{% endif %}-circle" 
+               style="font-size: 3rem; color: {% if student.is_active %}#f59e0b{% else %}#10b981{% endif %};"></i>
+          </div>
+
+          <h3 class="fw-bold mb-3">
+            {% if student.is_active %}Deactivate{% else %}Activate{% endif %} this student?
+          </h3>
+          
+          <!-- Student Info -->
+          <div class="alert alert-{% if student.is_active %}warning{% else %}success{% endif %} text-start mb-4" role="alert">
+            <h6 class="fw-bold mb-2">Student Details:</h6>
+            <div class="row">
+              <div class="col-md-6">
+                <small class="text-muted d-block">Name</small>
+                <strong>{{ student.get_full_name }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Email</small>
+                <strong>{{ student.email }}</strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Current Status</small>
+                <span class="badge bg-{% if student.is_active %}success{% else %}warning{% endif %}">
+                  {% if student.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">New Status</small>
+                <span class="badge bg-{% if student.is_active %}warning{% else %}success{% endif %}">
+                  {% if student.is_active %}Inactive{% else %}Active{% endif %}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {% if student.is_active %}
+          <!-- Deactivation Info -->
+          <div class="alert alert-info text-start" role="alert">
+            <h6 class="fw-bold mb-2">
+              <i class="fas fa-info-circle me-2"></i>What happens when you deactivate:
+            </h6>
+            <ul class="mb-0">
+              <li>Student will not be able to log in</li>
+              <li>Account data is preserved</li>
+              <li>Can be reactivated at any time</li>
+              <li>Payment history remains intact</li>
+            </ul>
+          </div>
+          {% else %}
+          <!-- Activation Info -->
+          <div class="alert alert-info text-start" role="alert">
+            <h6 class="fw-bold mb-2">
+              <i class="fas fa-info-circle me-2"></i>What happens when you activate:
+            </h6>
+            <ul class="mb-0">
+              <li>Student will be able to log in</li>
+              <li>Full access to all features</li>
+              <li>Can register for events</li>
+              <li>Receives notifications</li>
+            </ul>
+          </div>
+          {% endif %}
+
+          <!-- Confirmation Form -->
+          <form method="post" class="mt-4">
+            {% csrf_token %}
+            <div class="d-flex gap-3 justify-content-center">
+              <a href="{% url 'accounts:teacher_edit_student' student.id %}" class="btn btn-lg btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>Cancel
+              </a>
+              <button type="submit" class="btn btn-lg btn-{% if student.is_active %}warning{% else %}success{% endif %}">
+                <i class="fas fa-{% if student.is_active %}pause{% else %}play{% endif %}-circle me-2"></i>
+                Yes, {% if student.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

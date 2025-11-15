@@ -1,0 +1,290 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .kpi-card {
+    border: 0;
+    border-radius: 16px;
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  }
+  .kpi-card .icon-bg {
+    position: absolute;
+    right: -10px;
+    top: -10px;
+    font-size: 5rem;
+    opacity: 0.12;
+  }
+  .kpi-card .value {
+    font-size: 2.8rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+  .kpi-card .label {
+    font-size: 0.95rem;
+    opacity: 0.95;
+    font-weight: 500;
+  }
+  .kpi-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+  .kpi-success { background: linear-gradient(135deg, #16a34a 0%, #059669 100%); }
+  .kpi-warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  .kpi-info { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+  
+  .action-card {
+    border-radius: 12px;
+    border: 2px solid #e5e7eb;
+    transition: all 0.3s;
+  }
+  .action-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    transform: translateY(-2px);
+  }
+  .student-item {
+    border-bottom: 1px solid #e5e7eb;
+    padding: 15px 0;
+  }
+  .student-item:last-child {
+    border-bottom: none;
+  }
+  .badge-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}Teacher Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Welcome Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 bg-gradient-primary text-white" style="border-radius: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="card-body p-4">
+          <h2 class="mb-2">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            Welcome back, {{ teacher.get_full_name }}!
+          </h2>
+          <p class="mb-0 opacity-90">Manage your students and track their progress</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-primary p-4">
+        <div class="icon-bg"><i class="fas fa-users"></i></div>
+        <div class="value">{{ total_students }}</div>
+        <div class="label">Total Students</div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-success p-4">
+        <div class="icon-bg"><i class="fas fa-check-circle"></i></div>
+        <div class="value">{{ active_students }}</div>
+        <div class="label">Active Students</div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-warning p-4">
+        <div class="icon-bg"><i class="fas fa-pause-circle"></i></div>
+        <div class="value">{{ inactive_students }}</div>
+        <div class="label">Inactive Students</div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+      <div class="kpi-card kpi-info p-4">
+        <div class="icon-bg"><i class="fas fa-coins"></i></div>
+        <div class="value">₱{{ total_paid|floatformat:2 }}</div>
+        <div class="label">Total Paid</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Quick Actions -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+          <h5 class="mb-0 fw-bold">
+            <i class="fas fa-bolt text-warning me-2"></i>
+            Quick Actions
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <a href="{% url 'accounts:teacher_register_students' %}" class="text-decoration-none">
+                <div class="action-card p-4 text-center">
+                  <div class="mb-3">
+                    <i class="fas fa-user-plus" style="font-size: 2.5rem; color: #667eea;"></i>
+                  </div>
+                  <h6 class="fw-bold mb-2">Register New Students</h6>
+                  <p class="text-muted small mb-0">Add multiple students at once</p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'accounts:teacher_students' %}" class="text-decoration-none">
+                <div class="action-card p-4 text-center">
+                  <div class="mb-3">
+                    <i class="fas fa-users-cog" style="font-size: 2.5rem; color: #10b981;"></i>
+                  </div>
+                  <h6 class="fw-bold mb-2">Manage Students</h6>
+                  <p class="text-muted small mb-0">View and edit student accounts</p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'accounts:teacher_students' %}?status=active" class="text-decoration-none">
+                <div class="action-card p-4 text-center">
+                  <div class="mb-3">
+                    <i class="fas fa-chart-line" style="font-size: 2.5rem; color: #f59e0b;"></i>
+                  </div>
+                  <h6 class="fw-bold mb-2">View Active Students</h6>
+                  <p class="text-muted small mb-0">See all active student accounts</p>
+                </div>
+              </a>
+            </div>
+            <div class="col-md-6">
+              <a href="{% url 'accounts:profile_edit' %}" class="text-decoration-none">
+                <div class="action-card p-4 text-center">
+                  <div class="mb-3">
+                    <i class="fas fa-user-edit" style="font-size: 2.5rem; color: #06b6d4;"></i>
+                  </div>
+                  <h6 class="fw-bold mb-2">Edit Your Profile</h6>
+                  <p class="text-muted small mb-0">Update your account information</p>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Students -->
+      {% if recent_students %}
+      <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 pt-4 px-4 d-flex justify-content-between align-items-center">
+          <h5 class="mb-0 fw-bold">
+            <i class="fas fa-history text-primary me-2"></i>
+            Recently Registered Students
+          </h5>
+          <a href="{% url 'accounts:teacher_students' %}" class="btn btn-sm btn-outline-primary">View All</a>
+        </div>
+        <div class="card-body p-4">
+          {% for student in recent_students %}
+          <div class="student-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div class="d-flex align-items-center">
+                <div class="avatar-circle me-3" style="width: 45px; height: 45px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem;">
+                  {{ student.first_name.0 }}{{ student.last_name.0 }}
+                </div>
+                <div>
+                  <h6 class="mb-0 fw-bold">{{ student.get_full_name }}</h6>
+                  <small class="text-muted">
+                    <i class="fas fa-envelope me-1"></i>{{ student.email }}
+                  </small>
+                </div>
+              </div>
+              <div class="text-end">
+                {% if student.is_active %}
+                  <span class="badge badge-status bg-success">
+                    <i class="fas fa-check-circle me-1"></i>Active
+                  </span>
+                {% else %}
+                  <span class="badge badge-status bg-warning">
+                    <i class="fas fa-pause-circle me-1"></i>Inactive
+                  </span>
+                {% endif %}
+                <div class="mt-1">
+                  <small class="text-muted">{{ student.date_joined|date:"M d, Y" }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Sidebar Info -->
+    <div class="col-lg-4">
+      <!-- Payment Status -->
+      <div class="card border-0 shadow-sm mb-4" style="border-radius: 16px;">
+        <div class="card-header bg-white border-0 pt-4 px-4">
+          <h5 class="mb-0 fw-bold">
+            <i class="fas fa-wallet text-success me-2"></i>
+            Payment Overview
+          </h5>
+        </div>
+        <div class="card-body p-4">
+          <div class="mb-3 pb-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">Total Paid:</span>
+              <span class="fw-bold fs-5" style="color: #10b981;">₱{{ total_paid|floatformat:2 }}</span>
+            </div>
+          </div>
+          <div class="mb-3 pb-3 border-bottom">
+            <div class="d-flex justify-content-between align-items-center">
+              <span class="text-muted">Pending Payments:</span>
+              <span class="fw-bold fs-5" style="color: #f59e0b;">{{ pending_payments }}</span>
+            </div>
+          </div>
+          <div class="alert alert-info mb-0" style="border-radius: 10px;">
+            <small>
+              <i class="fas fa-info-circle me-1"></i>
+              Registration fee: ₱500.00 per student
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Help Card -->
+      <div class="card border-0 shadow-sm" style="border-radius: 16px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+        <div class="card-body p-4">
+          <div class="text-center mb-3">
+            <i class="fas fa-question-circle" style="font-size: 3rem; color: #06b6d4;"></i>
+          </div>
+          <h5 class="text-center fw-bold mb-3">Need Help?</h5>
+          <ul class="list-unstyled mb-3">
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <small>Register multiple students at once</small>
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <small>Students get auto-generated passwords via email</small>
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <small>Pay for all students in one transaction</small>
+            </li>
+            <li class="mb-2">
+              <i class="fas fa-check text-success me-2"></i>
+              <small>Manage profiles, reset passwords, and more</small>
+            </li>
+          </ul>
+          <div class="text-center">
+            <a href="mailto:support@scoutconnect.com" class="btn btn-sm btn-primary">
+              <i class="fas fa-envelope me-1"></i>Contact Support
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

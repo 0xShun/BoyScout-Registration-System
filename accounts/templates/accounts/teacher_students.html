@@ -1,0 +1,272 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+  .student-card {
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    transition: all 0.3s;
+    overflow: hidden;
+  }
+  .student-card:hover {
+    border-color: #667eea;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px);
+  }
+  .avatar-circle {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 1.3rem;
+  }
+  .action-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+  }
+  .search-card {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .filter-badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+  }
+  .filter-badge.active {
+    border-color: #667eea;
+    background: #667eea;
+    color: white;
+  }
+</style>
+{% endblock %}
+
+{% block page_title %}My Students{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="fw-bold mb-1">
+            <i class="fas fa-users me-2" style="color: #667eea;"></i>
+            My Students
+          </h2>
+          <p class="text-muted mb-0">Manage and track your registered students</p>
+        </div>
+        <a href="{% url 'accounts:teacher_register_students' %}" class="btn btn-primary">
+          <i class="fas fa-user-plus me-2"></i>Register New Students
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search and Filter -->
+  <div class="search-card">
+    <form method="get" class="row g-3 align-items-end">
+      <div class="col-md-6">
+        <label class="form-label fw-bold">
+          <i class="fas fa-search me-1"></i>Search Students
+        </label>
+        <input 
+          type="text" 
+          name="search" 
+          class="form-control" 
+          placeholder="Search by name, email, or username..."
+          value="{{ search_query }}"
+        >
+      </div>
+      <div class="col-md-4">
+        <label class="form-label fw-bold">
+          <i class="fas fa-filter me-1"></i>Filter by Status
+        </label>
+        <select name="status" class="form-select">
+          <option value="" {% if not status_filter %}selected{% endif %}>All Students</option>
+          <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active Only</option>
+          <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive Only</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">
+          <i class="fas fa-search me-1"></i>Search
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+          <span class="badge bg-primary" style="font-size: 1rem;">{{ total_students }}</span>
+          {% if search_query or status_filter %}
+            student(s) found
+          {% else %}
+            total student(s)
+          {% endif %}
+        </h5>
+        {% if search_query or status_filter %}
+          <a href="{% url 'accounts:teacher_students' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="fas fa-times me-1"></i>Clear Filters
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Students List -->
+  {% if students %}
+  <div class="row g-3">
+    {% for student in students %}
+    <div class="col-md-6 col-lg-4">
+      <div class="student-card">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-start mb-3">
+            <div class="avatar-circle me-3">
+              {{ student.first_name.0 }}{{ student.last_name.0 }}
+            </div>
+            <div class="flex-grow-1">
+              <h6 class="fw-bold mb-1">{{ student.get_full_name }}</h6>
+              <small class="text-muted d-block mb-1">
+                <i class="fas fa-user me-1"></i>{{ student.username }}
+              </small>
+              <small class="text-muted d-block">
+                <i class="fas fa-envelope me-1"></i>{{ student.email }}
+              </small>
+            </div>
+            {% if student.is_active %}
+              <span class="badge bg-success">Active</span>
+            {% else %}
+              <span class="badge bg-warning">Inactive</span>
+            {% endif %}
+          </div>
+
+          <div class="mb-3 pb-3 border-bottom">
+            <small class="text-muted d-block mb-1">
+              <i class="fas fa-calendar me-1"></i>
+              Registered: {{ student.date_joined|date:"M d, Y" }}
+            </small>
+            {% if student.phone_number %}
+            <small class="text-muted d-block">
+              <i class="fas fa-phone me-1"></i>
+              {{ student.phone_number }}
+            </small>
+            {% endif %}
+          </div>
+
+          <!-- Actions -->
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'accounts:teacher_edit_student' student.id %}" 
+               class="btn btn-sm btn-outline-primary action-btn flex-grow-1">
+              <i class="fas fa-edit"></i> Edit
+            </a>
+            <a href="{% url 'accounts:teacher_view_student_payments' student.id %}" 
+               class="btn btn-sm btn-outline-info action-btn flex-grow-1">
+              <i class="fas fa-receipt"></i> Payments
+            </a>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <a href="{% url 'accounts:teacher_view_student_events' student.id %}" 
+               class="btn btn-sm btn-outline-success action-btn flex-grow-1">
+              <i class="fas fa-calendar-check"></i> Events
+            </a>
+            <a href="{% url 'accounts:teacher_reset_student_password' student.id %}" 
+               class="btn btn-sm btn-outline-warning action-btn flex-grow-1">
+              <i class="fas fa-key"></i> Reset
+            </a>
+          </div>
+          <div class="d-flex flex-wrap gap-2 mt-2">
+            <form method="post" action="{% url 'accounts:teacher_toggle_student_active' student.id %}" class="flex-grow-1">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-sm {% if student.is_active %}btn-outline-warning{% else %}btn-outline-success{% endif %} action-btn w-100">
+                <i class="fas fa-{% if student.is_active %}pause{% else %}play{% endif %}-circle"></i>
+                {% if student.is_active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+            <a href="{% url 'accounts:teacher_delete_student' student.id %}" 
+               class="btn btn-sm btn-outline-danger action-btn flex-grow-1">
+              <i class="fas fa-trash"></i> Delete
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if students.has_other_pages %}
+  <div class="row mt-4">
+    <div class="col-12">
+      <nav aria-label="Page navigation">
+        <ul class="pagination justify-content-center">
+          {% if students.has_previous %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ students.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="fas fa-chevron-left"></i>
+              </a>
+            </li>
+          {% endif %}
+          
+          {% for num in students.paginator.page_range %}
+            {% if students.number == num %}
+              <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+            {% elif num > students.number|add:'-3' and num < students.number|add:'3' %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">{{ num }}</a>
+              </li>
+            {% endif %}
+          {% endfor %}
+          
+          {% if students.has_next %}
+            <li class="page-item">
+              <a class="page-link" href="?page={{ students.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">
+                <i class="fas fa-chevron-right"></i>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+      </nav>
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No Students Found -->
+  <div class="row">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm" style="border-radius: 16px;">
+        <div class="card-body text-center py-5">
+          <i class="fas fa-user-friends" style="font-size: 4rem; color: #d1d5db; margin-bottom: 20px;"></i>
+          <h4 class="fw-bold mb-3">No Students Found</h4>
+          <p class="text-muted mb-4">
+            {% if search_query or status_filter %}
+              No students match your search criteria. Try adjusting your filters.
+            {% else %}
+              You haven't registered any students yet. Get started by registering your first student!
+            {% endif %}
+          </p>
+          <a href="{% url 'accounts:teacher_register_students' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i>Register Students Now
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
