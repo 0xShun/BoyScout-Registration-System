@@ -2,6 +2,8 @@
 Views for teacher functionality: registration, dashboard, and student management.
 """
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth import login
+from django.conf import settings
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.db import transaction, models
@@ -47,6 +49,10 @@ def register_teacher(request):
                     user.registration_status = 'active'
                     user.save()
 
+                    # NOTE: auto-login is performed later (after session flags are set)
+                    # to avoid session lifecycle races where session data might be
+                    # rotated/deleted during the request lifecycle.
+
                     # Get registration fee from system settings
                     registration_fee = SystemSettings.get_registration_fee()
 
@@ -75,6 +81,22 @@ def register_teacher(request):
 
                             # Store a session flag so we can display the success message on the login page
                             request.session['registration_success'] = 'Your teacher account was created — please complete payment to finalize your registration.'
+
+                            # If the registrant was anonymous (self-registration), auto-login now.
+                            # Perform this after writing session flags to avoid session rotation
+                            # races that can raise SessionInterrupted.
+                            try:
+                                if request.user.is_anonymous:
+                                    backend = None
+                                    if getattr(settings, 'AUTHENTICATION_BACKENDS', None):
+                                        backend = settings.AUTHENTICATION_BACKENDS[0]
+                                    else:
+                                        backend = 'django.contrib.auth.backends.ModelBackend'
+                                    user.backend = backend
+                                    login(request, user)
+                            except Exception:
+                                # Best-effort auto-login: on error, continue without failing registration.
+                                pass
 
                             # Redirect to PayMongo checkout
                             checkout_url = source_data.get('attributes', {}).get('redirect', {}).get('checkout_url')
