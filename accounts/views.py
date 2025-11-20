@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm
+from .teacher_forms import TeacherRegisterForm
 from .models import User, Group, Badge, UserBadge, RegistrationPayment
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponseForbidden
@@ -434,9 +435,13 @@ def register(request):
                 print('REGISTER_FORM_ERRORS:', form.errors)
     else:
         form = UserRegisterForm()
-    
+
+    # Provide teacher registration form so the register page can render it inline
+    teacher_form = TeacherRegisterForm()
+
     return render(request, 'accounts/register.html', {
         'form': form,
+        'teacher_form': teacher_form,
     })
 
 def admin_required(view_func):
@@ -761,6 +766,16 @@ class MyLoginView(LoginView):
     template_name = 'accounts/login.html'
     authentication_form = CustomLoginForm
     redirect_field_name = '' # Explicitly ignore 'next' parameter
+
+    def get(self, request, *args, **kwargs):
+        # If a registration just occurred, move the session message into Django messages
+        if request.session.get('registration_success'):
+            try:
+                messages.success(request, request.session.pop('registration_success'))
+            except Exception:
+                # If anything goes wrong, ignore and continue
+                request.session.pop('registration_success', None)
+        return super().get(request, *args, **kwargs)
 
     def get_success_url(self):
         # Check if user has completed registration

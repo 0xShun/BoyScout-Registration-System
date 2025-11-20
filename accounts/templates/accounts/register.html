@@ -85,95 +85,96 @@
           </button>
         </div>
         
-        <!-- Batch Registration Form (hidden by default) -->
-        <div id="batchRegistrationForm" style="display: none;">
-          <!-- Registrar Information -->
+        <!-- Teacher Registration Form (hidden by default) -->
+        <div id="teacherRegistrationForm" style="display: none;">
           <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-              <h5 class="mb-0"><i class="fas fa-chalkboard-teacher"></i> Teacher/Registrar Information</h5>
+              <h5 class="mb-0"><i class="fas fa-chalkboard-teacher"></i> Teacher Registration</h5>
             </div>
             <div class="card-body">
-              {% if registrar_form %}
-                {% for field in registrar_form %}
+              <form method="post" action="{% url 'accounts:register_teacher' %}" id="teacherInlineForm">
+                {% csrf_token %}
+                {% if teacher_form %}
+                  <div class="row">
+                    <div class="col-md-6 mb-3">
+                      <label for="{{ teacher_form.first_name.id_for_label }}" class="form-label fw-bold">
+                        <i class="fas fa-user me-1"></i>{{ teacher_form.first_name.label }}
+                      </label>
+                      {{ teacher_form.first_name }}
+                      {% for error in teacher_form.first_name.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                      <label for="{{ teacher_form.last_name.id_for_label }}" class="form-label fw-bold">
+                        <i class="fas fa-user me-1"></i>{{ teacher_form.last_name.label }}
+                      </label>
+                      {{ teacher_form.last_name }}
+                      {% for error in teacher_form.last_name.errors %}
+                        <div class="text-danger small mt-1">{{ error }}</div>
+                      {% endfor %}
+                    </div>
+                  </div>
+
                   <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
-                    {{ field }}
-                    {% if field.help_text %}
-                      <div class="form-text">{{ field.help_text }}</div>
+                    <label for="{{ teacher_form.email.id_for_label }}" class="form-label fw-bold">
+                      <i class="fas fa-envelope me-1"></i>{{ teacher_form.email.label }}
+                    </label>
+                    {{ teacher_form.email }}
+                    {% if teacher_form.email.help_text %}
+                      <div class="form-text">
+                        <i class="fas fa-info-circle me-1"></i>{{ teacher_form.email.help_text }}
+                      </div>
                     {% endif %}
-                    {% for error in field.errors %}
-                      <div class="text-danger">{{ error }}</div>
+                    {% for error in teacher_form.email.errors %}
+                      <div class="text-danger small mt-1">{{ error }}</div>
                     {% endfor %}
                   </div>
-                {% endfor %}
-              {% endif %}
+
+                  <div class="mb-3">
+                    <label for="{{ teacher_form.phone_number.id_for_label }}" class="form-label fw-bold">
+                      <i class="fas fa-phone me-1"></i>{{ teacher_form.phone_number.label }} (Optional)
+                    </label>
+                    {{ teacher_form.phone_number }}
+                    {% for error in teacher_form.phone_number.errors %}
+                      <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="{{ teacher_form.password1.id_for_label }}" class="form-label fw-bold">
+                      <i class="fas fa-lock me-1"></i>{{ teacher_form.password1.label }}
+                    </label>
+                    {{ teacher_form.password1 }}
+                    {% if teacher_form.password1.help_text %}
+                      <div class="form-text">{{ teacher_form.password1.help_text }}</div>
+                    {% endif %}
+                    {% for error in teacher_form.password1.errors %}
+                      <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+
+                  <div class="mb-4">
+                    <label for="{{ teacher_form.password2.id_for_label }}" class="form-label fw-bold">
+                      <i class="fas fa-lock me-1"></i>{{ teacher_form.password2.label }}
+                    </label>
+                    {{ teacher_form.password2 }}
+                    {% for error in teacher_form.password2.errors %}
+                      <div class="text-danger small mt-1">{{ error }}</div>
+                    {% endfor %}
+                  </div>
+                {% endif %}
+
+                <div class="alert alert-info">
+                  <h6 class="fw-bold mb-2"><i class="fas fa-credit-card me-2"></i>Registration Fee: ₱500.00</h6>
+                  <p class="mb-0 small">After registration you'll be redirected to complete payment. Your account will be active immediately.</p>
+                </div>
+
+                <button type="submit" class="btn btn-success w-100 py-3 fw-bold">
+                  <i class="fas fa-user-graduate me-2"></i>Register as Teacher & Proceed to Payment
+                </button>
+              </form>
             </div>
-          </div>
-          
-          <!-- Students Section -->
-          <div class="card mb-4">
-            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-              <h5 class="mb-0"><i class="fas fa-users"></i> Students Information</h5>
-              <span class="badge bg-light text-dark" id="studentCount">0 students</span>
-            </div>
-            <div class="card-body">
-              <p class="text-muted mb-3">
-                <i class="fas fa-info-circle"></i> Enter each student's details below. All students will be registered with active accounts immediately.
-              </p>
-              
-              <!-- Dynamic student forms will be inserted here -->
-              <div id="studentFormsContainer"></div>
-              
-              <!-- Info about the process -->
-              <div class="alert alert-info mt-3">
-                <h6 class="alert-heading">📝 How Batch Registration Works:</h6>
-                <ol class="mb-0 ps-3">
-                  <li>Enter the number of students above to generate the forms</li>
-                  <li>Fill in each student's details (all fields required)</li>
-                  <li>Click submit - all student accounts will be created immediately</li>
-                  <li>You'll be redirected to PayMongo payment page</li>
-                  <li>Each student will receive welcome email with their login credentials</li>
-                </ol>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Total Amount Display -->
-          <div class="alert alert-info mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h6 class="mb-0"><i class="fas fa-calculator"></i> Total Registration Fee</h6>
-                <small class="text-muted"><span id="totalStudents">0</span> students × ₱500.00</small>
-              </div>
-              <div class="text-end">
-                <h4 class="mb-0 text-primary" id="totalAmount">₱0.00</h4>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Batch Payment Information -->
-          <div class="alert alert-primary">
-            <h6 class="alert-heading"><i class="fas fa-mobile-alt"></i> Batch Payment - One Payment for All Students!</h6>
-            <p class="mb-2">After submitting student details, you'll complete payment via:</p>
-            <div class="d-flex gap-3 justify-content-center my-3">
-              <span class="badge bg-light text-dark fs-6">GCash</span>
-              <span class="badge bg-light text-dark fs-6">PayMaya</span>
-              <span class="badge bg-light text-dark fs-6">GrabPay</span>
-            </div>
-            <ul class="mb-2">
-              <li><strong>Accounts activated immediately</strong> - Students can login right away</li>
-              <li><strong>Single payment</strong> - Pay for all students at once</li>
-              <li><strong>Email notifications</strong> - Each student receives their login credentials</li>
-            </ul>
-            <p class="mb-0 small"><i class="fas fa-info-circle"></i> All student accounts will be active immediately after you click submit!</p>
-          </div>
-          
-          <button type="submit" class="btn btn-success w-100 py-3 fw-bold mt-3" id="batchSubmitBtn" disabled>
-            <i class="fas fa-user-plus me-2"></i> Create <span id="submitStudentCount">0</span> Student Accounts & Proceed to Payment
-          </button>
-          
-          <div id="batchValidationMessage" class="alert alert-warning mt-3" style="display: none;">
-            <i class="fas fa-exclamation-triangle"></i> Please enter the number of students (1-50) to proceed.
           </div>
         </div>
       </form>
@@ -400,147 +401,11 @@
             });
         }
         
-        // Batch Registration - Define variables and function first
-        const numberOfStudentsInput = document.getElementById('id_number_of_students');
-        const studentCountBadge = document.getElementById('studentCount');
-        const totalStudentsSpan = document.getElementById('totalStudents');
-        const totalAmountSpan = document.getElementById('totalAmount');
-        const submitStudentCount = document.getElementById('submitStudentCount');
-        const batchSubmitBtn = document.getElementById('batchSubmitBtn');
-        const batchValidationMessage = document.getElementById('batchValidationMessage');
-        const registrationForm = document.getElementById('registrationForm');
-        
-        function updateBatchTotal() {
-            const numStudents = parseInt(numberOfStudentsInput?.value || 0);
-            if (studentCountBadge) studentCountBadge.textContent = `${numStudents} student${numStudents !== 1 ? 's' : ''}`;
-            if (totalStudentsSpan) totalStudentsSpan.textContent = numStudents;
-            if (submitStudentCount) submitStudentCount.textContent = numStudents;
-            const total = numStudents * 500;
-            if (totalAmountSpan) totalAmountSpan.textContent = `₱${total.toLocaleString('en-PH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-            
-            // Generate student forms
-            generateStudentForms(numStudents);
-            
-            // Enable/disable submit button based on number of students
-            if (batchSubmitBtn) {
-                if (numStudents > 0 && numStudents <= 50) {
-                    batchSubmitBtn.disabled = false;
-                    batchSubmitBtn.classList.remove('btn-secondary');
-                    batchSubmitBtn.classList.add('btn-success');
-                    batchSubmitBtn.style.cursor = 'pointer';
-                    if (batchValidationMessage) batchValidationMessage.style.display = 'none';
-                } else {
-                    batchSubmitBtn.disabled = true;
-                    batchSubmitBtn.classList.remove('btn-success');
-                    batchSubmitBtn.classList.add('btn-secondary');
-                    batchSubmitBtn.style.cursor = 'not-allowed';
-                    if (batchValidationMessage) batchValidationMessage.style.display = 'block';
-                }
-            }
-        }
-        
-        function generateStudentForms(numStudents) {
-            const container = document.getElementById('studentFormsContainer');
-            if (!container) return;
-            
-            // Get pre-filled data if exists (from server-side validation errors)
-            const studentDataList = {{ student_data_list|safe|default:"[]" }};
-            const duplicateEmails = {{ duplicate_emails|safe|default:"[]" }};
-            const duplicateUsernames = {{ duplicate_usernames|safe|default:"[]" }};
-            
-            // Clear existing forms
-            container.innerHTML = '';
-            
-            if (numStudents < 1 || numStudents > 50) {
-                return;
-            }
-            
-            // Generate form for each student
-            for (let i = 0; i < numStudents; i++) {
-                const studentData = studentDataList[i] || {};
-                const emailHasError = duplicateEmails.includes(studentData.email);
-                const usernameHasError = duplicateUsernames.includes(studentData.username);
-                
-                const studentCard = document.createElement('div');
-                studentCard.className = 'card mb-3';
-                studentCard.innerHTML = `
-                    <div class="card-header bg-light">
-                        <h6 class="mb-0"><i class="fas fa-user-graduate"></i> Student ${i + 1}</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">First Name *</label>
-                                <input type="text" name="student_${i}_first_name" class="form-control" value="${studentData.first_name || ''}" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Last Name *</label>
-                                <input type="text" name="student_${i}_last_name" class="form-control" value="${studentData.last_name || ''}" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Email Address *</label>
-                                <input type="email" name="student_${i}_email" class="form-control ${emailHasError ? 'is-invalid' : ''}" value="${studentData.email || ''}" required>
-                                ${emailHasError ? '<div class="invalid-feedback">❌ This email already exists in the system</div>' : ''}
-                                <small class="form-text text-muted">Student will receive login credentials here</small>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Phone Number</label>
-                                <input type="tel" name="student_${i}_phone_number" class="form-control" value="${studentData.phone_number || ''}" placeholder="+639XXXXXXXXX">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Date of Birth *</label>
-                                <input type="date" name="student_${i}_date_of_birth" class="form-control" value="${studentData.date_of_birth || ''}" required>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Username *</label>
-                                <input type="text" name="student_${i}_username" class="form-control ${usernameHasError ? 'is-invalid' : ''}" value="${studentData.username || ''}" required>
-                                ${usernameHasError ? '<div class="invalid-feedback">❌ This username already exists</div>' : ''}
-                                <small class="form-text text-muted">Used for login</small>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Address *</label>
-                            <textarea name="student_${i}_address" class="form-control" rows="2" required>${studentData.address || ''}</textarea>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(studentCard);
-            }
-        }
-        
-        // Form submission validation
-        if (registrationForm) {
-            registrationForm.addEventListener('submit', function(e) {
-                const registrationType = document.getElementById('registrationType').value;
-                
-                if (registrationType === 'batch') {
-                    const numStudents = parseInt(numberOfStudentsInput?.value || 0);
-                    
-                    if (numStudents < 1 || numStudents > 50) {
-                        e.preventDefault();
-                        if (batchValidationMessage) {
-                            batchValidationMessage.style.display = 'block';
-                            batchValidationMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                        alert('Please enter a valid number of students (1-50) before proceeding to payment.');
-                        return false;
-                    }
-                }
-            });
-        }
-        
-        if (numberOfStudentsInput) {
-            numberOfStudentsInput.addEventListener('input', updateBatchTotal);
-            numberOfStudentsInput.addEventListener('change', updateBatchTotal);
-            // Initialize on page load
-            updateBatchTotal();
-        } else {
-            console.error('Number of students input field not found!');
-        }
+    // Prepare registration form elements and teacher inline form
+    const registrationForm = document.getElementById('registrationForm');
+    const teacherInlineFormWrapper = document.getElementById('teacherRegistrationForm');
+    const teacherInlineForm = document.getElementById('teacherInlineForm');
+    const singleFormEl = document.getElementById('singleRegistrationForm');
         
         // Registration Type Toggle Switch
         const toggleSwitch = document.getElementById('registrationTypeSwitch');
@@ -549,80 +414,58 @@
         const typeIcon = document.getElementById('registrationTypeIcon');
         const typeDesc = document.getElementById('registrationTypeDesc');
         const singleForm = document.getElementById('singleRegistrationForm');
-        const batchForm = document.getElementById('batchRegistrationForm');
-        
+        const teacherFormWrapper = document.getElementById('teacherRegistrationForm');
+
         if (toggleSwitch) {
-      toggleSwitch.addEventListener('change', function() {
-        if (this.checked) {
-          // Switch to Batch Registration
-          registrationType.value = 'batch';
-          typeLabel.textContent = 'Batch Registration';
-          typeIcon.className = 'fas fa-users me-2';
-          typeDesc.textContent = 'Register multiple students (Teachers)';
-          singleForm.style.display = 'none';
-          batchForm.style.display = 'block';
-          // Enable all inputs in batch form
-          Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
-            el.disabled = false;
-          });
-          // Disable all inputs in single form
-          Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
-            el.disabled = true;
-          });
-          updateBatchTotal();
-        } else {
-          // Switch to Single Registration
-          registrationType.value = 'single';
-          typeLabel.textContent = 'Single Registration';
-          typeIcon.className = 'fas fa-user me-2';
-          typeDesc.textContent = 'Register one student';
-          singleForm.style.display = 'block';
-          batchForm.style.display = 'none';
-          // Enable all inputs in single form
-          Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
-            el.disabled = false;
-          });
-          // Disable all inputs in batch form
-          Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) {
-            el.disabled = true;
-          });
-        }
-      });
-  // On page load, ensure only visible form's fields are enabled
-  const singleForm = document.getElementById('singleRegistrationForm');
-  const batchForm = document.getElementById('batchRegistrationForm');
-  
-  // Check if we're returning from an error (batch registration preserved)
-  {% if registration_type == 'batch' %}
-    // Switch to batch mode
-    const registrationType = document.getElementById('registrationType');
-    const typeLabel = document.getElementById('registrationTypeLabel');
-    const typeIcon = document.getElementById('registrationTypeIcon');
-    const typeDesc = document.getElementById('registrationTypeDesc');
-    const toggleSwitch = document.getElementById('registrationTypeSwitch');
-    
-    if (toggleSwitch) toggleSwitch.checked = true;
-    if (registrationType) registrationType.value = 'batch';
-    if (typeLabel) typeLabel.textContent = 'Batch Registration';
-    if (typeIcon) typeIcon.className = 'fas fa-users me-2';
-    if (typeDesc) typeDesc.textContent = 'Register multiple students (Teachers)';
-    
-    if (singleForm) {
-      singleForm.style.display = 'none';
-      Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
-    }
-    if (batchForm) {
-      batchForm.style.display = 'block';
-      Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
-    }
-    
-    // Trigger form generation with preserved data
-    updateBatchTotal();
-  {% else %}
-    // Enable single, disable batch by default
-    if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
-    if (batchForm) Array.from(batchForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
-  {% endif %}
+            toggleSwitch.addEventListener('change', function() {
+                if (this.checked) {
+                    // Switch to Teacher Registration
+                    registrationType.value = 'teacher';
+                    typeLabel.textContent = 'Teacher Registration';
+                    typeIcon.className = 'fas fa-chalkboard-teacher me-2';
+                    typeDesc.textContent = 'Register as a teacher';
+                    if (singleForm) singleForm.style.display = 'none';
+                    if (teacherFormWrapper) teacherFormWrapper.style.display = 'block';
+                    // Enable teacher form inputs
+                    if (teacherFormWrapper) Array.from(teacherFormWrapper.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+                    // Disable single form inputs
+                    if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+                } else {
+                    // Switch to Single Registration
+                    registrationType.value = 'single';
+                    typeLabel.textContent = 'Single Registration';
+                    typeIcon.className = 'fas fa-user me-2';
+                    typeDesc.textContent = 'Register one student';
+                    if (singleForm) singleForm.style.display = 'block';
+                    if (teacherFormWrapper) teacherFormWrapper.style.display = 'none';
+                    // Enable single form inputs
+                    if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+                    // Disable teacher form inputs
+                    if (teacherFormWrapper) Array.from(teacherFormWrapper.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+                }
+            });
+
+            // On page load, ensure only visible form's fields are enabled
+            // If the server requested teacher mode (e.g., validation errors), reflect that state
+            {% if registration_type == 'teacher' %}
+                if (toggleSwitch) toggleSwitch.checked = true;
+                if (registrationType) registrationType.value = 'teacher';
+                if (typeLabel) typeLabel.textContent = 'Teacher Registration';
+                if (typeIcon) typeIcon.className = 'fas fa-chalkboard-teacher me-2';
+                if (typeDesc) typeDesc.textContent = 'Register as a teacher';
+                if (singleForm) {
+                    singleForm.style.display = 'none';
+                    Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+                }
+                if (teacherFormWrapper) {
+                    teacherFormWrapper.style.display = 'block';
+                    Array.from(teacherFormWrapper.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+                }
+            {% else %}
+                // Default: single registration visible
+                if (singleForm) Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = false; });
+                if (teacherFormWrapper) Array.from(teacherFormWrapper.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });
+            {% endif %}
         }
     });
 </script>

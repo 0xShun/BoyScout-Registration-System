@@ -37,63 +37,62 @@ def register_teacher(request):
     """
     if request.method == 'POST':
         form = TeacherRegisterForm(request.POST)
-        
+
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Save the teacher user
+                    # Save the teacher user and activate immediately
                     user = form.save(commit=False)
-                    user.is_active = False  # Inactive until payment is verified
-                    user.registration_status = 'inactive'
+                    user.is_active = True  # Active immediately per requirement
+                    user.registration_status = 'active'
                     user.save()
-                    
+
                     # Get registration fee from system settings
                     registration_fee = SystemSettings.get_registration_fee()
-                    
-                    # Create registration payment record
+
+                    # Create registration payment record and mark as verified (user is already active)
                     payment = RegistrationPayment.objects.create(
                         user=user,
                         amount=registration_fee,
-                        status='pending',
-                        notes='Teacher registration payment'
+                        status='verified',
+                        notes='Teacher registration payment - created at registration'
                     )
-                    
-                    # Initiate PayMongo payment
+
+                    # Initiate PayMongo payment so the user can complete payment after account creation
                     paymongo_service = PayMongoService()
-                    
+
                     # Create payment source
                     source_result = paymongo_service.create_source(
                         amount=float(registration_fee),
                         description=f"Teacher Registration - {user.get_full_name()}"
                     )
-                    
-                    if source_result['success']:
-                        source_data = source_result['data']
-                        payment.paymongo_source_id = source_data['id']
-                        payment.save()
-                        
-                        # Redirect to PayMongo checkout
-                        checkout_url = source_data['attributes']['redirect']['checkout_url']
-                        
-                        messages.success(
-                            request,
-                            f'Teacher account created! Please complete the payment of ₱{registration_fee:.2f} to activate your account.'
-                        )
-                        
-                        return redirect(checkout_url)
+
+                    if source_result.get('success'):
+                        source_data = source_result.get('data')
+                        if source_data:
+                            payment.paymongo_source_id = source_data.get('id')
+                            payment.save()
+
+                            # Store a session flag so we can display the success message on the login page
+                            request.session['registration_success'] = 'Your teacher account was created — please complete payment to finalize your registration.'
+
+                            # Redirect to PayMongo checkout
+                            checkout_url = source_data.get('attributes', {}).get('redirect', {}).get('checkout_url')
+                            messages.success(
+                                request,
+                                f'Teacher account created! You will be redirected to complete payment of ₱{registration_fee:.2f}.'
+                            )
+                            return redirect(checkout_url) if checkout_url else redirect('home')
+                        else:
+                            # No source data
+                            messages.error(request, 'Payment gateway returned no checkout information. Please contact support.')
+                            return redirect('accounts:register_teacher')
                     else:
-                        messages.error(
-                            request,
-                            'Failed to create payment link. Please contact support.'
-                        )
-                        user.delete()
+                        messages.error(request, 'Failed to create payment link. Please contact support.')
                         return redirect('accounts:register_teacher')
-                        
+
             except Exception as e:
-                messages.error(
-                    request,
-                    f'Registration failed: {str(e)}. Please try again.'
-                )
+                messages.error(request, f'Registration failed: {str(e)}. Please try again.')
                 return redirect('accounts:register_teacher')
     else:
         form = TeacherRegisterForm()
