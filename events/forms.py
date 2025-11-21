@@ -1,5 +1,5 @@
 from django import forms
-from .models import Event, EventPhoto, EventRegistration, EventPayment
+from .models import Event, EventPhoto, EventRegistration, EventPayment, CertificateTemplate
 
 class EventForm(forms.ModelForm):
     class Meta:
@@ -84,3 +84,108 @@ class EventPaymentForm(forms.ModelForm):
                 self.fields['amount'].widget.attrs['max'] = str(remaining)
             else:
                 self.fields['amount'].help_text = "Event is fully paid" 
+
+
+class CertificateTemplateForm(forms.ModelForm):
+    """Form for uploading and configuring certificate templates."""
+
+    class Meta:
+        model = CertificateTemplate
+        fields = [
+            'template_image',
+            'certificate_name',
+            'name_x',
+            'name_y',
+            'name_font_size',
+            'name_color',
+            'event_x',
+            'event_y',
+            'event_font_size',
+            'event_color',
+            'date_x',
+            'date_y',
+            'date_font_size',
+            'date_color',
+            'certificate_number_x',
+            'certificate_number_y',
+            'certificate_number_font_size',
+            'certificate_number_color',
+            'is_active',
+        ]
+        widgets = {
+            'template_image': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+                'help_text': 'Upload PNG or JPG. Recommended size: 1200x800 pixels or larger'
+            }),
+            'certificate_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Certificate of Participation'
+            }),
+            # Scout Name Configuration
+            'name_x': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+            }),
+            'name_y': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+            }),
+            'name_font_size': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '10',
+                'max': '120',
+            }),
+            'name_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+                'title': 'Hex color (e.g., #000000)'
+            }),
+            # Event Name Configuration
+            'event_x': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'event_y': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'event_font_size': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '10',
+                'max': '120',
+            }),
+            'event_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+            }),
+            # Date Configuration
+            'date_x': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'date_y': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
+            'date_font_size': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '10',
+                'max': '120',
+            }),
+            'date_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+            }),
+            # Certificate Number Configuration
+            'certificate_number_x': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'required': False,
+            }),
+            'certificate_number_y': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '0',
+                'required': False,
+            }),
+            'certificate_number_font_size': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': '8',
+                'max': '120',
+            }),
+            'certificate_number_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+            }),
+        } 

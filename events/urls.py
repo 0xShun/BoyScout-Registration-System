@@ -24,4 +24,8 @@ urlpatterns = [
     path('pending-payments/', views.pending_payments, name='pending_payments'),
     path('pending-payments/verify-ajax/', views.verify_event_registration_ajax, name='pending_payments_verify_ajax'),
     path('<int:pk>/send-payment-confirmation-ajax/', views.send_event_payment_confirmation_ajax, name='send_event_payment_confirmation_ajax'),
+    # Certificate routes
+    path('certificates/my/', views.my_certificates, name='my_certificates'),
+    path('certificate/<int:certificate_id>/download/', views.certificate_download, name='certificate_download'),
+    path('certificate/<int:certificate_id>/preview/', views.certificate_preview, name='certificate_preview'),
 ] 

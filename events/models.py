@@ -214,3 +214,154 @@ class EventRegistration(models.Model):
                 self.payment_status = 'not_required'
                 self.amount_required = Decimal('0.00')
         super().save(*args, **kwargs)
+
+
+class CertificateTemplate(models.Model):
+    """
+    Stores certificate template configuration for an event.
+    Admin uploads a certificate design image and configures where text (name, date, etc.)
+    should appear on the certificate.
+    """
+    event = models.OneToOneField(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='certificate_template',
+        help_text="Event this certificate template is for"
+    )
+    template_image = models.ImageField(
+        upload_to='certificate_templates/',
+        help_text="Background certificate design image (PNG or JPG recommended)"
+    )
+    certificate_name = models.CharField(
+        max_length=200,
+        default='Certificate of Participation',
+        help_text="Title/name of the certificate"
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_certificate_templates'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Scout Name Text Configuration
+    name_x = models.IntegerField(default=600, help_text="X pixel position for scout name")
+    name_y = models.IntegerField(default=450, help_text="Y pixel position for scout name")
+    name_font_size = models.IntegerField(default=48, help_text="Font size for scout name")
+    name_color = models.CharField(
+        max_length=7,
+        default='#000000',
+        help_text="Font color for name (hex format, e.g., #000000)"
+    )
+
+    # Event Name Text Configuration
+    event_x = models.IntegerField(default=600, help_text="X pixel position for event name")
+    event_y = models.IntegerField(default=520, help_text="Y pixel position for event name")
+    event_font_size = models.IntegerField(default=32, help_text="Font size for event name")
+    event_color = models.CharField(
+        max_length=7,
+        default='#333333',
+        help_text="Font color for event name"
+    )
+
+    # Date Text Configuration
+    date_x = models.IntegerField(default=600, help_text="X pixel position for date")
+    date_y = models.IntegerField(default=590, help_text="Y pixel position for date")
+    date_font_size = models.IntegerField(default=28, help_text="Font size for date")
+    date_color = models.CharField(
+        max_length=7,
+        default='#666666',
+        help_text="Font color for date"
+    )
+
+    # Certificate Number Text Configuration (Optional)
+    certificate_number_x = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="X pixel position for certificate number"
+    )
+    certificate_number_y = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Y pixel position for certificate number"
+    )
+    certificate_number_font_size = models.IntegerField(
+        default=16,
+        help_text="Font size for certificate number"
+    )
+    certificate_number_color = models.CharField(
+        max_length=7,
+        default='#999999',
+        help_text="Font color for certificate number"
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this template is active for use"
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Certificate Template for {self.event.title}"
+
+
+class EventCertificate(models.Model):
+    """
+    Stores generated certificates for scouts who attended an event.
+    Created automatically when a scout marks attendance via QR code scan.
+    """
+    event = models.ForeignKey(
+        Event,
+        on_delete=models.CASCADE,
+        related_name='certificates',
+        help_text="Event this certificate is for"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='event_certificates',
+        help_text="Scout receiving this certificate"
+    )
+    certificate_template = models.ForeignKey(
+        CertificateTemplate,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='generated_certificates',
+        help_text="Template used to generate this certificate"
+    )
+    certificate_image = models.ImageField(
+        upload_to='certificates/%Y/%m/%d/',
+        help_text="Generated certificate PNG image"
+    )
+    certificate_number = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Unique certificate number for tracking"
+    )
+    issued_date = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the certificate was generated"
+    )
+    download_count = models.IntegerField(
+        default=0,
+        help_text="Number of times certificate has been downloaded"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-issued_date']
+        unique_together = ('event', 'user')
+        indexes = [
+            models.Index(fields=['event', 'user']),
+            models.Index(fields=['certificate_number']),
+        ]
+
+    def __str__(self):
+        return f"Certificate for {self.user.get_full_name()} - {self.event.title}"

@@ -192,9 +192,12 @@ def event_detail(request, pk):
     # Include active attendance QR (if any) and render as inline data URI for teacher/admin view
     active_qr = None
     qr_data_uri = None
+    public_qr_signed_url = None
     try:
         from .models import AttendanceQRCode
+        # Get the MOST RECENT active QR for this event
         active_qr = AttendanceQRCode.objects.filter(event=event, active=True).order_by('-created_at').first()
+        
         if active_qr and active_qr.is_valid:
             # generate PNG data URI for the token verification URL
             token_url = request.build_absolute_uri(f"/events/attendance/verify/")
@@ -210,10 +213,11 @@ def event_detail(request, pk):
             try:
                 signed_token = signing.dumps(str(active_qr.token))
                 public_qr_signed_url = request.build_absolute_uri(reverse('events:public_attendance_qr_signed', args=[signed_token]))
-            except Exception:
+            except Exception as e:
+                logger.exception(f'Failed to generate signed public URL: {e}')
                 public_qr_signed_url = None
-    except Exception:
-        logger.exception('Failed to generate inline QR image for event_detail')
+    except Exception as e:
+        logger.exception(f'Failed to generate inline QR image for event_detail: {e}')
 
     # If user was redirected back from PayMongo, try fallback reconciliation
     # using a session-stored pending EventPayment id. This mirrors the
@@ -408,6 +412,8 @@ def event_detail(request, pk):
         'registrations': registrations,
         'paid_registrations': paid_registrations,
         'attendance_map': attendance_map,
+        'qr_data_uri': qr_data_uri,
+        'active_qr': active_qr,
         'public_qr_signed_url': locals().get('public_qr_signed_url', None),
     })
 
@@ -570,6 +576,18 @@ def verify_attendance(request):
             return JsonResponse({'success': True, 'already_marked': True, 'timestamp': existing.timestamp.isoformat()})
 
         attendance = Attendance.objects.create(event=event, user=request.user, status='present', marked_by=request.user)
+
+        # Generate certificate automatically
+        try:
+            from .services.certificate_service import generate_certificate
+            certificate = generate_certificate(attendance)
+            if certificate:
+                logger.info(f"Certificate generated for {request.user.get_full_name()}: {certificate.certificate_number}")
+            else:
+                logger.warning(f"Certificate generation skipped for {request.user.get_full_name()} (no template)")
+        except Exception:
+            logger.exception('Certificate generation failed - attendance still marked')
+            # Don't break attendance marking if certificate fails
 
         # Broadcast via Channels group
         try:
@@ -1051,3 +1069,111 @@ def verify_event_registration_ajax(request):
     except Exception as e:
         logger.exception('AJAX verification error')
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+def certificate_download(request, certificate_id):
+    """
+    Download a certificate PDF/image for a scout.
+    
+    Only the scout who earned the certificate or admins can download it.
+    """
+    from .models import EventCertificate
+    
+    try:
+        certificate = get_object_or_404(EventCertificate, pk=certificate_id)
+        
+        # Permission check: scout can only download own certificate, or admin
+        if certificate.user != request.user and not request.user.is_admin():
+            raise PermissionDenied()
+        
+        # Check if certificate image exists
+        if not certificate.certificate_image:
+            messages.error(request, 'Certificate image not found.')
+            return redirect('events:event_detail', pk=certificate.event.pk)
+        
+        # Increment download count
+        certificate.download_count += 1
+        certificate.save(update_fields=['download_count'])
+        
+        # Serve the image file
+        file_path = certificate.certificate_image.path
+        if not os.path.exists(file_path):
+            messages.error(request, 'Certificate file not found.')
+            return redirect('events:event_detail', pk=certificate.event.pk)
+        
+        with open(file_path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type='image/png')
+            filename = f"Certificate_{certificate.user.username}_{certificate.event.id}.png"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+    
+    except PermissionDenied:
+        messages.error(request, 'You do not have permission to download this certificate.')
+        return redirect('accounts:home')
+    except Exception:
+        logger.exception(f'Certificate download failed for certificate {certificate_id}')
+        messages.error(request, 'Failed to download certificate.')
+        return redirect('accounts:home')
+
+
+@login_required
+def certificate_preview(request, certificate_id):
+    """
+    View/preview a certificate in browser without downloading.
+    
+    Only the scout who earned the certificate or admins can view it.
+    """
+    from .models import EventCertificate
+    
+    try:
+        certificate = get_object_or_404(EventCertificate, pk=certificate_id)
+        
+        # Permission check
+        if certificate.user != request.user and not request.user.is_admin():
+            raise PermissionDenied()
+        
+        if not certificate.certificate_image:
+            messages.error(request, 'Certificate image not found.')
+            return redirect('events:event_detail', pk=certificate.event.pk)
+        
+        file_path = certificate.certificate_image.path
+        if not os.path.exists(file_path):
+            messages.error(request, 'Certificate file not found.')
+            return redirect('events:event_detail', pk=certificate.event.pk)
+        
+        with open(file_path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type='image/png')
+            response['Content-Disposition'] = 'inline'
+            return response
+    
+    except PermissionDenied:
+        messages.error(request, 'You do not have permission to view this certificate.')
+        return redirect('accounts:home')
+    except Exception:
+        logger.exception(f'Certificate preview failed for certificate {certificate_id}')
+        messages.error(request, 'Failed to load certificate.')
+        return redirect('accounts:home')
+
+
+@login_required
+def my_certificates(request):
+    """
+    Scout dashboard showing all their earned certificates.
+    """
+    from .models import EventCertificate
+    
+    try:
+        # Get all certificates for this user
+        certificates = EventCertificate.objects.filter(
+            user=request.user
+        ).select_related('event', 'certificate_template').order_by('-issued_date')
+        
+        return render(request, 'events/my_certificates.html', {
+            'certificates': certificates,
+            'total_certificates': certificates.count(),
+        })
+    except Exception:
+        logger.exception('Failed to load my certificates page')
+        messages.error(request, 'Failed to load certificates.')
+        return redirect('accounts:home')
