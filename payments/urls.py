@@ -22,4 +22,7 @@ urlpatterns = [
     
     # Payment Status API (for frontend polling)
     path('status/<int:payment_id>/', views.payment_status, name='payment_status'),
+    
+    # Payment Report URL
+    path('report/all/', views.all_payments_report, name='all_payments_report'),
 ] 

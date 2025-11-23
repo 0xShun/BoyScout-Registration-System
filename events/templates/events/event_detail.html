@@ -411,6 +411,9 @@
                   </button>
                 </form>
               {% endif %}
+              <a href="{% url 'events:event_payment_report' event.pk %}" class="btn-admin" style="background:#10b981; color:white;">
+                <i class="fas fa-file-download"></i> Generate Payment Report
+              </a>
               <a href="{% url 'events:event_delete' event.pk %}" class="btn-admin btn-delete" 
                  onclick="return confirm('Are you sure you want to delete this event?')">
                 <i class="fas fa-trash"></i> Delete Event

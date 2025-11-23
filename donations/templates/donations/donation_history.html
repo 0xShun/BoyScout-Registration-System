@@ -1,0 +1,284 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .history-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 1.5rem;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+  
+  .donations-table-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .table-header {
+    background: #f9fafb;
+    padding: 1.5rem;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .donation-row {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    transition: background 0.2s;
+  }
+  
+  .donation-row:hover {
+    background: #f9fafb;
+  }
+  
+  .donation-row:last-child {
+    border-bottom: none;
+  }
+  
+  .campaign-name {
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+  
+  .donation-date {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+  
+  .donation-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #10b981;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.375rem 0.875rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .status-pending {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .status-verified {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #9ca3af;
+  }
+  
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #d1d5db;
+  }
+  
+  .pagination-wrapper {
+    padding: 1.5rem;
+    background: #f9fafb;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="history-header">
+    <h1><i class="fas fa-history"></i> My Donation History</h1>
+    <p class="lead mb-0">Track all your contributions and make a difference</p>
+  </div>
+  
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-hand-holding-heart"></i>
+      </div>
+      <div class="stat-value">₱{{ total_donated|floatformat:2 }}</div>
+      <div class="stat-label">Total Donated</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-gift"></i>
+      </div>
+      <div class="stat-value">{{ donations.count }}</div>
+      <div class="stat-label">Total Donations</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="fas fa-trophy"></i>
+      </div>
+      <div class="stat-value">{{ donations|length }}</div>
+      <div class="stat-label">Campaigns Supported</div>
+    </div>
+  </div>
+  
+  <!-- Back Button -->
+  <div class="mb-3">
+    <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-primary">
+      <i class="fas fa-arrow-left"></i> Back to Campaigns
+    </a>
+  </div>
+  
+  <!-- Donations Table -->
+  <div class="donations-table-card">
+    <div class="table-header">
+      <h4 class="mb-0"><i class="fas fa-list"></i> Your Donations</h4>
+    </div>
+    
+    {% if donations %}
+      {% for donation in donations %}
+        <div class="donation-row">
+          <div class="row align-items-center">
+            <div class="col-md-5">
+              <div class="campaign-name">{{ donation.campaign.title }}</div>
+              <div class="donation-date">
+                <i class="fas fa-calendar"></i> {{ donation.created_at|date:"F d, Y" }} at {{ donation.created_at|time:"g:i A" }}
+              </div>
+              {% if donation.message %}
+                <div class="mt-2">
+                  <small class="text-muted"><i class="fas fa-comment"></i> "{{ donation.message|truncatewords:15 }}"</small>
+                </div>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-3 text-center">
+              <div class="donation-amount">₱{{ donation.amount|floatformat:2 }}</div>
+              {% if donation.is_anonymous %}
+                <small class="text-muted"><i class="fas fa-user-secret"></i> Anonymous</small>
+              {% endif %}
+            </div>
+            
+            <div class="col-md-2 text-center">
+              <span class="status-badge status-{{ donation.status }}">
+                {% if donation.status == 'verified' %}
+                  <i class="fas fa-check-circle"></i> Verified
+                {% elif donation.status == 'pending' %}
+                  <i class="fas fa-clock"></i> Pending
+                {% else %}
+                  <i class="fas fa-times-circle"></i> Failed
+                {% endif %}
+              </span>
+            </div>
+            
+            <div class="col-md-2 text-end">
+              {% if donation.status == 'pending' %}
+                <a href="{% url 'donations:donation_payment' donation.id %}" class="btn btn-sm btn-primary">
+                  <i class="fas fa-qrcode"></i> View QR
+                </a>
+              {% else %}
+                <a href="{% url 'donations:campaign_detail' donation.campaign.pk %}" class="btn btn-sm btn-outline-secondary">
+                  <i class="fas fa-eye"></i> View
+                </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+      
+      <!-- Pagination -->
+      {% if donations.has_other_pages %}
+        <div class="pagination-wrapper">
+          <nav aria-label="Donations pagination">
+            <ul class="pagination justify-content-center mb-0">
+              {% if donations.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.previous_page_number }}">Previous</a>
+                </li>
+              {% endif %}
+              
+              <li class="page-item active">
+                <span class="page-link">
+                  Page {{ donations.number }} of {{ donations.paginator.num_pages }}
+                </span>
+              </li>
+              
+              {% if donations.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.next_page_number }}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.paginator.num_pages }}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
+    {% else %}
+      <!-- Empty State -->
+      <div class="empty-state">
+        <i class="fas fa-hand-holding-heart"></i>
+        <h3>No Donations Yet</h3>
+        <p>You haven't made any donations yet. Start making a difference today!</p>
+        <a href="{% url 'donations:campaign_list' %}" class="btn btn-primary mt-3">
+          <i class="fas fa-search"></i> Browse Campaigns
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

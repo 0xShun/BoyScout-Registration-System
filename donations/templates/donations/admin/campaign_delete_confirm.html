@@ -1,0 +1,257 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .delete-header {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .delete-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .warning-box {
+    background: #fef3c7;
+    border: 2px solid #f59e0b;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .warning-icon {
+    color: #d97706;
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+  
+  .campaign-details {
+    background: #f9fafb;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .detail-row:last-child {
+    border-bottom: none;
+  }
+  
+  .detail-label {
+    font-weight: 600;
+    color: #6b7280;
+  }
+  
+  .detail-value {
+    color: #1f2937;
+  }
+  
+  .impact-list {
+    background: #fee2e2;
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .impact-list h4 {
+    color: #991b1b;
+    margin-bottom: 1rem;
+  }
+  
+  .impact-list ul {
+    margin-bottom: 0;
+  }
+  
+  .impact-list li {
+    color: #7f1d1d;
+    margin-bottom: 0.5rem;
+  }
+  
+  .btn-danger {
+    background: #dc2626;
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  
+  .btn-danger:hover {
+    background: #b91c1c;
+  }
+  
+  .btn-secondary {
+    border: 2px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="delete-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1><i class="fas fa-exclamation-triangle"></i> Delete Campaign</h1>
+        <p class="lead mb-0">Permanently remove this campaign</p>
+      </div>
+      <a href="{% url 'donations:admin_campaign_list' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left"></i> Back to Campaigns
+      </a>
+    </div>
+  </div>
+  
+  <!-- Delete Container -->
+  <div class="delete-container">
+    <!-- Warning Box -->
+    <div class="warning-box text-center">
+      <i class="fas fa-exclamation-triangle warning-icon"></i>
+      <h3>Are you sure you want to delete this campaign?</h3>
+      <p class="mb-0">This action cannot be undone. Please review the details below carefully.</p>
+    </div>
+    
+    <!-- Campaign Details -->
+    <div class="campaign-details">
+      <h4 class="mb-3"><i class="fas fa-info-circle"></i> Campaign Details</h4>
+      
+      <div class="detail-row">
+        <span class="detail-label">Title:</span>
+        <span class="detail-value"><strong>{{ campaign.title }}</strong></span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Description:</span>
+        <span class="detail-value">{{ campaign.description|truncatewords:20 }}</span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Status:</span>
+        <span class="detail-value">
+          <span class="badge bg-{% if campaign.status == 'active' %}success{% else %}secondary{% endif %}">
+            {{ campaign.get_status_display }}
+          </span>
+        </span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Goal Amount:</span>
+        <span class="detail-value">
+          {% if campaign.goal_amount %}
+            ₱{{ campaign.goal_amount|floatformat:0 }}
+          {% else %}
+            No goal set
+          {% endif %}
+        </span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Amount Raised:</span>
+        <span class="detail-value"><strong>₱{{ campaign.current_amount|floatformat:0 }}</strong></span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Total Donations:</span>
+        <span class="detail-value"><strong>{{ campaign.donations.count }}</strong></span>
+      </div>
+      
+      <div class="detail-row">
+        <span class="detail-label">Created:</span>
+        <span class="detail-value">{{ campaign.created_at|date:"F d, Y" }}</span>
+      </div>
+      
+      {% if campaign.start_date %}
+        <div class="detail-row">
+          <span class="detail-label">Start Date:</span>
+          <span class="detail-value">{{ campaign.start_date|date:"F d, Y" }}</span>
+        </div>
+      {% endif %}
+      
+      {% if campaign.end_date %}
+        <div class="detail-row">
+          <span class="detail-label">End Date:</span>
+          <span class="detail-value">{{ campaign.end_date|date:"F d, Y" }}</span>
+        </div>
+      {% endif %}
+    </div>
+    
+    <!-- Impact Warning -->
+    <div class="impact-list">
+      <h4><i class="fas fa-exclamation-circle"></i> What will be deleted:</h4>
+      <ul>
+        <li><strong>Campaign record</strong> - All campaign information will be permanently removed</li>
+        <li><strong>{{ campaign.donations.count }} donation records</strong> - All donations linked to this campaign will be deleted</li>
+        <li><strong>Campaign images</strong> - Banner and thumbnail images will be removed from storage</li>
+        <li><strong>Historical data</strong> - All fundraising progress and statistics will be lost</li>
+        {% if campaign.status == 'active' %}
+          <li><strong>Active visibility</strong> - This campaign is currently active and visible to users</li>
+        {% endif %}
+      </ul>
+    </div>
+    
+    <!-- Alternative Actions -->
+    {% if campaign.status == 'active' %}
+      <div class="alert alert-info">
+        <h5><i class="fas fa-lightbulb"></i> Consider This Instead</h5>
+        <p class="mb-2">If you want to hide this campaign without deleting it, you can mark it as <strong>Inactive</strong> instead.</p>
+        <a href="{% url 'donations:admin_campaign_edit' campaign.pk %}" class="btn btn-sm btn-outline-primary">
+          <i class="fas fa-edit"></i> Edit Campaign Status
+        </a>
+      </div>
+    {% endif %}
+    
+    <!-- Confirmation Form -->
+    <form method="post" class="mt-4">
+      {% csrf_token %}
+      
+      <div class="alert alert-danger">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+          <label class="form-check-label" for="confirmDelete">
+            <strong>I understand that this action is permanent and cannot be undone</strong>
+          </label>
+        </div>
+      </div>
+      
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'donations:admin_campaign_list' %}" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-danger" id="deleteButton" disabled>
+          <i class="fas fa-trash"></i> Delete Campaign Permanently
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const checkbox = document.getElementById('confirmDelete');
+    const deleteButton = document.getElementById('deleteButton');
+    
+    checkbox.addEventListener('change', function() {
+      deleteButton.disabled = !this.checked;
+    });
+  });
+</script>
+{% endblock %}

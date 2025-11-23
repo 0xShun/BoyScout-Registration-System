@@ -1177,3 +1177,27 @@ def my_certificates(request):
         logger.exception('Failed to load my certificates page')
         messages.error(request, 'Failed to load certificates.')
         return redirect('accounts:home')
+
+
+@login_required
+@admin_required
+def event_payment_report(request, pk):
+    """
+    Generate CSV report of all verified payments for a specific event.
+    Only accessible to admins.
+    """
+    from payments.reports import get_event_verified_payments_data, generate_payments_csv_response
+    from django.utils.text import slugify
+    
+    event = get_object_or_404(Event, pk=pk)
+    
+    # Get all verified payments for this event
+    payment_data = get_event_verified_payments_data(event)
+    
+    # Generate filename with event title and current date
+    today = timezone.now().strftime('%Y-%m-%d')
+    event_slug = slugify(event.title)
+    filename = f'payments_report_{event_slug}_{today}.csv'
+    
+    # Generate and return CSV response
+    return generate_payments_csv_response(payment_data, filename)

@@ -28,4 +28,6 @@ urlpatterns = [
     path('certificates/my/', views.my_certificates, name='my_certificates'),
     path('certificate/<int:certificate_id>/download/', views.certificate_download, name='certificate_download'),
     path('certificate/<int:certificate_id>/preview/', views.certificate_preview, name='certificate_preview'),
+    # Payment report route
+    path('<int:pk>/payment-report/', views.event_payment_report, name='event_payment_report'),
 ] 

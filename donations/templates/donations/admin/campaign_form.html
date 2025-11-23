@@ -1,0 +1,345 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .form-header {
+    background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .form-container {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .form-section {
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .form-section:last-child {
+    border-bottom: none;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .form-label {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+  }
+  
+  .form-control, .form-select {
+    border-radius: 8px;
+    border: 2px solid #e5e7eb;
+    padding: 0.75rem;
+  }
+  
+  .form-control:focus, .form-select:focus {
+    border-color: #1e40af;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
+  }
+  
+  .form-text {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+  
+  .image-preview-container {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .image-preview {
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border: 2px dashed #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .image-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  
+  .image-preview-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+    border: none;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  
+  .btn-secondary {
+    border: 2px solid #e5e7eb;
+    background: white;
+    color: #6b7280;
+    padding: 0.75rem 2rem;
+    border-radius: 8px;
+    font-weight: 600;
+  }
+  
+  .required-indicator {
+    color: #ef4444;
+  }
+  
+  .alert {
+    border-radius: 8px;
+    border: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="form-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1>
+          <i class="fas {% if campaign %}fa-edit{% else %}fa-plus{% endif %}"></i>
+          {% if campaign %}Edit Campaign{% else %}Create New Campaign{% endif %}
+        </h1>
+        <p class="lead mb-0">{% if campaign %}Update campaign details{% else %}Set up a new fundraising campaign{% endif %}</p>
+      </div>
+      <a href="{% url 'donations:admin_campaign_list' %}" class="btn btn-light">
+        <i class="fas fa-arrow-left"></i> Back to Campaigns
+      </a>
+    </div>
+  </div>
+  
+  <!-- Form Container -->
+  <div class="form-container">
+    {% if messages %}
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+    
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      
+      <!-- Basic Information Section -->
+      <div class="form-section">
+        <h2 class="section-title">
+          <i class="fas fa-info-circle"></i>
+          Basic Information
+        </h2>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label for="id_title" class="form-label">
+              Campaign Title <span class="required-indicator">*</span>
+            </label>
+            {{ form.title }}
+            {% if form.title.errors %}
+              <div class="text-danger small mt-1">{{ form.title.errors }}</div>
+            {% endif %}
+            <div class="form-text">A compelling title for your fundraising campaign</div>
+          </div>
+          
+          <div class="col-md-12 mb-3">
+            <label for="id_description" class="form-label">
+              Description <span class="required-indicator">*</span>
+            </label>
+            {{ form.description }}
+            {% if form.description.errors %}
+              <div class="text-danger small mt-1">{{ form.description.errors }}</div>
+            {% endif %}
+            <div class="form-text">Explain the purpose and goals of this campaign</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Financial Goals Section -->
+      <div class="form-section">
+        <h2 class="section-title">
+          <i class="fas fa-bullseye"></i>
+          Financial Goals
+        </h2>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="id_goal_amount" class="form-label">
+              Goal Amount (₱)
+            </label>
+            {{ form.goal_amount }}
+            {% if form.goal_amount.errors %}
+              <div class="text-danger small mt-1">{{ form.goal_amount.errors }}</div>
+            {% endif %}
+            <div class="form-text">Target amount to raise (optional)</div>
+          </div>
+          
+          {% if campaign %}
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Current Amount Raised</label>
+              <div class="p-3 bg-light rounded">
+                <h3 class="mb-0">₱{{ campaign.current_amount|floatformat:0 }}</h3>
+                {% if campaign.goal_amount %}
+                  <small class="text-muted">
+                    {{ campaign.progress_percentage|floatformat:0 }}% of goal
+                  </small>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      
+      <!-- Campaign Schedule Section -->
+      <div class="form-section">
+        <h2 class="section-title">
+          <i class="fas fa-calendar"></i>
+          Campaign Schedule
+        </h2>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="id_start_date" class="form-label">
+              Start Date
+            </label>
+            {{ form.start_date }}
+            {% if form.start_date.errors %}
+              <div class="text-danger small mt-1">{{ form.start_date.errors }}</div>
+            {% endif %}
+            <div class="form-text">When the campaign begins (optional)</div>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="id_end_date" class="form-label">
+              End Date
+            </label>
+            {{ form.end_date }}
+            {% if form.end_date.errors %}
+              <div class="text-danger small mt-1">{{ form.end_date.errors }}</div>
+            {% endif %}
+            <div class="form-text">When the campaign ends (optional)</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Campaign Status Section -->
+      <div class="form-section">
+        <h2 class="section-title">
+          <i class="fas fa-toggle-on"></i>
+          Campaign Status
+        </h2>
+        
+        <div class="row">
+          <div class="col-md-12 mb-3">
+            <label for="id_status" class="form-label">
+              Status <span class="required-indicator">*</span>
+            </label>
+            {{ form.status }}
+            {% if form.status.errors %}
+              <div class="text-danger small mt-1">{{ form.status.errors }}</div>
+            {% endif %}
+            <div class="form-text">
+              Active campaigns are visible to scouts and teachers. Inactive campaigns are hidden.
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Images Section -->
+      <div class="form-section">
+        <h2 class="section-title">
+          <i class="fas fa-images"></i>
+          Campaign Images
+        </h2>
+        
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label for="id_banner_image" class="form-label">
+              Banner Image
+            </label>
+            {{ form.banner_image }}
+            {% if form.banner_image.errors %}
+              <div class="text-danger small mt-1">{{ form.banner_image.errors }}</div>
+            {% endif %}
+            <div class="form-text">Main banner image (recommended: 1200x400px)</div>
+            
+            {% if campaign.banner_image %}
+              <div class="image-preview-container">
+                <div class="image-preview">
+                  <img src="{{ campaign.banner_image.url }}" alt="Current banner">
+                </div>
+              </div>
+            {% endif %}
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="id_thumbnail_image" class="form-label">
+              Thumbnail Image
+            </label>
+            {{ form.thumbnail_image }}
+            {% if form.thumbnail_image.errors %}
+              <div class="text-danger small mt-1">{{ form.thumbnail_image.errors }}</div>
+            {% endif %}
+            <div class="form-text">Small preview image (recommended: 400x300px)</div>
+            
+            {% if campaign.thumbnail_image %}
+              <div class="image-preview-container">
+                <div class="image-preview">
+                  <img src="{{ campaign.thumbnail_image.url }}" alt="Current thumbnail">
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Form Actions -->
+      <div class="d-flex gap-2 justify-content-end">
+        <a href="{% url 'donations:admin_campaign_list' %}" class="btn btn-secondary">
+          <i class="fas fa-times"></i> Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="fas fa-save"></i> {% if campaign %}Update Campaign{% else %}Create Campaign{% endif %}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Add flatpickr for date inputs if available
+  document.addEventListener('DOMContentLoaded', function() {
+    const dateInputs = document.querySelectorAll('input[type="date"]');
+    dateInputs.forEach(input => {
+      input.classList.add('form-control');
+    });
+  });
+</script>
+{% endblock %}

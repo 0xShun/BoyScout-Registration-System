@@ -1,0 +1,398 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .admin-header {
+    background: linear-gradient(135deg, #1e40af 0%, #7c3aed 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+  }
+  
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .stat-icon.primary {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  
+  .stat-icon.success {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .stat-icon.warning {
+    background: #fef3c7;
+    color: #d97706;
+  }
+  
+  .stat-icon.info {
+    background: #e0e7ff;
+    color: #4338ca;
+  }
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+  }
+  
+  .stat-label {
+    color: #6b7280;
+    font-size: 0.875rem;
+  }
+  
+  .filters-bar {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+  
+  .donations-table {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .table {
+    margin-bottom: 0;
+  }
+  
+  .table thead {
+    background: #f9fafb;
+  }
+  
+  .table th {
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+  }
+  
+  .table td {
+    vertical-align: middle;
+  }
+  
+  .donor-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  
+  .donor-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #6b7280;
+  }
+  
+  .donor-details {
+    flex: 1;
+  }
+  
+  .donor-name {
+    font-weight: 600;
+    color: #1f2937;
+  }
+  
+  .donor-email {
+    font-size: 0.875rem;
+    color: #6b7280;
+  }
+  
+  .campaign-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 6px;
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .status-verified {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .status-pending {
+    background: #fef3c7;
+    color: #d97706;
+  }
+  
+  .status-failed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #9ca3af;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="admin-header">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h1><i class="fas fa-hand-holding-heart"></i> All Donations</h1>
+        <p class="lead mb-0">View and manage all donations across all campaigns</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'donations:admin_donations_report' %}" class="btn btn-light">
+          <i class="fas fa-download"></i> Download Report
+        </a>
+        <a href="{% url 'donations:admin_campaign_list' %}" class="btn btn-outline-light">
+          <i class="fas fa-arrow-left"></i> Campaigns
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Statistics Grid -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon primary">
+        <i class="fas fa-coins"></i>
+      </div>
+      <div class="stat-value">₱{{ total_raised|floatformat:0 }}</div>
+      <div class="stat-label">Total Raised</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon success">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-value">{{ verified_count }}</div>
+      <div class="stat-label">Verified Donations</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon warning">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="stat-value">{{ pending_count }}</div>
+      <div class="stat-label">Pending Donations</div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon info">
+        <i class="fas fa-users"></i>
+      </div>
+      <div class="stat-value">{{ unique_donors }}</div>
+      <div class="stat-label">Unique Donors</div>
+    </div>
+  </div>
+  
+  <!-- Filters Bar -->
+  <div class="filters-bar">
+    <form method="get">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Campaign</label>
+          <select name="campaign" class="form-select">
+            <option value="">All Campaigns</option>
+            {% for campaign in campaigns %}
+              <option value="{{ campaign.pk }}" {% if campaign_filter == campaign.pk|stringformat:"s" %}selected{% endif %}>
+                {{ campaign.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        
+        <div class="col-md-3">
+          <label class="form-label">Status</label>
+          <select name="status" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="verified" {% if status_filter == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+          </select>
+        </div>
+        
+        <div class="col-md-4">
+          <label class="form-label">Search Donor</label>
+          <input type="text" name="search" class="form-control" 
+                 placeholder="Name or email..." value="{{ search_query }}">
+        </div>
+        
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="fas fa-filter"></i> Filter
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+  
+  <!-- Donations Table -->
+  {% if donations %}
+    <div class="donations-table">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Donor</th>
+            <th>Campaign</th>
+            <th>Amount</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Payment Method</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for donation in donations %}
+            <tr>
+              <td>
+                <div class="donor-info">
+                  <div class="donor-avatar">
+                    {% if donation.is_anonymous %}
+                      <i class="fas fa-user-secret"></i>
+                    {% else %}
+                      {{ donation.user.get_full_name|slice:":1" }}
+                    {% endif %}
+                  </div>
+                  <div class="donor-details">
+                    <div class="donor-name">
+                      {% if donation.is_anonymous %}
+                        Anonymous
+                      {% else %}
+                        {{ donation.user.get_full_name }}
+                      {% endif %}
+                    </div>
+                    {% if not donation.is_anonymous %}
+                      <div class="donor-email">{{ donation.user.email }}</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <a href="{% url 'donations:admin_campaign_donations' donation.campaign.pk %}" 
+                   class="campaign-badge text-decoration-none">
+                  {{ donation.campaign.title|truncatewords:3 }}
+                </a>
+              </td>
+              <td>
+                <strong>₱{{ donation.amount|floatformat:0 }}</strong>
+              </td>
+              <td>
+                {% if donation.message %}
+                  <small>{{ donation.message|truncatewords:8 }}</small>
+                {% else %}
+                  <span class="text-muted">No message</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="status-badge status-{{ donation.status }}">
+                  {{ donation.get_status_display }}
+                </span>
+              </td>
+              <td>
+                {% if donation.payment_method %}
+                  <small>{{ donation.get_payment_method_display }}</small>
+                {% else %}
+                  <span class="text-muted">N/A</span>
+                {% endif %}
+              </td>
+              <td>
+                <small>{{ donation.created_at|date:"M d, Y" }}<br>{{ donation.created_at|time:"g:i A" }}</small>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      
+      <!-- Pagination -->
+      {% if donations.has_other_pages %}
+        <div class="p-3 bg-light">
+          <nav>
+            <ul class="pagination justify-content-center mb-0">
+              {% if donations.has_previous %}
+                <li class="page-item">
+                  <a class="page-link" href="?page=1{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.previous_page_number }}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Previous</a>
+                </li>
+              {% endif %}
+              
+              <li class="page-item active">
+                <span class="page-link">Page {{ donations.number }} of {{ donations.paginator.num_pages }}</span>
+              </li>
+              
+              {% if donations.has_next %}
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.next_page_number }}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                  <a class="page-link" href="?page={{ donations.paginator.num_pages }}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">Last</a>
+                </li>
+              {% endif %}
+            </ul>
+          </nav>
+        </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="donations-table">
+      <div class="empty-state">
+        <i class="fas fa-inbox fa-4x mb-3"></i>
+        <h3>No Donations Found</h3>
+        <p>
+          {% if search_query or status_filter or campaign_filter %}
+            No donations match your current filters.
+          {% else %}
+            No donations have been made yet.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

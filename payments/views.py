@@ -1888,3 +1888,24 @@ def payment_status(request, payment_id):
 def payment_failed(request):
     """Handle failed payment redirect from PayMongo"""
     return render(request, 'payments/payment_failed.html')
+
+
+@login_required
+@admin_required
+def all_payments_report(request):
+    """
+    Generate CSV report of ALL verified payments (platform registration + event payments).
+    Only accessible to admins.
+    """
+    from .reports import get_all_verified_payments_data, generate_payments_csv_response
+    
+    # Get all verified payments from both Payment and EventPayment models
+    payment_data = get_all_verified_payments_data()
+    
+    # Generate filename with current date
+    today = timezone.now().strftime('%Y-%m-%d')
+    filename = f'payments_report_all_{today}.csv'
+    
+    # Generate and return CSV response
+    return generate_payments_csv_response(payment_data, filename)
+

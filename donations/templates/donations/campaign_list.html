@@ -1,0 +1,311 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .donations-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 0;
+    margin-bottom: 2rem;
+    border-radius: 12px;
+  }
+  
+  .campaign-card {
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 2rem;
+    height: 100%;
+  }
+  
+  .campaign-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  
+  .campaign-image {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .campaign-body {
+    padding: 1.5rem;
+  }
+  
+  .campaign-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 0.75rem;
+  }
+  
+  .campaign-description {
+    color: #6b7280;
+    font-size: 0.95rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .progress-section {
+    margin: 1rem 0;
+  }
+  
+  .progress {
+    height: 8px;
+    border-radius: 10px;
+    background: #e5e7eb;
+  }
+  
+  .progress-bar {
+    background: linear-gradient(90deg, #10b981, #059669);
+    border-radius: 10px;
+  }
+  
+  .campaign-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .stat-item {
+    color: #6b7280;
+  }
+  
+  .stat-value {
+    color: #1f2937;
+    font-weight: 600;
+  }
+  
+  .campaign-footer {
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-top: 1px solid #e5e7eb;
+  }
+  
+  .btn-donate {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    width: 100%;
+    transition: transform 0.2s;
+  }
+  
+  .btn-donate:hover {
+    transform: scale(1.02);
+    color: white;
+  }
+  
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  
+  .status-active {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .status-inactive {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .goal-reached-badge {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .filter-tab {
+    padding: 0.5rem 1.5rem;
+    border: 2px solid #e5e7eb;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .filter-tab:hover {
+    border-color: #667eea;
+    color: #667eea;
+  }
+  
+  .filter-tab.active {
+    background: #667eea;
+    color: white;
+    border-color: #667eea;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #9ca3af;
+  }
+  
+  .empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: #d1d5db;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="donations-header text-center">
+    <h1><i class="fas fa-hand-holding-heart"></i> Donation Campaigns</h1>
+    <p class="lead mb-0">Support our programs and make a difference</p>
+  </div>
+  
+  <!-- Quick Links -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <!-- Filters -->
+        <div class="filter-tabs">
+          <a href="?status=all" class="filter-tab {% if status_filter == 'all' %}active{% endif %}">
+            <i class="fas fa-list"></i> All Campaigns
+          </a>
+          <a href="?status=active" class="filter-tab {% if status_filter == 'active' %}active{% endif %}">
+            <i class="fas fa-check-circle"></i> Active
+          </a>
+          <a href="?status=inactive" class="filter-tab {% if status_filter == 'inactive' %}active{% endif %}">
+            <i class="fas fa-times-circle"></i> Inactive
+          </a>
+        </div>
+        
+        <!-- My Donations Link -->
+        <a href="{% url 'donations:donation_history' %}" class="btn btn-outline-primary">
+          <i class="fas fa-history"></i> My Donation History
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Campaigns Grid -->
+  {% if campaigns %}
+    <div class="row">
+      {% for campaign in campaigns %}
+        <div class="col-md-6 col-lg-4">
+          <div class="campaign-card">
+            <!-- Campaign Image -->
+            {% if campaign.banner_image %}
+              <img src="{{ campaign.banner_image.url }}" alt="{{ campaign.title }}" class="campaign-image">
+            {% else %}
+              <div class="campaign-image d-flex align-items-center justify-content-center">
+                <i class="fas fa-hand-holding-heart fa-4x" style="color: rgba(255,255,255,0.3);"></i>
+              </div>
+            {% endif %}
+            
+            <!-- Campaign Body -->
+            <div class="campaign-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h3 class="campaign-title mb-0">{{ campaign.title }}</h3>
+                <span class="status-badge status-{{ campaign.status }}">
+                  {{ campaign.get_status_display }}
+                </span>
+              </div>
+              
+              <p class="campaign-description">{{ campaign.description|truncatewords:30 }}</p>
+              
+              <!-- Progress Bar (if goal is set) -->
+              {% if campaign.goal_amount %}
+                <div class="progress-section">
+                  {% if campaign.goal_reached %}
+                    <div class="mb-2">
+                      <span class="status-badge goal-reached-badge">
+                        <i class="fas fa-trophy"></i> Goal Reached!
+                      </span>
+                    </div>
+                  {% endif %}
+                  
+                  <div class="progress">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ campaign.progress_percentage }}%"
+                         aria-valuenow="{{ campaign.progress_percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                  </div>
+                  
+                  <div class="campaign-stats">
+                    <div class="stat-item">
+                      <span class="stat-value">₱{{ campaign.current_amount|floatformat:2 }}</span>
+                      <span>raised</span>
+                    </div>
+                    <div class="stat-item">
+                      <span class="stat-value">{{ campaign.progress_percentage|floatformat:0 }}%</span>
+                      <span>of ₱{{ campaign.goal_amount|floatformat:2 }}</span>
+                    </div>
+                  </div>
+                </div>
+              {% else %}
+                <div class="campaign-stats">
+                  <div class="stat-item">
+                    <span class="stat-value">₱{{ campaign.current_amount|floatformat:2 }}</span>
+                    <span>raised so far</span>
+                  </div>
+                </div>
+              {% endif %}
+              
+              <!-- Days Remaining -->
+              {% if campaign.days_remaining is not None %}
+                <div class="mt-2">
+                  <small class="text-muted">
+                    <i class="fas fa-clock"></i>
+                    {% if campaign.days_remaining > 0 %}
+                      {{ campaign.days_remaining }} day{{ campaign.days_remaining|pluralize }} remaining
+                    {% else %}
+                      Campaign ended
+                    {% endif %}
+                  </small>
+                </div>
+              {% endif %}
+            </div>
+            
+            <!-- Campaign Footer -->
+            <div class="campaign-footer">
+              <a href="{% url 'donations:campaign_detail' campaign.pk %}" class="btn btn-donate">
+                <i class="fas fa-heart"></i> View Campaign & Donate
+              </a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+      <i class="fas fa-hand-holding-heart"></i>
+      <h3>No Campaigns Available</h3>
+      <p>There are currently no donation campaigns. Check back later!</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

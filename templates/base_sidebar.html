@@ -156,6 +156,7 @@
             {% else %}
               <span class="nav-link disabled" title="Locked until registration payment is verified"><i class="fas fa-lock"></i> Events (Locked)</span>
             {% endif %}
+            <a href="{% url 'donations:campaign_list' %}" class="nav-link {% if 'donations' in request.path %}active{% endif %}"><i class="fas fa-hand-holding-heart"></i> Donations</a>
             <a href="{% url 'accounts:settings' %}" class="nav-link {% if request.resolver_match.url_name == 'settings' %}active{% endif %}"><i class="fas fa-cog"></i> Settings</a>
           {% else %}
             <a href="{% url 'accounts:scout_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'scout_dashboard' %}active{% endif %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
@@ -167,6 +168,7 @@
               {% endif %}
             </a>
             <a href="{% url 'events:event_list' %}" class="nav-link {% if request.resolver_match.url_name == 'event_list' %}active{% endif %}"><i class="fas fa-calendar-alt"></i> Events & Activities</a>
+            <a href="{% url 'donations:campaign_list' %}" class="nav-link {% if 'donations' in request.path %}active{% endif %}"><i class="fas fa-hand-holding-heart"></i> Donations</a>
           {% endif %}
         {% endif %}
       </div>
