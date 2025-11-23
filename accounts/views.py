@@ -773,6 +773,18 @@ def home(request):
         'upcoming_events': upcoming_events,
     })
 
+@login_required
+def about(request):
+    """
+    About Us page - accessible to scouts, teachers, and admin.
+    Shows BSP history and memorandum.
+    """
+    # Only allow scouts, teachers, and admin
+    if request.user.role not in ['scout', 'teacher', 'admin']:
+        return HttpResponseForbidden("You don't have permission to view this page.")
+    
+    return render(request, 'about.html')
+
 class MyLoginView(LoginView):
     template_name = 'accounts/login.html'
     authentication_form = CustomLoginForm

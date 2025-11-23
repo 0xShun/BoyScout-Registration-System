@@ -1,0 +1,292 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  .about-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
+  }
+  
+  .about-hero h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 1rem;
+  }
+  
+  .about-hero p {
+    font-size: 1.2rem;
+    opacity: 0.95;
+  }
+  
+  .scout-emblem {
+    max-width: 150px;
+    filter: drop-shadow(0 5px 15px rgba(0,0,0,0.2));
+  }
+  
+  .history-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    border-left: 5px solid #3b82f6;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .history-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  }
+  
+  .history-card h3 {
+    color: #1e3a8a;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  
+  .history-card p {
+    color: #4b5563;
+    line-height: 1.8;
+    margin-bottom: 1rem;
+  }
+  
+  .timeline-marker {
+    background: #3b82f6;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    display: inline-block;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .highlight-box {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 1.5rem;
+    border-radius: 10px;
+    margin: 1.5rem 0;
+  }
+  
+  .highlight-box h4 {
+    color: #1e3a8a;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+  
+  .highlight-box ul {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+  
+  .highlight-box li {
+    color: #4b5563;
+    line-height: 1.8;
+    margin-bottom: 0.5rem;
+  }
+  
+  .section-title {
+    color: #1e3a8a;
+    font-weight: 800;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 3px solid #3b82f6;
+  }
+  
+  .memorandum-section {
+    background: white;
+    border-radius: 15px;
+    padding: 2.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+  }
+  
+  .hero-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <!-- Hero Section -->
+  <div class="about-hero">
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <i class="fas fa-flag hero-icon"></i>
+        <h1>About Boy Scouts of the Philippines</h1>
+        <p>Tacloban City Council - A Legacy of Service, Honor, and Community</p>
+      </div>
+      <div class="col-lg-4 text-center">
+        <img src="{% static 'img/logo1.png' %}" alt="BSP Logo" class="scout-emblem">
+      </div>
+    </div>
+  </div>
+
+  <!-- Memorandum Section -->
+  <div class="memorandum-section">
+    <h2 class="section-title">
+      <i class="fas fa-landmark me-2"></i>Official Memorandum
+    </h2>
+    <p style="font-size: 1.1rem; color: #4b5563; line-height: 1.8;">
+      The <strong>Boy Scouts of the Philippines (BSP)</strong> was officially established as a public corporation 
+      by <strong>Commonwealth Act No. 111 in 1936</strong>. This act legally recognized and institutionalized 
+      the scouting movement in the Philippines, providing it with a mandate to develop the character and 
+      citizenship of Filipino youth through outdoor education, values formation, and community service.
+    </p>
+    <div class="highlight-box mt-4">
+      <h4><i class="fas fa-book me-2"></i>Core Mission</h4>
+      <p>
+        The BSP operates under the principles of the Scout Oath and Law, promoting patriotism, 
+        self-reliance, and social responsibility among Filipino youth. Through its structured 
+        programs for Cub Scouts, Boy Scouts, Senior Scouts, and Rover Scouts, the organization 
+        continues to shape future leaders and responsible citizens.
+      </p>
+    </div>
+  </div>
+
+  <!-- History Section -->
+  <h2 class="section-title">
+    <i class="fas fa-history me-2"></i>Our History
+  </h2>
+
+  <!-- Timeline Card 1: Early Presence -->
+  <div class="history-card">
+    <span class="timeline-marker">
+      <i class="fas fa-clock me-1"></i>Pre-World War II Era
+    </span>
+    <h3>Early Presence in Leyte (Pre-WWII)</h3>
+    <p>
+      While the BSP's roots in the Philippines date back to 1910, the local history of Scouting 
+      in the Tacloban region is marked by significant milestones. An early marker of the movement's 
+      presence in the region is the <strong>Boyscout Monument in Palo, Leyte</strong> (a neighboring 
+      town), which was erected in <strong>1941</strong>.
+    </p>
+    <div class="highlight-box">
+      <h4><i class="fas fa-monument me-2"></i>Historic Landmark</h4>
+      <p>
+        This monument is noted as the <strong>first-ever Boyscout monument in human form</strong> 
+        in the country, demonstrating the strong foundation of scouting in the area before the war.
+      </p>
+    </div>
+  </div>
+
+  <!-- Timeline Card 2: WWII Heroism -->
+  <div class="history-card">
+    <span class="timeline-marker">
+      <i class="fas fa-medal me-1"></i>October 1944
+    </span>
+    <h3>World War II Heroism - Battle of Leyte</h3>
+    <p>
+      One of the most significant and heroic chapters in Leyte's BSP history occurred during the 
+      <strong>Battle of Leyte in October 1944</strong>. This event stands as a testament to the 
+      courage, quick thinking, and selflessness of Filipino Boy Scouts during one of the most 
+      critical moments in Philippine history.
+    </p>
+    <div class="highlight-box">
+      <h4><i class="fas fa-star me-2"></i>The Heroes of Tolosa</h4>
+      <p>
+        <strong>Three Boy Scouts from Tolosa, Leyte</strong> (near Tacloban) used semaphore flag 
+        signaling to warn incoming Allied forces and divert shelling away from populated areas of 
+        Tolosa. Their heroic action is credited with <strong>saving thousands of civilian lives</strong>.
+      </p>
+      <p class="mt-2 mb-0">
+        <i class="fas fa-flag-checkered me-2"></i>
+        This act of valor is now commemorated annually in the province on <strong>"Signal Day"</strong>, 
+        ensuring that the bravery of these young scouts is never forgotten.
+      </p>
+    </div>
+  </div>
+
+  <!-- Timeline Card 3: Tacloban City Council -->
+  <div class="history-card">
+    <span class="timeline-marker">
+      <i class="fas fa-users me-1"></i>Modern Era
+    </span>
+    <h3>The Tacloban City Council</h3>
+    <p>
+      The <strong>Tacloban City Council (TCC)</strong> of the BSP operates as a distinct unit under 
+      the Eastern Visayas Region, actively implementing the scouting programs for:
+    </p>
+    <ul style="color: #4b5563; line-height: 1.8;">
+      <li><strong>Cub Scouts</strong> - Developing young minds through fun and adventure</li>
+      <li><strong>Boy Scouts</strong> - Building character and leadership skills</li>
+      <li><strong>Senior Scouts</strong> - Advancing outdoor skills and community service</li>
+      <li><strong>Rover Scouts</strong> - Mentoring and leading the next generation</li>
+    </ul>
+    <p class="mt-3">
+      The council continues to uphold the values of the Scout Oath and Law while serving the 
+      Tacloban City community through various programs and activities.
+    </p>
+  </div>
+
+  <!-- Timeline Card 4: Resilience After Yolanda -->
+  <div class="history-card">
+    <span class="timeline-marker">
+      <i class="fas fa-heart me-1"></i>November 2013 - Present
+    </span>
+    <h3>Resilience After Typhoon Yolanda (Haiyan)</h3>
+    <p>
+      The organization demonstrated its resilience following the devastation of 
+      <strong>Super Typhoon Yolanda (Haiyan) in November 2013</strong>. The typhoon destroyed 
+      much of Tacloban City, including the building of the BSP Leyte Council.
+    </p>
+    <div class="highlight-box">
+      <h4><i class="fas fa-hands-helping me-2"></i>Rebuilding Together</h4>
+      <p>
+        With support from international partners like the <strong>World Scout Foundation</strong>, 
+        the organization successfully oversaw the reconstruction of a new office building. This 
+        achievement highlighted their commitment to rebuilding and continuing service in the 
+        community, even in the face of unprecedented challenges.
+      </p>
+    </div>
+  </div>
+
+  <!-- Timeline Card 5: Current Activities -->
+  <div class="history-card">
+    <span class="timeline-marker">
+      <i class="fas fa-calendar-check me-1"></i>Today
+    </span>
+    <h3>Current Activities & Community Engagement</h3>
+    <p>
+      The <strong>Tacloban City Council</strong> remains highly active in the community, 
+      demonstrating the enduring spirit of scouting through various initiatives:
+    </p>
+    <ul style="color: #4b5563; line-height: 1.8;">
+      <li>Participating in major civic events such as <strong>Independence Day celebrations</strong></li>
+      <li>Conducting core scouting programs for youth development</li>
+      <li>Organizing community service projects</li>
+      <li>Upholding the values of the Scout Oath and Law</li>
+      <li>Training young leaders for tomorrow</li>
+      <li>Engaging in disaster preparedness and response initiatives</li>
+    </ul>
+    <div class="highlight-box mt-3">
+      <h4><i class="fas fa-quote-left me-2"></i>Our Commitment</h4>
+      <p class="mb-0">
+        "The Boy Scouts of the Philippines - Tacloban City Council continues to build upon its 
+        rich legacy, nurturing Filipino youth to become responsible citizens and leaders who 
+        embody the values of service, honor, and excellence."
+      </p>
+    </div>
+  </div>
+
+  <!-- Call to Action -->
+  <div class="about-hero text-center mt-5">
+    <h2 class="mb-3">Join Our Legacy</h2>
+    <p class="mb-4">Be part of a movement that has shaped generations of Filipino leaders</p>
+    <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg px-5" style="border-radius: 50px; font-weight: 600;">
+      <i class="fas fa-user-plus me-2"></i>Register Now
+    </a>
+  </div>
+</div>
+{% endblock %}
