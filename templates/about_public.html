@@ -1,0 +1,313 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+  body {
+    background: #f8fafc;
+  }
+  
+  .public-about-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+  }
+  
+  .header-section {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  
+  .header-section .logo {
+    width: 120px;
+    height: 120px;
+    margin-bottom: 1.5rem;
+  }
+  
+  .header-section h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+  
+  .header-section .subtitle {
+    font-size: 1.1rem;
+    color: #64748b;
+    font-weight: 400;
+  }
+  
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  
+  @media (min-width: 768px) {
+    .content-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    border: none;
+  }
+  
+  .card h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .card h2 i {
+    color: #3b82f6;
+    font-size: 1.3rem;
+  }
+  
+  .card p {
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+  
+  .card ul {
+    margin: 0;
+    padding-left: 1.5rem;
+  }
+  
+  .card li {
+    color: #475569;
+    line-height: 1.8;
+    margin-bottom: 0.5rem;
+  }
+  
+  .timeline-item {
+    margin-bottom: 1.5rem;
+    padding-left: 1rem;
+    border-left: 2px solid #e2e8f0;
+  }
+  
+  .timeline-item:last-child {
+    border-left-color: transparent;
+  }
+  
+  .timeline-year {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .timeline-item h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+  }
+  
+  .timeline-item p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  
+  .full-width-card {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 2rem;
+  }
+  
+  .scout-values {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .value-badge {
+    background: #f1f5f9;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 500;
+    color: #475569;
+    font-size: 0.95rem;
+  }
+  
+  .cta-section {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 16px;
+    text-align: center;
+    margin-top: 3rem;
+  }
+  
+  .cta-section h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  
+  .cta-section p {
+    font-size: 1.1rem;
+    margin-bottom: 1.5rem;
+    opacity: 0.95;
+  }
+  
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  .btn-cta {
+    padding: 0.875rem 2rem;
+    border-radius: 50px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+  }
+  
+  .btn-cta-primary {
+    background: white;
+    color: #1e3a8a;
+  }
+  
+  .btn-cta-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    color: #1e3a8a;
+  }
+  
+  .btn-cta-outline {
+    background: transparent;
+    color: white;
+    border: 2px solid white;
+  }
+  
+  .btn-cta-outline:hover {
+    background: white;
+    color: #1e3a8a;
+    transform: translateY(-2px);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="public-about-container">
+  <!-- Header -->
+  <div class="header-section">
+    <img src="{% static 'img/logo2.png' %}" alt="BSP Logo" class="logo">
+    <h1>Boy Scouts of the Philippines</h1>
+    <p class="subtitle">Tacloban City Council</p>
+  </div>
+
+  <!-- History Timeline -->
+  <div class="full-width-card">
+    <h2 style="font-size: 1.75rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem;">
+      <i class="fas fa-history me-2" style="color: #3b82f6;"></i>Our History
+    </h2>
+    
+    <div class="timeline-item">
+      <span class="timeline-year">1910</span>
+      <h3>The Beginning</h3>
+      <p>The Boy Scouts of the Philippines was founded in 1910, making it one of the oldest youth organizations in the country. It was established to develop the youth's character, citizenship, and personal fitness through the Scout Oath and Law.</p>
+    </div>
+    
+    <div class="timeline-item">
+      <span class="timeline-year">1937</span>
+      <h3>Official Recognition</h3>
+      <p>In 1937, the Boy Scouts of the Philippines was officially recognized by Commonwealth Act No. 111, solidifying its role in nation-building and youth development.</p>
+    </div>
+    
+    <div class="timeline-item">
+      <span class="timeline-year">Present</span>
+      <h3>Tacloban City Council</h3>
+      <p>The Tacloban City Council continues the proud tradition of scouting, serving the youth of our community with dedication and honor. We focus on building character, developing leadership skills, and fostering a spirit of service among our scouts.</p>
+    </div>
+  </div>
+
+  <!-- Vision & Mission Grid -->
+  <div class="content-grid">
+    <div class="card">
+      <h2><i class="fas fa-eye"></i> Vision</h2>
+      <p>To be the premier youth organization that develops responsible citizens and leaders committed to the service of God, country, and fellowmen.</p>
+    </div>
+    
+    <div class="card">
+      <h2><i class="fas fa-compass"></i> Mission</h2>
+      <p>To contribute to the education of young people through a value system based on the Scout Promise and Law, helping build a better world where people are self-fulfilled and play a constructive role in society.</p>
+    </div>
+  </div>
+
+  <!-- Scout Law & Oath -->
+  <div class="content-grid">
+    <div class="card">
+      <h2><i class="fas fa-book"></i> Scout Law</h2>
+      <p style="margin-bottom: 0.75rem; font-weight: 500;">A Scout is:</p>
+      <div class="scout-values">
+        <div class="value-badge">Trustworthy</div>
+        <div class="value-badge">Loyal</div>
+        <div class="value-badge">Helpful</div>
+        <div class="value-badge">Friendly</div>
+        <div class="value-badge">Courteous</div>
+        <div class="value-badge">Kind</div>
+        <div class="value-badge">Obedient</div>
+        <div class="value-badge">Cheerful</div>
+        <div class="value-badge">Thrifty</div>
+        <div class="value-badge">Brave</div>
+        <div class="value-badge">Clean</div>
+        <div class="value-badge">Reverent</div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <h2><i class="fas fa-hand-holding-heart"></i> Scout Oath</h2>
+      <p style="font-style: italic; color: #1e293b; line-height: 1.9; font-size: 1.05rem;">
+        "On my honor, I promise to do my best:<br>
+        To do my duty to God and country,<br>
+        To help other people at all times,<br>
+        And to obey the Scout Law."
+      </p>
+    </div>
+  </div>
+
+  <!-- Call to Action -->
+  <div class="cta-section">
+    <h2>Join the Scout Movement</h2>
+    <p>Be part of a legacy that shapes future leaders and responsible citizens.</p>
+    <div class="cta-buttons">
+      <a href="{% url 'accounts:register' %}" class="btn-cta btn-cta-primary">
+        <i class="fas fa-user-plus"></i> Register Now
+      </a>
+      <a href="{% url 'accounts:login' %}" class="btn-cta btn-cta-outline">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

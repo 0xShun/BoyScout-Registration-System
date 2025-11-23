@@ -773,6 +773,13 @@ def home(request):
         'upcoming_events': upcoming_events,
     })
 
+def about_public(request):
+    """
+    Public About Us page - accessible to everyone without login.
+    Shows BSP history, vision, mission, and scout values.
+    """
+    return render(request, 'about_public.html')
+
 @login_required
 def about(request):
     """
