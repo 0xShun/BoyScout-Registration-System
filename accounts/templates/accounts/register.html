@@ -14,18 +14,29 @@
           </div>
       
           <!-- Registration Type Toggle Switch -->
-          <div class="registration-type-card mb-4">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5 class="mb-1 fw-bold">
+          <div class="registration-type-card mb-4" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 12px; padding: 1.5rem;">
+            <div class="card-body p-0">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <div style="flex: 1;">
+                  <h5 class="mb-1 fw-bold" style="font-size: 1.3rem;">
                     <i class="fas fa-user me-2 text-primary" id="registrationTypeIcon"></i>
                     <span id="registrationTypeLabel">Single Registration</span>
                   </h5>
-                  <small class="text-muted" style="font-size: 0.95rem;" id="registrationTypeDesc">Register one student</small>
+                  <small class="text-muted" style="font-size: 1rem;" id="registrationTypeDesc">Register one student</small>
                 </div>
-                <div class="form-check form-switch form-switch-lg">
-                  <input class="form-check-input custom-switch" type="checkbox" role="switch" id="registrationTypeSwitch">
+                <div class="form-check form-switch" style="transform: scale(1.5); margin-right: 1rem;">
+                  <input class="form-check-input custom-switch" type="checkbox" role="switch" id="registrationTypeSwitch" style="cursor: pointer;">
+                </div>
+              </div>
+              
+              <!-- Add visual helper text -->
+              <div class="alert alert-info mb-0" style="background: #dbeafe; border: 1px solid #3b82f6; border-radius: 8px;">
+                <div class="d-flex align-items-center">
+                  <i class="fas fa-info-circle me-2" style="font-size: 1.2rem;"></i>
+                  <div>
+                    <strong id="toggleHelperText">Are you a teacher?</strong> 
+                    <span id="toggleHelperSubtext">Toggle the switch above to register with your .edu email address.</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -415,6 +426,8 @@
         const typeDesc = document.getElementById('registrationTypeDesc');
         const singleForm = document.getElementById('singleRegistrationForm');
         const teacherFormWrapper = document.getElementById('teacherRegistrationForm');
+        const toggleHelperText = document.getElementById('toggleHelperText');
+        const toggleHelperSubtext = document.getElementById('toggleHelperSubtext');
 
         if (toggleSwitch) {
             toggleSwitch.addEventListener('change', function() {
@@ -423,7 +436,9 @@
                     registrationType.value = 'teacher';
                     typeLabel.textContent = 'Teacher Registration';
                     typeIcon.className = 'fas fa-chalkboard-teacher me-2';
-                    typeDesc.textContent = 'Register as a teacher';
+                    typeDesc.textContent = 'Register as a teacher with .edu email';
+                    if (toggleHelperText) toggleHelperText.textContent = 'Teacher Registration Mode Active';
+                    if (toggleHelperSubtext) toggleHelperSubtext.textContent = 'You must use a .edu email address for teacher registration.';
                     if (singleForm) singleForm.style.display = 'none';
                     if (teacherFormWrapper) teacherFormWrapper.style.display = 'block';
                     // Enable teacher form inputs
@@ -436,6 +451,8 @@
                     typeLabel.textContent = 'Single Registration';
                     typeIcon.className = 'fas fa-user me-2';
                     typeDesc.textContent = 'Register one student';
+                    if (toggleHelperText) toggleHelperText.textContent = 'Are you a teacher?';
+                    if (toggleHelperSubtext) toggleHelperSubtext.textContent = 'Toggle the switch above to register with your .edu email address.';
                     if (singleForm) singleForm.style.display = 'block';
                     if (teacherFormWrapper) teacherFormWrapper.style.display = 'none';
                     // Enable single form inputs
@@ -446,13 +463,15 @@
             });
 
             // On page load, ensure only visible form's fields are enabled
-            // If the server requested teacher mode (e.g., validation errors), reflect that state
+            // If the server requested teacher mode (e.g., validation errors or .edu email detected), reflect that state
             {% if registration_type == 'teacher' %}
                 if (toggleSwitch) toggleSwitch.checked = true;
                 if (registrationType) registrationType.value = 'teacher';
                 if (typeLabel) typeLabel.textContent = 'Teacher Registration';
                 if (typeIcon) typeIcon.className = 'fas fa-chalkboard-teacher me-2';
-                if (typeDesc) typeDesc.textContent = 'Register as a teacher';
+                if (typeDesc) typeDesc.textContent = 'Register as a teacher with .edu email';
+                if (toggleHelperText) toggleHelperText.textContent = 'Teacher Registration Mode Active';
+                if (toggleHelperSubtext) toggleHelperSubtext.textContent = 'You must use a .edu email address for teacher registration.';
                 if (singleForm) {
                     singleForm.style.display = 'none';
                     Array.from(singleForm.querySelectorAll('input, select, textarea')).forEach(function(el) { el.disabled = true; });

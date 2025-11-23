@@ -14,6 +14,9 @@ from django.contrib.auth.hashers import make_password
 from decimal import Decimal
 import secrets
 import string
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import User, RegistrationPayment, SystemSettings
 from .teacher_forms import (
@@ -48,6 +51,9 @@ def register_teacher(request):
                     user.is_active = True  # Active immediately per requirement
                     user.registration_status = 'active'
                     user.save()
+                    
+                    # Log successful teacher account creation
+                    logger.info(f"Teacher account created: {user.email} (ID: {user.id}, Role: {user.role})")
 
                     # NOTE: auto-login is performed later (after session flags are set)
                     # to avoid session lifecycle races where session data might be
@@ -94,28 +100,41 @@ def register_teacher(request):
                                         backend = 'django.contrib.auth.backends.ModelBackend'
                                     user.backend = backend
                                     login(request, user)
-                            except Exception:
+                                    logger.info(f"Teacher auto-logged in after registration: {user.email}")
+                            except Exception as login_error:
                                 # Best-effort auto-login: on error, continue without failing registration.
+                                logger.warning(f"Auto-login failed for teacher {user.email}: {login_error}")
                                 pass
 
                             # Redirect to PayMongo checkout
                             checkout_url = source_data.get('attributes', {}).get('redirect', {}).get('checkout_url')
                             messages.success(
                                 request,
-                                f'Teacher account created! You will be redirected to complete payment of ₱{registration_fee:.2f}.'
+                                f'✓ Teacher account created successfully! You will be redirected to complete payment of ₱{registration_fee:.2f}.'
                             )
                             return redirect(checkout_url) if checkout_url else redirect('home')
                         else:
                             # No source data
+                            logger.error(f"PayMongo returned no source data for teacher registration: {user.email}")
                             messages.error(request, 'Payment gateway returned no checkout information. Please contact support.')
                             return redirect('accounts:register_teacher')
                     else:
-                        messages.error(request, 'Failed to create payment link. Please contact support.')
+                        error_msg = source_result.get('error', 'Unknown error')
+                        logger.error(f"PayMongo source creation failed for teacher {user.email}: {error_msg}")
+                        messages.error(request, f'Failed to create payment link: {error_msg}. Please contact support.')
                         return redirect('accounts:register_teacher')
 
             except Exception as e:
-                messages.error(request, f'Registration failed: {str(e)}. Please try again.')
+                logger.exception(f"Teacher registration failed: {str(e)}")
+                messages.error(request, f'❌ Registration failed: {str(e)}. Please try again or contact support.')
                 return redirect('accounts:register_teacher')
+        else:
+            # Form validation errors
+            logger.warning(f"Teacher registration form validation failed: {form.errors}")
+            messages.error(
+                request, 
+                '❌ Registration form has errors. Please check your input and ensure you\'re using a .edu email address.'
+            )
     else:
         form = TeacherRegisterForm()
     

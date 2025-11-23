@@ -332,6 +332,22 @@ def register(request):
         post_data = request.POST.copy()
         form = UserRegisterForm(post_data)
         if form.is_valid():
+            # Check if email has .edu domain (teachers should use teacher registration)
+            email = form.cleaned_data.get('email', '')
+            if '.edu' in email.lower():
+                messages.warning(
+                    request, 
+                    'Educational (.edu) email addresses should use Teacher Registration. '
+                    'Please toggle the switch to "Teacher Registration" at the top of the form.'
+                )
+                # Provide teacher form for re-submission
+                teacher_form = TeacherRegisterForm()
+                return render(request, 'accounts/register.html', {
+                    'form': form,
+                    'teacher_form': teacher_form,
+                    'registration_type': 'teacher',  # Auto-switch to teacher form
+                })
+            
             # Create user as ACTIVE immediately upon registration
             user = form.save(commit=False)
             user.role = 'scout'
