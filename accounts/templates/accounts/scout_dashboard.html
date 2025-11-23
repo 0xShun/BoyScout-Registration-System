@@ -298,28 +298,21 @@
 
   <!-- Quick Stats Row -->
   <div class="row g-3 mb-4">
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4 col-md-6">
       <div class="card stat-card stat-primary">
         <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
         <div class="stat-value">{{ events_attended|default:0 }}</div>
         <div class="stat-label">Events Attended</div>
       </div>
     </div>
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4 col-md-6">
       <div class="card stat-card stat-success">
         <div class="stat-icon"><i class="fas fa-coins"></i></div>
         <div class="stat-value">₱{{ total_paid|default:0 }}</div>
         <div class="stat-label">Total Contributions</div>
       </div>
     </div>
-    <div class="col-lg-3 col-md-6">
-      <div class="card stat-card stat-warning">
-        <div class="stat-icon"><i class="fas fa-trophy"></i></div>
-        <div class="stat-value">{{ achievements_earned|default:0 }}/{{ total_achievements|default:6 }}</div>
-        <div class="stat-label">Achievements Earned</div>
-      </div>
-    </div>
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4 col-md-6">
       <div class="card stat-card stat-info">
         <div class="stat-icon"><i class="fas fa-star"></i></div>
         <div class="stat-value">{{ attendance_rate|default:0 }}%</div>
@@ -374,47 +367,6 @@
       </div>
     </div>
 
-    <!-- Achievement Badges -->
-    <div class="col-lg-4">
-      <div class="card progress-card">
-        <div class="card-header-custom">
-          <h5 class="card-title-custom">
-            <i class="fas fa-trophy text-warning"></i> Achievements
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="achievement-grid">
-            <div class="achievement-badge {% if events_attended >= 1 %}earned{% endif %}" 
-                 title="Attend your first event">
-              <div class="achievement-icon"><i class="fas fa-star"></i></div>
-              <div class="achievement-name">First Step</div>
-            </div>
-            <div class="achievement-badge {% if events_attended >= 5 %}earned{% endif %}"
-                 title="Attend 5 events">
-              <div class="achievement-icon"><i class="fas fa-fire"></i></div>
-              <div class="achievement-name">Active</div>
-            </div>
-            <div class="achievement-badge {% if events_attended >= 10 %}earned{% endif %}"
-                 title="Attend 10 events">
-              <div class="achievement-icon"><i class="fas fa-gem"></i></div>
-              <div class="achievement-name">Dedicated</div>
-            </div>
-            <div class="achievement-badge {% if profile_completion == 100 %}earned{% endif %}"
-                 title="Complete your profile">
-              <div class="achievement-icon"><i class="fas fa-user-check"></i></div>
-              <div class="achievement-name">Complete</div>
-            </div>
-            <div class="achievement-badge {% if total_paid >= 1000 %}earned{% endif %}"
-                 title="Contribute ₱1000+">
-              <div class="achievement-icon"><i class="fas fa-hand-holding-heart"></i></div>
-              <div class="achievement-name">Supporter</div>
-            </div>
-            <div class="achievement-badge {% if attendance_rate >= 90 %}earned{% endif %}"
-                 title="90%+ attendance">
-              <div class="achievement-icon"><i class="fas fa-medal"></i></div>
-              <div class="achievement-name">Perfect</div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

@@ -83,10 +83,6 @@ Please log in to your dashboard to register.
     for user in active_users:
         if user.email:
             email_recipients.append(user.email)
-        
-        # Send SMS if phone number exists
-        if user.phone_number:
-            NotificationService.send_sms(user.phone_number, sms_message)
     
     # Send HTML email to all recipients
     if email_recipients:

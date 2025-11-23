@@ -116,54 +116,6 @@
           </div>
         </div>
 
-        <div class="enhanced-card mb-4">
-          <div class="enhanced-card-header">
-            <h5><i class="fas fa-medal me-2"></i> Badge Progress</h5>
-          </div>
-          <div class="card-body">
-            {% if user_badges %}
-            <div class="table-responsive">
-              <table class="table enhanced-table">
-                <thead>
-                  <tr>
-                    <th><i class="fas fa-certificate me-1"></i> Badge</th>
-                    <th><i class="fas fa-chart-line me-1"></i> Progress</th>
-                    <th><i class="fas fa-check-circle me-1"></i> Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for ub in user_badges %}
-                  <tr>
-                    <td class="fw-semibold">{{ ub.badge.name }}</td>
-                    <td>
-                      <div class="progress" style="height: 24px; border-radius: 12px;">
-                        <div class="progress-bar{% if ub.awarded %} bg-success{% else %} bg-primary{% endif %}" role="progressbar" style="width: {{ ub.percent_complete }}%;" aria-valuenow="{{ ub.percent_complete }}" aria-valuemin="0" aria-valuemax="100">
-                          <span class="fw-semibold">{{ ub.percent_complete }}%</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      {% if ub.awarded %}
-                        <span class="status-badge status-verified"><i class="fas fa-trophy"></i> Awarded</span>
-                      {% else %}
-                        <span class="status-badge status-pending"><i class="fas fa-hourglass-half"></i> In Progress</span>
-                      {% endif %}
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            {% else %}
-            <div class="empty-state-enhanced">
-              <i class="fas fa-medal"></i>
-              <h4>No Badges Yet</h4>
-              <p>Start your journey by participating in activities to earn badges!</p>
-            </div>
-            {% endif %}
-          </div>
-        </div>
-
         <div class="enhanced-card">
           <div class="enhanced-card-header">
             <h5><i class="fas fa-calendar-check me-2"></i> Attendance History</h5>

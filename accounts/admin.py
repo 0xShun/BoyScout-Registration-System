@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, Group, Badge, UserBadge, RegistrationPayment, SystemSettings
+from .models import User, Group, RegistrationPayment, SystemSettings
 from django.utils.html import format_html
 
 
@@ -60,8 +60,8 @@ class RegistrationPaymentAdmin(admin.ModelAdmin):
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    list_display = ['email', 'first_name', 'last_name', 'role', 'registered_by_teacher_display', 'scout_rank', 'registration_status', 'is_active', 'date_joined']
-    list_filter = ['role', 'scout_rank', 'registration_status', 'is_active', 'registered_by_teacher', 'date_joined']
+    list_display = ['email', 'first_name', 'last_name', 'role', 'registered_by_teacher_display', 'registration_status', 'is_active', 'date_joined']
+    list_filter = ['role', 'registration_status', 'is_active', 'registered_by_teacher', 'date_joined']
     search_fields = ['email', 'first_name', 'last_name', 'registered_by_teacher__email']
     ordering = ['-date_joined']
     
@@ -69,8 +69,8 @@ class CustomUserAdmin(UserAdmin):
     
     fieldsets = UserAdmin.fieldsets + (
         ('Role & Permissions', {
-            'fields': ('role', 'scout_rank'),
-            'description': 'Role determines system access level. Scout Rank is for merit advancement (optional).'
+            'fields': ('role',),
+            'description': 'Role determines system access level (Scout, Teacher, or Administrator).'
         }),
         ('Teacher Relationship', {
             'fields': ('registered_by_teacher',),
@@ -97,7 +97,7 @@ class CustomUserAdmin(UserAdmin):
     
     add_fieldsets = UserAdmin.add_fieldsets + (
         ('Role & Information', {
-            'fields': ('role', 'scout_rank', 'date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies')
+            'fields': ('role', 'date_of_birth', 'address', 'phone_number', 'emergency_contact', 'emergency_phone', 'medical_conditions', 'allergies')
         }),
     )
     
@@ -119,14 +119,3 @@ class CustomUserAdmin(UserAdmin):
 class GroupAdmin(admin.ModelAdmin):
     list_display = ['name', 'created_at']
     search_fields = ['name', 'description']
-
-@admin.register(Badge)
-class BadgeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'created_at']
-    search_fields = ['name', 'description']
-
-@admin.register(UserBadge)
-class UserBadgeAdmin(admin.ModelAdmin):
-    list_display = ['user', 'badge', 'awarded', 'percent_complete', 'date_awarded']
-    list_filter = ['awarded', 'date_awarded', 'badge']
-    search_fields = ['user__first_name', 'user__last_name', 'badge__name']

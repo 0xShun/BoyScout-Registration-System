@@ -26,8 +26,6 @@ urlpatterns = [
     path('groups/create/', views.group_create, name='group_create'),
     path('groups/<int:pk>/edit/', views.group_edit, name='group_edit'),
     path('groups/<int:pk>/delete/', views.group_delete, name='group_delete'),
-    path('badges/', views.badge_list, name='badge_list'),
-    path('badges/<int:pk>/manage/', views.badge_manage, name='badge_manage'),
     
     # Registration payment management
     path('pending-registrations/', views.pending_registrations, name='pending_registrations'),

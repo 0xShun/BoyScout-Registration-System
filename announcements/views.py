@@ -71,10 +71,6 @@ def announcement_create(request):
             # Send notifications
             email_recipients = []
             for user in recipients:
-                # Send SMS if phone number exists
-                if hasattr(user, 'phone_number') and user.phone_number:
-                    NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
-                
                 # Send realtime notification
                 send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
                 

@@ -110,18 +110,7 @@ class User(AbstractUser):
     ROLE_CHOICES = (
         ('scout', 'Scout'),                # Regular member
         ('teacher', 'Teacher'),            # Teacher who can register and manage students
-        ('leader', 'Scout Leader'),        # Troop leader/coordinator
         ('admin', 'Administrator'),        # Full system admin
-    )
-    
-    # Scout advancement rank (merit-based, optional)
-    SCOUT_RANK_CHOICES = (
-        ('tenderfoot', 'Tenderfoot'),
-        ('second_class', 'Second Class'),
-        ('first_class', 'First Class'),
-        ('star', 'Star'),
-        ('life', 'Life'),
-        ('eagle', 'Eagle Scout'),
     )
     
     # Backward compatibility: RANK_CHOICES maps to ROLE_CHOICES
@@ -138,23 +127,13 @@ class User(AbstractUser):
         choices=ROLE_CHOICES, 
         default='scout',
         verbose_name="User Role",
-        help_text="Scout (member), Scout Leader (coordinator), or Administrator"
-    )
-    
-    # Scout advancement rank (optional, for scouts only)
-    scout_rank = models.CharField(
-        max_length=30,
-        choices=SCOUT_RANK_CHOICES,
-        blank=True,
-        null=True,
-        verbose_name="Scout Advancement Rank",
-        help_text="Merit-based advancement rank (for scouts only)"
+        help_text="Scout (member), Teacher, or Administrator"
     )
     
     # Keep old 'rank' field temporarily for migration compatibility
     rank = models.CharField(
         max_length=30, 
-        choices=ROLE_CHOICES + SCOUT_RANK_CHOICES,  # Combined for backward compatibility
+        choices=ROLE_CHOICES,  # Now only role choices
         default='scout',
         help_text="DEPRECATED: Use 'role' field instead"
     )
@@ -327,8 +306,6 @@ class User(AbstractUser):
 
     def __str__(self):
         role_display = self.get_role_display()
-        if self.scout_rank and self.role == 'scout':
-            return f"{self.get_full_name()} ({role_display} - {self.get_scout_rank_display()})"
         return f"{self.get_full_name()} ({role_display})"
 
     class Meta:
@@ -340,27 +317,3 @@ class User(AbstractUser):
             ("can_manage_committee", "Can manage committee members"),
             ("can_manage_parents", "Can manage parents/guardians"),
         ]
-
-class Badge(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    description = models.TextField(blank=True)
-    requirements = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-
-    def __str__(self):
-        return self.name
-
-class UserBadge(models.Model):
-    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='user_badges')
-    badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='user_badges')
-    date_awarded = models.DateField(null=True, blank=True)
-    percent_complete = models.PositiveIntegerField(default=0)
-    notes = models.TextField(blank=True)
-    awarded = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = ('user', 'badge')
-
-    def __str__(self):
-        return f"{self.user.get_full_name()} - {self.badge.name}"

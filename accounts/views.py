@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm
 from .teacher_forms import TeacherRegisterForm
-from .models import User, Group, Badge, UserBadge, RegistrationPayment
+from .models import User, Group, RegistrationPayment
 from django.contrib.auth.hashers import make_password
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
@@ -601,14 +601,11 @@ def member_detail(request, pk):
     
     balance = total_paid - total_dues
     
-    # Badge progress for this member
-    user_badges = user.user_badges.select_related('badge').all().order_by('-awarded', '-percent_complete', 'badge__name')
     return render(request, 'accounts/member_detail.html', {
         'member': user,
         'total_paid': total_paid,
         'total_dues': total_dues,
         'balance': balance,
-        'user_badges': user_badges,
         'registration_status': user.registration_status,
         'registration_payments': registration_payments_total,
         'registration_dues': registration_dues,
@@ -685,14 +682,12 @@ def profile_view(request):
     profile_incomplete = bool(incomplete_fields)
     # Attendance history
     attendance_history = Attendance.objects.filter(user=user).select_related('event').order_by('-event__date')
-    # Badge progress
-    user_badges = user.user_badges.select_related('badge').all().order_by('-awarded', '-percent_complete', 'badge__name')
+    
     return render(request, 'accounts/profile.html', {
         'user': user,
         'profile_incomplete': profile_incomplete,
         'incomplete_fields': incomplete_fields,
         'attendance_history': attendance_history,
-        'user_badges': user_badges,
     })
 
 @admin_required
@@ -887,13 +882,6 @@ def quick_announcement(request):
                     except Exception as e:
                         print("[DEBUG] Failed to send email to " + str(user.email) + ": " + str(e))
                 
-                # Send SMS if enabled and available
-                if send_sms and hasattr(user, 'phone_number') and user.phone_number:
-                    try:
-                        sms_msg = "[ScoutConnect] " + str(announcement.title) + ": " + str(announcement.message[:100]) + "..."
-                        NotificationService.send_sms(user.phone_number, sms_msg)
-                    except Exception as e:
-                        print("[DEBUG] Failed to send SMS to " + str(user.phone_number) + ": " + str(e))
             print("[DEBUG] Announcement process complete. Title: " + str(announcement.title))
             messages.success(request, 'Announcement "' + str(announcement.title) + '" created and sent to ' + str(len(target_users)) + ' recipients.')
             
@@ -906,36 +894,6 @@ def quick_announcement(request):
     else:
         print("[DEBUG] Not a POST request, redirecting to admin dashboard")
     return redirect('accounts:admin_dashboard')
-
-@admin_required
-def badge_list(request):
-    badges = Badge.objects.all().order_by('name')
-    return render(request, 'accounts/badge_list.html', {'badges': badges})
-
-@admin_required
-def badge_manage(request, pk):
-    badge = Badge.objects.get(pk=pk)
-    scouts = User.objects.filter(role='scout').order_by('last_name', 'first_name')
-    # Get or create UserBadge for each scout
-    user_badges = [UserBadge.objects.get_or_create(user=scout, badge=badge)[0] for scout in scouts]
-    if request.method == 'POST':
-        for user_badge in user_badges:
-            prefix = 'scout_' + str(user_badge.user.id) + '_'
-            awarded = request.POST.get(prefix + 'awarded') == 'on'
-            percent = request.POST.get(prefix + 'percent', '0')
-            notes = request.POST.get(prefix + 'notes', '')
-            date_awarded = request.POST.get(prefix + 'date_awarded', '')
-            user_badge.awarded = awarded
-            user_badge.percent_complete = int(percent) if percent.isdigit() else 0
-            user_badge.notes = notes
-            user_badge.date_awarded = date_awarded if date_awarded else None
-            user_badge.save()
-        messages.success(request, 'Badge assignments and progress updated.')
-        return redirect('accounts:badge_manage', pk=badge.pk)
-    return render(request, 'accounts/badge_manage.html', {
-        'badge': badge,
-        'user_badges': user_badges,
-    })
 
 def registration_payment(request, user_id):
     """View for users to submit registration payment receipt"""
