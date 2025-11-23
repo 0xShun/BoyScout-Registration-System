@@ -653,7 +653,7 @@ def profile_edit(request):
         if getattr(settings, 'TESTING', False) and not post_data.get('role'):
             post_data['role'] = getattr(user, 'role', '')
 
-        form = UserEditForm(post_data, instance=user, user=request.user)
+        form = UserEditForm(post_data, request.FILES, instance=user, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully.')

@@ -118,7 +118,7 @@ class UserEditForm(forms.ModelForm):
         fields = [
             'username', 'email', 'first_name', 'last_name', 'role',
             'date_of_birth', 'phone_number', 'address', 'emergency_contact',
-            'emergency_phone', 'medical_conditions', 'allergies'
+            'emergency_phone', 'medical_conditions', 'allergies', 'profile_image'
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),

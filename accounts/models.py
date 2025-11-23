@@ -145,6 +145,7 @@ class User(AbstractUser):
     emergency_phone = PhoneNumberField(blank=True, region="PH")
     medical_conditions = models.TextField(blank=True)
     allergies = models.TextField(blank=True)
+    profile_image = models.ImageField(upload_to='profile_images/', null=True, blank=True, verbose_name="Profile Picture")
     date_joined = models.DateTimeField(auto_now_add=True)
     registration_date = models.DateTimeField(null=True, blank=True)
     membership_expiry = models.DateTimeField(null=True, blank=True)
