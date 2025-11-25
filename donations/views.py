@@ -155,19 +155,32 @@ def donation_payment(request, donation_id):
             
             logger.info(f"Creating PayMongo source for donation {donation.id}, amount=P{donation.amount}")
             
-            source_response = paymongo.create_source(
+            # Build redirect URLs
+            from django.urls import reverse
+            success_url = request.build_absolute_uri(reverse('donations:donation_history'))
+            failed_url = request.build_absolute_uri(reverse('donations:campaign_detail', args=[donation.campaign.pk]))
+            
+            success, source_response = paymongo.create_source(
                 amount=float(donation.amount),
-                description=f"Donation to {donation.campaign.title}"
+                description=f"Donation to {donation.campaign.title}",
+                redirect_success=success_url,
+                redirect_failed=failed_url,
+                metadata={
+                    'donation_id': str(donation.id),
+                    'campaign_id': str(donation.campaign.id),
+                    'user_id': str(request.user.id)
+                }
             )
             
-            if source_response:
-                donation.paymongo_source_id = source_response.get('id')
+            if success and source_response:
+                source_data = source_response.get('data', {})
+                donation.paymongo_source_id = source_data.get('id')
                 donation.gateway_response = source_response
                 donation.save()
                 logger.info(f"PayMongo source created: {donation.paymongo_source_id}")
             else:
-                logger.error("PayMongo source creation returned None")
-                messages.error(request, "Failed to generate payment QR code. Please try again.")
+                logger.error(f"PayMongo source creation failed: {source_response}")
+                messages.error(request, "Failed to generate payment link. Please try again.")
                 return redirect('donations:campaign_detail', pk=donation.campaign.pk)
         except Exception as e:
             logger.error(f"Error creating PayMongo source: {str(e)}")

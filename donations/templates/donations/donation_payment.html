@@ -152,8 +152,8 @@
     <div class="payment-card">
       <!-- Header -->
       <div class="payment-header">
-        <h2><i class="fas fa-qrcode"></i> Complete Your Donation</h2>
-        <p class="text-muted mb-0">Scan the QR code below with your GCash app</p>
+        <h2><i class="fas fa-credit-card"></i> Complete Your Donation</h2>
+        <p class="text-muted mb-0">Click the button below to pay with GCash via PayMongo</p>
       </div>
       
       <!-- Campaign Info -->
@@ -188,24 +188,27 @@
       
       <!-- QR Code Section -->
       <div class="qr-code-section">
-        <h5 class="mb-3">Scan with GCash</h5>
+        <h5 class="mb-3">Complete Payment with GCash</h5>
         
-        <div class="qr-code-placeholder">
-          {% if donation.gateway_response %}
-            <!-- Display QR code from PayMongo -->
-            <img src="{{ donation.gateway_response.attributes.data.attributes.checkout_url }}" 
-                 alt="Payment QR Code" 
-                 style="max-width: 100%; max-height: 100%;">
-          {% else %}
-            <div class="text-center text-muted">
-              <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
-              <p>Generating QR code...</p>
-            </div>
-          {% endif %}
-        </div>
+        {% if donation.gateway_response.data.attributes.redirect.checkout_url %}
+          <div class="text-center mb-4">
+            <a href="{{ donation.gateway_response.data.attributes.redirect.checkout_url }}" 
+               class="btn btn-lg btn-primary">
+              <i class="fab fa-google-pay"></i> Pay with GCash
+            </a>
+            <p class="mt-3 text-muted">
+              <small>You will be redirected to secure PayMongo checkout</small>
+            </p>
+          </div>
+        {% else %}
+          <div class="text-center text-muted">
+            <i class="fas fa-spinner fa-spin fa-3x mb-3"></i>
+            <p>Generating payment link...</p>
+          </div>
+        {% endif %}
         
-        <p class="mt-3 mb-0 text-muted">
-          <small><i class="fas fa-info-circle"></i> QR code will expire in 30 minutes</small>
+        <p class="mt-3 mb-0 text-muted text-center">
+          <small><i class="fas fa-info-circle"></i> Payment link will expire in 30 minutes</small>
         </p>
       </div>
       
@@ -216,32 +219,32 @@
         <div class="instruction-step">
           <div class="step-number">1</div>
           <div class="step-content">
-            <strong>Open GCash App</strong>
-            <p class="mb-0 text-muted small">Launch your GCash mobile application</p>
+            <strong>Click "Pay with GCash"</strong>
+            <p class="mb-0 text-muted small">Click the button above to proceed to PayMongo checkout</p>
           </div>
         </div>
         
         <div class="instruction-step">
           <div class="step-number">2</div>
           <div class="step-content">
-            <strong>Scan QR Code</strong>
-            <p class="mb-0 text-muted small">Use the QR scanner in your GCash app to scan the code above</p>
+            <strong>Login to GCash</strong>
+            <p class="mb-0 text-muted small">You'll be redirected to PayMongo where you can pay using GCash</p>
           </div>
         </div>
         
         <div class="instruction-step">
           <div class="step-number">3</div>
           <div class="step-content">
-            <strong>Confirm Payment</strong>
-            <p class="mb-0 text-muted small">Enter the amount (₱{{ donation.amount|floatformat:2 }}) and confirm the payment</p>
+            <strong>Authorize Payment</strong>
+            <p class="mb-0 text-muted small">Confirm the amount (₱{{ donation.amount|floatformat:2 }}) and complete the payment</p>
           </div>
         </div>
         
         <div class="instruction-step">
           <div class="step-number">4</div>
           <div class="step-content">
-            <strong>Wait for Confirmation</strong>
-            <p class="mb-0 text-muted small">You'll receive a notification once your donation is verified</p>
+            <strong>Automatic Verification</strong>
+            <p class="mb-0 text-muted small">Your donation will be automatically verified and added to the campaign</p>
           </div>
         </div>
       </div>
