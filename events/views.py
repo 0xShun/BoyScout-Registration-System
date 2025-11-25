@@ -555,8 +555,19 @@ def verify_attendance(request):
         from .models import AttendanceQRCode
         qr = AttendanceQRCode.objects.filter(token=token, active=True).first()
 
-        if not qr or not qr.is_valid:
-            return JsonResponse({'success': False, 'error': 'invalid_or_expired_token'}, status=400)
+        if not qr:
+            return JsonResponse({
+                'success': False, 
+                'error': 'QR code not found or has been deactivated. Please contact the event organizer.',
+                'error_code': 'qr_not_found'
+            }, status=400)
+        
+        if not qr.is_valid:
+            return JsonResponse({
+                'success': False, 
+                'error': 'This QR code has expired. Please ask the event organizer to generate a new QR code.',
+                'error_code': 'qr_expired'
+            }, status=400)
 
         event = qr.event
 
@@ -564,7 +575,21 @@ def verify_attendance(request):
         reg_qs = EventRegistration.objects.filter(event=event, user=request.user, payment_status='paid')
         reg = reg_qs.first()
         if not reg:
-            return JsonResponse({'success': False, 'error': 'registration_not_paid_or_missing'}, status=403)
+            # Check if registration exists but not paid
+            unpaid_reg = EventRegistration.objects.filter(event=event, user=request.user).first()
+            if unpaid_reg:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'Your registration for "{event.title}" is not yet paid. Please complete your payment before marking attendance.',
+                    'error_code': 'registration_not_paid',
+                    'payment_status': unpaid_reg.payment_status
+                }, status=403)
+            else:
+                return JsonResponse({
+                    'success': False, 
+                    'error': f'You are not registered for "{event.title}". Please register first before marking attendance.',
+                    'error_code': 'not_registered'
+                }, status=403)
 
         # Check if attendance already recorded
         existing = Attendance.objects.filter(event=event, user=request.user).first()
@@ -574,15 +599,21 @@ def verify_attendance(request):
         attendance = Attendance.objects.create(event=event, user=request.user, status='present', marked_by=request.user)
 
         # Generate certificate automatically
+        certificate_generated = False
+        certificate_message = None
         try:
             from .services.certificate_service import generate_certificate
             certificate = generate_certificate(attendance)
             if certificate:
                 logger.info(f"Certificate generated for {request.user.get_full_name()}: {certificate.certificate_number}")
+                certificate_generated = True
+                certificate_message = "Certificate generated successfully!"
             else:
                 logger.warning(f"Certificate generation skipped for {request.user.get_full_name()} (no template)")
-        except Exception:
+                certificate_message = "Attendance marked! Note: Certificate template not configured for this event."
+        except Exception as e:
             logger.exception('Certificate generation failed - attendance still marked')
+            certificate_message = "Attendance marked! Certificate generation failed - please contact admin."
             # Don't break attendance marking if certificate fails
 
         # Broadcast via Channels group
@@ -609,7 +640,12 @@ def verify_attendance(request):
         except Exception:
             logger.exception('Failed to send fallback realtime notification')
 
-        return JsonResponse({'success': True, 'timestamp': attendance.timestamp.isoformat()})
+        return JsonResponse({
+            'success': True, 
+            'timestamp': attendance.timestamp.isoformat(),
+            'certificate_generated': certificate_generated,
+            'message': certificate_message or 'Attendance marked successfully!'
+        })
 
     except Exception:
         logger.exception('Attendance verification failed')
