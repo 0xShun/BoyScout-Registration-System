@@ -882,8 +882,63 @@ This is an automated confirmation email. Please do not reply to this email.
                     except Exception:
                         logger.exception('Failed to mark WebhookLog processed for event')
                     return
+            
+            # Handle donation payment without metadata (try to find by source_id)
         except Exception:
             logger.exception('Auto-finalization on source.chargeable failed; continuing with normal processing')
+        
+        # Try to find donation by source_id (no metadata required)
+        try:
+            from donations.models import Donation
+            donation = Donation.objects.filter(paymongo_source_id=source_id, status='pending').first()
+            if donation:
+                logger.info(f'💰 Found donation {donation.id} for source {source_id}, finalizing...')
+                
+                # Mark as verified
+                donation.status = 'verified'
+                donation.verified_at = timezone.now()
+                donation.save()
+                
+                # Update campaign's current_amount
+                campaign = donation.campaign
+                goal_just_reached = campaign.update_current_amount()
+                
+                logger.info(f"✅ Donation {donation.id} verified via webhook | Campaign '{campaign.title}' now at ₱{campaign.current_amount}")
+                
+                if goal_just_reached:
+                    logger.info(f"🎯 Campaign '{campaign.title}' just reached its goal!")
+                
+                # Send notification to donor
+                try:
+                    from donations.services import send_donation_verified_notification
+                    send_donation_verified_notification(donation)
+                except Exception as e:
+                    logger.error(f"Failed to send donation notification: {str(e)}")
+                
+                # Notify admins
+                from accounts.models import User
+                admin_users = User.objects.filter(role='admin', is_active=True)
+                for admin in admin_users:
+                    try:
+                        from notifications.services import send_realtime_notification
+                        send_realtime_notification(
+                            user_id=admin.id,
+                            message=f'New donation: ₱{donation.amount} to {campaign.title} from {donation.user.get_full_name()}',
+                            notification_type='donation_received'
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to notify admin {admin.id}: {str(e)}")
+                
+                # Mark webhook as processed
+                try:
+                    from .models import WebhookLog
+                    WebhookLog.objects.filter(body__contains=source_id, processed=False).update(processed=True)
+                except Exception:
+                    logger.exception('Failed to mark WebhookLog processed for donation')
+                
+                return
+        except Exception:
+            logger.exception('Failed to process donation in webhook')
         
         # Find payment by source_id (check both Payment and RegistrationPayment)
         payment = Payment.objects.filter(

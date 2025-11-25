@@ -502,27 +502,56 @@ def donation_webhook(request):
         
         if event_type == 'source.chargeable':
             # Payment is ready to be charged
-            source_id = payload['data']['attributes']['data']['id']
+            source_data = payload['data']['attributes']['data']
+            source_id = source_data['id']
+            source_attrs = source_data.get('attributes', {})
+            source_amount_centavos = source_attrs.get('amount', 0)
+            source_amount = Decimal(str(source_amount_centavos / 100.0))
+            
+            logger.info(f"💰 [DONATION WEBHOOK] source.chargeable: {source_id} | Amount: ₱{source_amount}")
             
             # Find donation with this source_id
             try:
                 donation = Donation.objects.get(paymongo_source_id=source_id)
                 
-                # Mark as verified
+                # Mark as verified and set verified timestamp
                 donation.status = 'verified'
                 donation.verified_at = timezone.now()
                 donation.save()
                 
-                # Send notification
+                # Update campaign's current_amount from verified donations
+                campaign = donation.campaign
+                goal_just_reached = campaign.update_current_amount()
+                
+                logger.info(f"✅ Donation {donation.id} verified | Campaign '{campaign.title}' now at ₱{campaign.current_amount}/{campaign.goal_amount or 'No Goal'}")
+                
+                if goal_just_reached:
+                    logger.info(f"🎯 Campaign '{campaign.title}' just reached its goal!")
+                
+                # Send notification to donor
                 send_donation_verified_notification(donation)
                 
-                logger.info(f"Donation {donation.id} verified via webhook")
+                # Send notification to admins
+                from accounts.models import User
+                admin_users = User.objects.filter(role='admin', is_active=True)
+                for admin in admin_users:
+                    try:
+                        from notifications.services import send_realtime_notification
+                        send_realtime_notification(
+                            user_id=admin.id,
+                            message=f'New donation: ₱{donation.amount} to {campaign.title} from {donation.user.get_full_name()}',
+                            notification_type='donation_received'
+                        )
+                    except Exception as e:
+                        logger.error(f"Failed to notify admin {admin.id}: {str(e)}")
                 
             except Donation.DoesNotExist:
-                logger.warning(f"Donation not found for source_id: {source_id}")
+                logger.warning(f"❌ Donation not found for source_id: {source_id}")
         
         return JsonResponse({'status': 'success'})
         
     except Exception as e:
         logger.error(f"Webhook error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
