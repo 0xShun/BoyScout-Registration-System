@@ -223,12 +223,16 @@
             
             <div class="col-md-2 text-end">
               {% if donation.status == 'pending' %}
-                <a href="{% url 'donations:donation_payment' donation.id %}" class="btn btn-sm btn-primary">
-                  <i class="fas fa-qrcode"></i> View QR
+                <a href="{% url 'donations:donation_payment' donation.id %}" class="btn btn-sm btn-warning">
+                  <i class="fas fa-credit-card"></i> Complete Payment
+                </a>
+              {% elif donation.status == 'verified' %}
+                <a href="{% url 'donations:campaign_detail' donation.campaign.pk %}" class="btn btn-sm btn-outline-success">
+                  <i class="fas fa-eye"></i> View Campaign
                 </a>
               {% else %}
                 <a href="{% url 'donations:campaign_detail' donation.campaign.pk %}" class="btn btn-sm btn-outline-secondary">
-                  <i class="fas fa-eye"></i> View
+                  <i class="fas fa-eye"></i> View Campaign
                 </a>
               {% endif %}
             </div>
