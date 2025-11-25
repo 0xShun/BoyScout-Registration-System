@@ -206,10 +206,19 @@ def donation_history(request):
         user=request.user
     ).select_related('campaign').order_by('-created_at')
     
-    # Calculate total donated
-    total_donated = donations.filter(status='verified').aggregate(
+    # Calculate stats for verified donations only
+    verified_donations = donations.filter(status='verified')
+    
+    # Total amount donated
+    total_donated = verified_donations.aggregate(
         total=Sum('amount')
     )['total'] or Decimal('0.00')
+    
+    # Total number of donations (verified only)
+    total_donations_count = verified_donations.count()
+    
+    # Number of unique campaigns supported (verified donations only)
+    campaigns_supported_count = verified_donations.values('campaign').distinct().count()
     
     # Pagination
     paginator = Paginator(donations, 20)
@@ -219,6 +228,8 @@ def donation_history(request):
     context = {
         'donations': page_obj,
         'total_donated': total_donated,
+        'total_donations_count': total_donations_count,
+        'campaigns_supported_count': campaigns_supported_count,
     }
     
     return render(request, 'donations/donation_history.html', context)
