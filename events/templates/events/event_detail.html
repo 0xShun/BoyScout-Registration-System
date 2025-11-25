@@ -848,12 +848,24 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+<!-- QR Code Scanner Library - with fallback -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" 
+        onerror="this.onerror=null; this.src='https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js'">
+</script>
 <script>
 // Simple modal and scanner logic for student attendance scanning
 document.addEventListener('DOMContentLoaded', function() {
   const openBtn = document.getElementById('open-scanner-btn');
   if (!openBtn) return; // not a paid/registered student
+
+  // Check if library loaded
+  if (typeof Html5Qrcode === 'undefined') {
+    console.error('Html5Qrcode library failed to load');
+    openBtn.addEventListener('click', function() {
+      alert('QR Scanner library failed to load. Please refresh the page and try again.');
+    });
+    return;
+  }
 
   // Create modal markup
   const modal = document.createElement('div');
