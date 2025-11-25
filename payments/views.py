@@ -749,7 +749,7 @@ You can now log in to access all features including:
 ✓ Announcements and notifications
 ✓ Your personal dashboard
 
-Login here: {request.build_absolute_uri('/accounts/login/')}
+Login here: https://scoutconnect.pythonanywhere.com/accounts/login/
 
 Thank you for joining ScoutConnect!
 

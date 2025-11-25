@@ -202,7 +202,7 @@ def scout_dashboard(request):
     profile_incomplete = bool(incomplete_fields)
     
     # Calculate profile completion percentage
-    total_fields = 8  # first_name, last_name, email, phone, address, emergency_contact, emergency_phone, scout_rank
+    total_fields = 7  # first_name, last_name, email, phone, address, emergency_contact, emergency_phone
     completed_fields = 3  # email, first_name, last_name are required
     if user.phone_number:
         completed_fields += 1
@@ -212,8 +212,7 @@ def scout_dashboard(request):
         completed_fields += 1
     if user.emergency_phone:
         completed_fields += 1
-    if user.scout_rank:
-        completed_fields += 1
+    # scout_rank field was removed - no longer counted
     profile_completion = int((completed_fields / total_fields) * 100)
     
     # Registration payment progress
