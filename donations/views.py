@@ -119,6 +119,8 @@ def initiate_donation(request, pk):
             donation.status = 'pending'
             donation.save()
             
+            logger.info(f"Donation created: ID={donation.id}, User={request.user.email}, Campaign={campaign.title}, Amount=P{donation.amount}")
+            
             messages.success(request, "Donation initiated! You will be redirected to the payment page.")
             return redirect('donations:donation_payment', donation_id=donation.id)
                 
@@ -151,6 +153,8 @@ def donation_payment(request, donation_id):
             from payments.services.paymongo_service import PayMongoService
             paymongo = PayMongoService()
             
+            logger.info(f"Creating PayMongo source for donation {donation.id}, amount=P{donation.amount}")
+            
             source_response = paymongo.create_source(
                 amount=float(donation.amount),
                 description=f"Donation to {donation.campaign.title}"
@@ -160,8 +164,15 @@ def donation_payment(request, donation_id):
                 donation.paymongo_source_id = source_response.get('id')
                 donation.gateway_response = source_response
                 donation.save()
+                logger.info(f"PayMongo source created: {donation.paymongo_source_id}")
+            else:
+                logger.error("PayMongo source creation returned None")
+                messages.error(request, "Failed to generate payment QR code. Please try again.")
+                return redirect('donations:campaign_detail', pk=donation.campaign.pk)
         except Exception as e:
             logger.error(f"Error creating PayMongo source: {str(e)}")
+            import traceback
+            traceback.print_exc()
             messages.error(request, "Failed to generate payment QR code. Please try again.")
             return redirect('donations:campaign_detail', pk=donation.campaign.pk)
     
