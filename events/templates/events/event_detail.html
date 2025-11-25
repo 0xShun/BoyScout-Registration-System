@@ -895,7 +895,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   openBtn.addEventListener('click', function() {
     modal.style.display = 'flex';
-    qrFeedback.textContent = 'Starting camera...';
+    qrFeedback.textContent = 'Requesting camera access...';
+    qrFeedback.style.color = '#374151';
 
     scanner = new Html5Qrcode(/* element id */ 'qr-reader');
     const config = { fps: 10, qrbox: { width: 250, height: 250 } };
@@ -942,12 +943,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       },
       (errorMessage) => {
-        // optional failure callback
+        // optional failure callback - ignore scan errors
       }
     ).catch(err => {
       qrFeedback.style.color = '#dc2626';
-      qrFeedback.textContent = 'Unable to start camera. Make sure permission is granted.';
-      console.error(err);
+      console.error('Camera error:', err);
+      
+      // Provide specific error messages based on error type
+      let errorMsg = 'Unable to access camera. ';
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        errorMsg += 'Please allow camera permission in your browser settings.';
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        errorMsg += 'No camera found on this device.';
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        errorMsg += 'Camera is being used by another app. Please close other camera apps.';
+      } else if (err.name === 'OverconstrainedError') {
+        errorMsg += 'Camera does not meet requirements.';
+      } else if (err.name === 'NotSupportedError') {
+        errorMsg += 'Camera access is not supported in this browser.';
+      } else {
+        errorMsg += 'Error: ' + (err.message || 'Unknown error');
+      }
+      
+      qrFeedback.innerHTML = errorMsg + '<br><br><small>Try:</small><br>' +
+        '<small>• Allow camera permission when prompted</small><br>' +
+        '<small>• Use HTTPS (camera requires secure connection)</small><br>' +
+        '<small>• Try a different browser (Chrome/Firefox recommended)</small>';
+      
+      showTopAlert('Camera access failed', 'error');
     });
   });
 
