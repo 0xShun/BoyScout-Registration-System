@@ -279,3 +279,89 @@ def generate_certificate(attendance: Attendance) -> Optional[EventCertificate]:
         logger.exception(f"Certificate generation failed for attendance {attendance.id}: {e}")
         # Return None instead of raising - we don't want to break attendance marking
         return None
+
+
+def generate_certificate_image(template: 'CertificateTemplate', data: dict) -> Image.Image:
+    """
+    Generate a certificate image from template and data dictionary.
+    Used for preview functionality without creating database records.
+
+    Args:
+        template: CertificateTemplate instance
+        data: Dictionary containing:
+            - scout_name: Student/scout full name
+            - event_name: Event title
+            - event_date: Event date (formatted string)
+            - certificate_number: Certificate number
+
+    Returns:
+        PIL Image object
+
+    Raises:
+        Exception: If image generation fails
+    """
+    try:
+        # Load base template image
+        if not template.template_image:
+            raise ValueError("Template image not found")
+
+        base_image = Image.open(template.template_image.path).convert('RGBA')
+        draw = ImageDraw.Draw(base_image)
+
+        # Extract data
+        scout_name = data.get('scout_name', 'N/A')
+        event_name = data.get('event_name', 'N/A')
+        event_date = data.get('event_date', 'N/A')
+        cert_number = data.get('certificate_number', 'N/A')
+
+        # Draw Event Name (center-top)
+        event_font = get_font(template.event_font_size)
+        event_color = hex_to_rgb(template.event_color)
+        draw_centered_text(
+            draw,
+            event_name,
+            (template.event_x, template.event_y),
+            event_font,
+            event_color,
+            max_width=base_image.width - 100
+        )
+
+        # Draw Scout Name (center-middle)
+        name_font = get_font(template.name_font_size)
+        name_color = hex_to_rgb(template.name_color)
+        draw_centered_text(
+            draw,
+            scout_name,
+            (template.name_x, template.name_y),
+            name_font,
+            name_color,
+            max_width=base_image.width - 100
+        )
+
+        # Draw Date (top-right) - right-aligned
+        date_font = get_font(template.date_font_size)
+        date_color = hex_to_rgb(template.date_color)
+        bbox = draw.textbbox((0, 0), event_date, font=date_font)
+        text_width = bbox[2] - bbox[0]
+        draw.text(
+            (template.date_x - text_width, template.date_y),
+            event_date,
+            font=date_font,
+            fill=date_color
+        )
+
+        # Draw Certificate Number (top-left) - left-aligned
+        cert_num_font = get_font(template.certificate_number_font_size)
+        cert_num_color = hex_to_rgb(template.certificate_number_color)
+        draw.text(
+            (template.certificate_number_x, template.certificate_number_y),
+            cert_number,
+            font=cert_num_font,
+            fill=cert_num_color
+        )
+
+        return base_image
+
+    except Exception as e:
+        logger.exception(f"Certificate image generation failed: {e}")
+        raise

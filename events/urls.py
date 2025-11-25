@@ -28,6 +28,10 @@ urlpatterns = [
     path('certificates/my/', views.my_certificates, name='my_certificates'),
     path('certificate/<int:certificate_id>/download/', views.certificate_download, name='certificate_download'),
     path('certificate/<int:certificate_id>/preview/', views.certificate_preview, name='certificate_preview'),
+    # Certificate template management (admin only)
+    path('<int:pk>/certificate-template/upload/', views.upload_certificate_template, name='upload_certificate_template'),
+    path('<int:pk>/certificate-template/preview/', views.preview_certificate_template, name='preview_certificate_template'),
+    path('<int:pk>/certificate-template/delete/', views.delete_certificate_template, name='delete_certificate_template'),
     # Payment report route
     path('<int:pk>/payment-report/', views.event_payment_report, name='event_payment_report'),
 ] 

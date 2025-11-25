@@ -396,6 +396,14 @@ def event_detail(request, pk):
         attendance_map = {}
 
     # render logged at debug level when needed
+    # Get certificate template if exists
+    certificate_template = None
+    try:
+        from .models import CertificateTemplate
+        certificate_template = CertificateTemplate.objects.filter(event=event).first()
+    except Exception as e:
+        logger.exception(f'Failed to fetch certificate template: {e}')
+    
     return render(request, 'events/event_detail.html', {
         'event': event,
         'photos': photos,
@@ -411,7 +419,174 @@ def event_detail(request, pk):
         'qr_data_uri': qr_data_uri,
         'active_qr': active_qr,
         'public_qr_signed_url': locals().get('public_qr_signed_url', None),
+        'certificate_template': certificate_template,
     })
+
+@admin_required
+def upload_certificate_template(request, pk):
+    """
+    Upload or update certificate template for an event.
+    Admin-only view that handles template image upload with preset positions.
+    """
+    event = get_object_or_404(Event, pk=pk)
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('events:event_detail', pk=pk)
+    
+    # Check if file was uploaded
+    if 'template_image' not in request.FILES:
+        messages.error(request, 'Please select an image file to upload.')
+        return redirect('events:event_detail', pk=pk)
+    
+    template_file = request.FILES['template_image']
+    
+    # Validate file type
+    allowed_types = ['image/png', 'image/jpeg', 'image/jpg']
+    if template_file.content_type not in allowed_types:
+        messages.error(request, 'Invalid file type. Please upload PNG or JPEG image only.')
+        return redirect('events:event_detail', pk=pk)
+    
+    # Validate file size (20MB max)
+    max_size = 20 * 1024 * 1024  # 20MB in bytes
+    if template_file.size > max_size:
+        messages.error(request, 'File too large. Maximum size is 20MB.')
+        return redirect('events:event_detail', pk=pk)
+    
+    try:
+        from .models import CertificateTemplate
+        
+        # Preset positions based on requirements:
+        # Event Name: Center-top (X: 960, Y: 200)
+        # Scout Name: Center-middle (X: 960, Y: 540)
+        # Certificate Number: Top-left (X: 100, Y: 50)
+        # Date: Top-right (X: 1820, Y: 50)
+        
+        preset_config = {
+            'certificate_name': 'Certificate of Participation',
+            # Scout Name - Center-middle
+            'name_x': 960,
+            'name_y': 540,
+            'name_font_size': 48,
+            'name_color': '#000000',
+            # Event Name - Center-top
+            'event_x': 960,
+            'event_y': 200,
+            'event_font_size': 40,
+            'event_color': '#1e3a8a',
+            # Date - Top-right
+            'date_x': 1820,
+            'date_y': 50,
+            'date_font_size': 24,
+            'date_color': '#666666',
+            # Certificate Number - Top-left
+            'certificate_number_x': 100,
+            'certificate_number_y': 50,
+            'certificate_number_font_size': 20,
+            'certificate_number_color': '#999999',
+        }
+        
+        # Check if template already exists (update) or create new
+        template, created = CertificateTemplate.objects.get_or_create(
+            event=event,
+            defaults={
+                'template_image': template_file,
+                'created_by': request.user,
+                **preset_config
+            }
+        )
+        
+        if not created:
+            # Update existing template
+            template.template_image = template_file
+            template.updated_at = timezone.now()
+            # Update preset config
+            for key, value in preset_config.items():
+                setattr(template, key, value)
+            template.save()
+            messages.success(request, 'Certificate template updated successfully!')
+        else:
+            messages.success(request, 'Certificate template uploaded successfully!')
+        
+        logger.info(f'Certificate template {"updated" if not created else "created"} for event {event.id} by {request.user.username}')
+        
+    except Exception as e:
+        logger.exception(f'Failed to upload certificate template: {e}')
+        messages.error(request, 'An error occurred while uploading the template. Please try again.')
+    
+    return redirect('events:event_detail', pk=pk)
+
+@admin_required
+def preview_certificate_template(request, pk):
+    """
+    Generate and display a preview certificate with dummy data.
+    Opens in a new browser tab/window.
+    """
+    event = get_object_or_404(Event, pk=pk)
+    
+    try:
+        from .models import CertificateTemplate, Attendance
+        from .services.certificate_service import generate_certificate_image
+        
+        # Get template
+        template = CertificateTemplate.objects.filter(event=event).first()
+        if not template:
+            messages.error(request, 'No certificate template found for this event.')
+            return redirect('events:event_detail', pk=pk)
+        
+        # Create dummy data for preview
+        dummy_data = {
+            'scout_name': 'Juan Dela Cruz',
+            'event_name': event.title,
+            'event_date': event.date.strftime('%B %d, %Y') if event.date else 'TBD',
+            'certificate_number': 'CERT-PREVIEW-001',
+        }
+        
+        # Generate certificate image
+        cert_image = generate_certificate_image(template, dummy_data)
+        
+        # Return image as HTTP response
+        response = HttpResponse(content_type='image/png')
+        response['Content-Disposition'] = f'inline; filename="certificate_preview_{event.id}.png"'
+        cert_image.save(response, 'PNG')
+        
+        return response
+        
+    except Exception as e:
+        logger.exception(f'Failed to generate certificate preview: {e}')
+        messages.error(request, 'Failed to generate preview. Please check your template configuration.')
+        return redirect('events:event_detail', pk=pk)
+
+@admin_required
+def delete_certificate_template(request, pk):
+    """
+    Delete certificate template for an event.
+    Admin-only view.
+    """
+    event = get_object_or_404(Event, pk=pk)
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('events:event_detail', pk=pk)
+    
+    try:
+        from .models import CertificateTemplate
+        
+        template = CertificateTemplate.objects.filter(event=event).first()
+        if not template:
+            messages.warning(request, 'No certificate template found to delete.')
+            return redirect('events:event_detail', pk=pk)
+        
+        # Delete the template (will also delete the image file)
+        template.delete()
+        messages.success(request, 'Certificate template deleted successfully.')
+        logger.info(f'Certificate template deleted for event {event.id} by {request.user.username}')
+        
+    except Exception as e:
+        logger.exception(f'Failed to delete certificate template: {e}')
+        messages.error(request, 'An error occurred while deleting the template.')
+    
+    return redirect('events:event_detail', pk=pk)
 
 @login_required
 def generate_attendance_qr(request, pk):
