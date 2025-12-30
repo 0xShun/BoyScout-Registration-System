@@ -26,7 +26,18 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-+a#&-n(nrg5%@tu^o!k(d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',') if os.environ.get('ALLOWED_HOSTS') else []
+# ALLOWED_HOSTS configuration with fallback
+ALLOWED_HOSTS = []
+if os.environ.get('ALLOWED_HOSTS'):
+    ALLOWED_HOSTS = [host.strip() for host in os.environ.get('ALLOWED_HOSTS').split(',') if host.strip()]
+else:
+    # Default allowed hosts for development and PythonAnywhere
+    ALLOWED_HOSTS = [
+        'localhost',
+        '127.0.0.1',
+        'scoutconnect.pythonanywhere.com',
+        'ScoutConnect.pythonanywhere.com',
+    ]
 
 
 # Application definition
