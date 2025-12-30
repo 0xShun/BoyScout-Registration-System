@@ -54,15 +54,8 @@ class User(AbstractUser):
 
     RANK_CHOICES = (
         ('admin', 'Administrator'),
+        ('teacher', 'Teacher'),
         ('scout', 'Scout'),
-        ('senior_scout', 'Senior Scout'),
-        ('patrol_leader', 'Patrol Leader'),
-        ('assistant_patrol_leader', 'Assistant Patrol Leader'),
-        ('second_class', 'Second Class'),
-        ('first_class', 'First Class'),
-        ('star', 'Star'),
-        ('life', 'Life'),
-        ('eagle', 'Eagle'),
     )
 
     REGISTRATION_STATUS_CHOICES = [
@@ -72,10 +65,25 @@ class User(AbstractUser):
         ('payment_verified', 'Registration Payment Verified'),
         ('active', 'Active Member'),
         ('inactive', 'Inactive'),
+        ('graduated', 'Graduated'),
+        ('suspended', 'Suspended'),
     ]
 
     rank = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout')
     verification_code = models.CharField(max_length=6, null=True, blank=True)
+    
+    # Teacher-Student Relationship
+    managed_by = models.ForeignKey(
+        'self', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='managed_students',
+        limit_choices_to={'rank': 'teacher'},
+        verbose_name="Managed by Teacher",
+        help_text="The teacher who manages this student account (if applicable)"
+    )
+    
     date_of_birth = models.DateField(null=True, blank=True)
     address = models.TextField(blank=True)
     phone_number = PhoneNumberField(blank=True, region="PH")
@@ -103,8 +111,15 @@ class User(AbstractUser):
     def is_admin(self):
         return self.rank == 'admin'
 
+    def is_teacher(self):
+        return self.rank == 'teacher'
+
     def is_scout(self):
         return self.rank == 'scout'
+    
+    def is_managed_student(self):
+        """Check if this user is a student managed by a teacher"""
+        return self.managed_by is not None
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}".strip() or self.username
@@ -127,6 +142,7 @@ class User(AbstractUser):
         # Admin users don't need payment verification
         if self.rank == 'admin':
             return True
+        # Teachers and scouts need to complete payment
         return self.registration_total_paid >= self.registration_amount_required
 
     @property
@@ -171,6 +187,7 @@ class User(AbstractUser):
             self.username = unique_username
         
         # Admin users are automatically active and don't need payment verification
+        # Teachers follow the same registration flow as scouts (pay fee, admin verifies)
         if self.rank == 'admin':
             self.is_active = True
             self.registration_status = 'active'

@@ -1,7 +1,10 @@
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .forms import UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm
+from .forms import (
+    UserRegisterForm, UserEditForm, CustomLoginForm, RoleManagementForm, GroupForm,
+    TeacherCreateStudentForm, TeacherEditStudentForm
+)
 from .models import User, Group, Badge, UserBadge
 from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
@@ -26,7 +29,13 @@ from analytics.models import AuditLog, AnalyticsEvent
 @login_required
 def admin_dashboard(request):
     if not request.user.is_admin():
-        return redirect('accounts:scout_dashboard')
+        # Redirect based on user role
+        if request.user.is_teacher():
+            return redirect('accounts:teacher_dashboard')
+        elif request.user.is_scout():
+            return redirect('accounts:scout_dashboard')
+        else:
+            return redirect('home')
     # Analytics
     member_count = User.objects.count()
     payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
@@ -136,7 +145,13 @@ def admin_dashboard(request):
 @login_required
 def scout_dashboard(request):
     if not request.user.is_scout():
-        return redirect('accounts:admin_dashboard')
+        # Redirect based on user role
+        if request.user.is_admin():
+            return redirect('accounts:admin_dashboard')
+        elif request.user.is_teacher():
+            return redirect('accounts:teacher_dashboard')
+        else:
+            return redirect('home')
     is_active_member = Payment.objects.filter(user=request.user, status='verified').exists()
     # Profile completeness check
     user = request.user
@@ -181,6 +196,222 @@ def scout_dashboard(request):
         'today': today,
     })
 
+@login_required
+def teacher_dashboard(request):
+    """Teacher dashboard view - shows students managed by this teacher"""
+    if not request.user.is_teacher():
+        # Redirect non-teachers to their appropriate dashboard
+        if request.user.is_admin():
+            return redirect('accounts:admin_dashboard')
+        else:
+            return redirect('accounts:scout_dashboard')
+    
+    user = request.user
+    
+    # Get all students managed by this teacher
+    managed_students = User.objects.filter(managed_by=user).select_related('managed_by')
+    
+    # Student statistics
+    total_students = managed_students.count()
+    active_students = managed_students.filter(registration_status__in=['active', 'payment_verified']).count()
+    inactive_students = managed_students.filter(registration_status='inactive').count()
+    graduated_students = managed_students.filter(registration_status='graduated').count()
+    suspended_students = managed_students.filter(registration_status='suspended').count()
+    
+    # Get upcoming events
+    from events.models import Event, EventRegistration
+    from django.utils import timezone
+    today = timezone.now().date()
+    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:5]
+    
+    # Get students registered for upcoming events
+    students_in_events = EventRegistration.objects.filter(
+        user__in=managed_students,
+        event__date__gte=today
+    ).select_related('user', 'event').order_by('event__date', 'event__time')[:10]
+    
+    # Get recent activity of managed students
+    from payments.models import Payment
+    recent_payments = Payment.objects.filter(
+        user__in=managed_students
+    ).select_related('user').order_by('-date')[:5]
+    
+    # Check teacher's own registration status
+    is_registration_complete = user.is_registration_complete
+    registration_payment_pending = user.registration_status == 'pending_payment'
+    
+    # Profile completeness check for teacher
+    incomplete_fields = []
+    if not user.phone_number:
+        incomplete_fields.append('Phone Number')
+    if not user.address:
+        incomplete_fields.append('Address')
+    if not user.emergency_contact:
+        incomplete_fields.append('Emergency Contact')
+    if not user.emergency_phone:
+        incomplete_fields.append('Emergency Phone')
+    profile_incomplete = bool(incomplete_fields)
+    
+    # Latest announcements
+    from announcements.models import Announcement
+    latest_announcements = Announcement.objects.order_by('-date_posted')[:3]
+    
+    return render(request, 'accounts/teacher_dashboard.html', {
+        'managed_students': managed_students,
+        'total_students': total_students,
+        'active_students': active_students,
+        'inactive_students': inactive_students,
+        'graduated_students': graduated_students,
+        'suspended_students': suspended_students,
+        'upcoming_events': upcoming_events,
+        'students_in_events': students_in_events,
+        'recent_payments': recent_payments,
+        'is_registration_complete': is_registration_complete,
+        'registration_payment_pending': registration_payment_pending,
+        'profile_incomplete': profile_incomplete,
+        'incomplete_fields': incomplete_fields,
+        'latest_announcements': latest_announcements,
+        'today': today,
+    })
+
+@login_required
+def teacher_create_student(request):
+    """Teacher creates a new student account"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can create student accounts.')
+        return redirect('home')
+    
+    if request.method == 'POST':
+        form = TeacherCreateStudentForm(request.POST, teacher=request.user)
+        if form.is_valid():
+            student = form.save()
+            
+            # Send welcome email to student with login credentials
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            try:
+                subject = 'Welcome to Boy Scout System - Your Account Details'
+                message = f"""
+Hello {student.get_full_name()},
+
+Your teacher, {request.user.get_full_name()}, has created an account for you in the Boy Scout System.
+
+Here are your login credentials:
+Email: {student.email}
+Username: {student.username}
+Password: (The password set by your teacher)
+
+You can now log in at: {request.build_absolute_uri('/accounts/login/')}
+
+If you have any questions, please contact your teacher.
+
+Best regards,
+Boy Scout System Team
+"""
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [student.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                messages.warning(request, f'Student created but email notification failed: {str(e)}')
+            
+            messages.success(request, f'Student {student.get_full_name()} created successfully! Welcome email sent.')
+            return redirect('accounts:teacher_student_list')
+    else:
+        form = TeacherCreateStudentForm(teacher=request.user)
+    
+    return render(request, 'accounts/teacher/create_student.html', {'form': form})
+
+@login_required
+def teacher_student_list(request):
+    """List all students managed by this teacher"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can view this page.')
+        return redirect('home')
+    
+    students = User.objects.filter(managed_by=request.user).order_by('last_name', 'first_name')
+    
+    # Filter by status if provided
+    status_filter = request.GET.get('status')
+    if status_filter:
+        students = students.filter(registration_status=status_filter)
+    
+    return render(request, 'accounts/teacher/student_list.html', {
+        'students': students,
+        'status_filter': status_filter,
+    })
+
+@login_required
+def teacher_edit_student(request, student_id):
+    """Teacher edits a student account they manage"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can edit student accounts.')
+        return redirect('home')
+    
+    student = get_object_or_404(User, id=student_id, managed_by=request.user)
+    
+    if request.method == 'POST':
+        form = TeacherEditStudentForm(request.POST, instance=student)
+        if form.is_valid():
+            updated_student = form.save()
+            
+            # Notify teacher if student updated their own profile
+            messages.success(request, f'Student {updated_student.get_full_name()} updated successfully!')
+            
+            # Send notification to student about profile update
+            try:
+                send_realtime_notification(
+                    student.id,
+                    f"Your teacher, {request.user.get_full_name()}, has updated your profile information.",
+                    type='profile_update'
+                )
+            except Exception as e:
+                # Don't fail the whole operation if notification fails
+                pass
+            
+            return redirect('accounts:teacher_student_list')
+        else:
+            # Show form errors
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        form = TeacherEditStudentForm(instance=student)
+    
+    return render(request, 'accounts/teacher/edit_student.html', {
+        'form': form,
+        'student': student,
+    })
+
+@login_required
+def teacher_student_detail(request, student_id):
+    """View detailed information about a student"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can view student details.')
+        return redirect('home')
+    
+    student = get_object_or_404(User, id=student_id, managed_by=request.user)
+    
+    # Get student's event registrations
+    from events.models import EventRegistration, Attendance
+    event_registrations = EventRegistration.objects.filter(user=student).select_related('event').order_by('-event__date')
+    
+    # Get student's attendance records
+    attendance_records = Attendance.objects.filter(user=student).select_related('event').order_by('-event__date')
+    
+    # Get student's payments
+    from payments.models import Payment
+    payments = Payment.objects.filter(user=student).order_by('-date')
+    
+    return render(request, 'accounts/teacher/student_detail.html', {
+        'student': student,
+        'event_registrations': event_registrations,
+        'attendance_records': attendance_records,
+        'payments': payments,
+    })
+
 def register(request):
     from django.db import models
     from payments.models import Payment
@@ -194,7 +425,7 @@ def register(request):
         if form.is_valid():
             # Create user but don't commit, so we can set flags
             user = form.save(commit=False)
-            user.rank = 'scout'
+            user.rank = form.cleaned_data.get('rank', 'scout')  # Use rank from form
             # Allow login but keep not verified; receipt submission marks as submitted
             user.is_active = True
             user.registration_status = 'payment_submitted'
@@ -395,10 +626,11 @@ def member_detail(request, pk):
     })
 
 @admin_required
+@admin_required
 def member_edit(request, pk):
     user = User.objects.get(pk=pk)
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=user)
+        form = UserEditForm(request.POST, request.FILES, instance=user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Member updated successfully.')
@@ -422,11 +654,11 @@ def member_delete(request, pk):
 def profile_edit(request):
     user = request.user
     if request.method == 'POST':
-        form = UserEditForm(request.POST, instance=user, user=request.user)
+        form = UserEditForm(request.POST, request.FILES, instance=user, user=request.user)
         if form.is_valid():
             form.save()
             messages.success(request, 'Profile updated successfully.')
-            return redirect('accounts:scout_dashboard' if user.is_scout() else 'accounts:admin_dashboard')
+            return redirect('accounts:profile')
         else:
             messages.error(request, 'There was an error updating your profile. Please check the form for details.')
     else:
@@ -561,6 +793,8 @@ class MyLoginView(LoginView):
         # Redirect based on user role after successful login
         if self.request.user.is_admin():
             return reverse_lazy('accounts:admin_dashboard')
+        elif self.request.user.is_teacher():
+            return reverse_lazy('accounts:teacher_dashboard')
         elif self.request.user.is_scout():
             return reverse_lazy('accounts:scout_dashboard')
         else:
@@ -906,4 +1140,142 @@ def pending_registrations(request):
     
     return render(request, 'accounts/pending_registrations.html', {
         'pending_users': pending_users,
+    })
+
+
+# ============================================
+# Admin Teacher Management Views
+# ============================================
+
+@admin_required
+def admin_create_teacher(request):
+    """Admin creates a new teacher account directly"""
+    from .forms import AdminCreateTeacherForm
+    
+    if request.method == 'POST':
+        form = AdminCreateTeacherForm(request.POST)
+        if form.is_valid():
+            teacher = form.save()
+            
+            # Send welcome email to teacher with login credentials and payment instructions
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            try:
+                subject = 'Welcome to Boy Scout System - Teacher Account Created'
+                message = f"""
+Hello {teacher.get_full_name()},
+
+An administrator has created a teacher account for you in the Boy Scout System.
+
+Here are your login credentials:
+Email: {teacher.email}
+Username: {teacher.username}
+Password: (The password set by the administrator)
+
+IMPORTANT: To activate your account, you need to complete your registration payment of ₱500.00.
+
+Please follow these steps:
+1. Log in at: {request.build_absolute_uri('/accounts/login/')}
+2. Go to your Teacher Dashboard
+3. Navigate to "My Payments" tab
+4. Submit your registration payment with proof of payment (GCash receipt)
+5. Wait for admin verification
+
+Once your payment is verified, you will be able to:
+- Create and manage student accounts
+- Register students for events
+- Mark attendance for your students
+- Submit payments on behalf of students
+- View reports and statistics
+
+If you have any questions, please contact the administrator.
+
+Best regards,
+Boy Scout System Team
+"""
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [teacher.email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                messages.warning(request, f'Teacher created but email notification failed: {str(e)}')
+            
+            messages.success(request, f'Teacher account for {teacher.get_full_name()} created successfully! They will need to complete their ₱500 registration payment.')
+            return redirect('accounts:admin_teacher_list')
+    else:
+        form = AdminCreateTeacherForm()
+    
+    return render(request, 'accounts/admin/create_teacher.html', {'form': form})
+
+
+@admin_required
+def admin_teacher_list(request):
+    """List all teachers with their statistics"""
+    from django.db.models import Count, Q
+    from payments.models import Payment
+    from events.models import EventRegistration
+    
+    teachers = User.objects.filter(rank='teacher').annotate(
+        student_count=Count('managed_students', distinct=True),
+        active_student_count=Count('managed_students', filter=Q(managed_students__registration_status='active'), distinct=True)
+    ).order_by('-date_joined')
+    
+    # Add statistics for each teacher
+    teacher_stats = []
+    for teacher in teachers:
+        # Get students managed by this teacher
+        students = User.objects.filter(managed_by=teacher)
+        
+        # Count payments submitted by teacher
+        payments_submitted = Payment.objects.filter(verified_by=teacher).count()
+        
+        # Count event registrations
+        event_registrations = EventRegistration.objects.filter(user__in=students).count()
+        
+        teacher_stats.append({
+            'teacher': teacher,
+            'total_students': teacher.student_count,
+            'active_students': teacher.active_student_count,
+            'payments_submitted': payments_submitted,
+            'event_registrations': event_registrations,
+        })
+    
+    return render(request, 'accounts/admin/teacher_list.html', {
+        'teacher_stats': teacher_stats,
+    })
+
+
+@admin_required
+def admin_teacher_hierarchy(request):
+    """View teacher hierarchy - all teachers and their students"""
+    from django.db.models import Count
+    
+    teachers = User.objects.filter(rank='teacher').prefetch_related('managed_students').annotate(
+        student_count=Count('managed_students')
+    ).order_by('last_name', 'first_name')
+    
+    # Build hierarchy data
+    hierarchy = []
+    for teacher in teachers:
+        students = teacher.managed_students.all().order_by('last_name', 'first_name')
+        hierarchy.append({
+            'teacher': teacher,
+            'students': students,
+            'student_count': students.count(),
+        })
+    
+    # Calculate totals
+    total_teachers = teachers.count()
+    total_students = User.objects.filter(managed_by__isnull=False).count()
+    independent_students = User.objects.filter(rank='scout', managed_by__isnull=True).count()
+    
+    return render(request, 'accounts/admin/teacher_hierarchy.html', {
+        'hierarchy': hierarchy,
+        'total_teachers': total_teachers,
+        'total_students': total_students,
+        'independent_students': independent_students,
     })

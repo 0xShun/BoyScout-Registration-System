@@ -1,0 +1,231 @@
+{% extends 'base_sidebar.html' %}
+
+{% block title %}Teacher-Student Hierarchy - Boy Scout System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hierarchy-container {
+        background: white;
+        border-radius: 8px;
+        padding: 2rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .teacher-section {
+        border-left: 3px solid #667eea;
+        margin-bottom: 2rem;
+        padding-left: 1.5rem;
+    }
+    .teacher-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .teacher-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+    .student-list {
+        list-style: none;
+        padding-left: 2rem;
+        margin: 0;
+    }
+    .student-item {
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 6px;
+        border-left: 3px solid #28a745;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .student-item:hover {
+        background: #e9ecef;
+    }
+    .student-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .student-status {
+        font-size: 0.85rem;
+    }
+    .stats-overview {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    .stat-box {
+        text-align: center;
+    }
+    .stat-box h3 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    .stat-box p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    .no-students {
+        color: #6c757d;
+        font-style: italic;
+        padding: 1rem;
+        text-align: center;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h2><i class="fas fa-sitemap"></i> Teacher-Student Hierarchy</h2>
+                    <p class="text-muted">Complete organizational structure</p>
+                </div>
+                <div>
+                    <a href="{% url 'accounts:admin_teacher_list' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-list"></i> Teacher List
+                    </a>
+                    <a href="{% url 'accounts:admin_create_teacher' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Create Teacher
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="stats-overview">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3>{{ total_teachers }}</h3>
+                            <p>Total Teachers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3>{{ total_students }}</h3>
+                            <p>Managed Students</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3>{{ independent_students }}</h3>
+                            <p>Independent Students</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-box">
+                            <h3>{% widthratio total_students total_teachers|default:"1" 1 %}</h3>
+                            <p>Avg Students/Teacher</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hierarchy Display -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="hierarchy-container">
+                {% if hierarchy %}
+                    {% for item in hierarchy %}
+                    <div class="teacher-section">
+                        <div class="teacher-header">
+                            <div>
+                                <div class="teacher-name">
+                                    <i class="fas fa-user-tie"></i>
+                                    {{ item.teacher.get_full_name }}
+                                </div>
+                                <small>
+                                    <i class="fas fa-envelope"></i> {{ item.teacher.email }} |
+                                    <i class="fas fa-phone"></i> {{ item.teacher.contact_number|default:"N/A" }}
+                                </small>
+                            </div>
+                            <div>
+                                <span class="badge bg-light text-dark">
+                                    {{ item.student_count }} Student{{ item.student_count|pluralize }}
+                                </span>
+                            </div>
+                        </div>
+
+                        {% if item.students %}
+                            <ul class="student-list">
+                                {% for student in item.students %}
+                                <li class="student-item">
+                                    <div class="student-info">
+                                        <i class="fas fa-user text-success"></i>
+                                        <strong>{{ student.get_full_name }}</strong>
+                                        <span class="text-muted">{{ student.username }}</span>
+                                    </div>
+                                    <div class="student-status">
+                                        {% if student.registration_status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% elif student.registration_status == 'pending' %}
+                                            <span class="badge bg-warning">Pending</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ student.registration_status|title }}</span>
+                                        {% endif %}
+                                        <a href="{% url 'accounts:member_detail' student.id %}" class="btn btn-sm btn-outline-primary ms-2">
+                                            <i class="fas fa-eye"></i> View
+                                        </a>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div class="no-students">
+                                <i class="fas fa-users-slash"></i> No students managed by this teacher yet
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% if independent_students > 0 %}
+                    <div class="teacher-section">
+                        <div class="teacher-header" style="background: linear-gradient(135deg, #6c757d 0%, #495057 100%);">
+                            <div>
+                                <div class="teacher-name">
+                                    <i class="fas fa-user"></i>
+                                    Independent Students
+                                </div>
+                                <small>Students not assigned to any teacher</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-light text-dark">
+                                    {{ independent_students }} Student{{ independent_students|pluralize }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="no-students">
+                            <i class="fas fa-info-circle"></i> These students registered independently and are not managed by any teacher
+                        </div>
+                    </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        No teachers found. <a href="{% url 'accounts:admin_create_teacher' %}">Create your first teacher account</a>.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

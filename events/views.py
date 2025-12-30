@@ -506,3 +506,195 @@ def pending_payments(request):
     return render(request, 'events/pending_payments.html', {
         'pending_registrations': pending_registrations,
     })
+
+# ==================== TEACHER VIEWS ====================
+
+@login_required
+def teacher_register_students_event(request):
+    """Teacher registers multiple students for an event"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access this page.')
+        return redirect('home')
+    
+    from .forms import TeacherBulkEventRegistrationForm
+    
+    if request.method == 'POST':
+        form = TeacherBulkEventRegistrationForm(request.POST, request.FILES, teacher=request.user)
+        if form.is_valid():
+            event = form.cleaned_data['event']
+            students = form.cleaned_data['students']
+            rsvp = form.cleaned_data['rsvp']
+            receipt_image = form.cleaned_data.get('receipt_image')
+            
+            registered_count = 0
+            already_registered = []
+            
+            # Calculate total amount
+            total_amount = 0
+            if event.has_payment_required:
+                total_amount = event.payment_amount * students.count()
+            
+            for student in students:
+                # Check if already registered
+                existing_reg = EventRegistration.objects.filter(event=event, user=student).first()
+                if existing_reg:
+                    already_registered.append(student.get_full_name())
+                    continue
+                
+                # Create registration
+                registration = EventRegistration.objects.create(
+                    event=event,
+                    user=student,
+                    rsvp=rsvp,
+                    receipt_image=receipt_image if receipt_image else None,
+                    amount_required=event.payment_amount if event.has_payment_required else Decimal('0.00')
+                )
+                
+                # Handle payment auto-approval for teacher submissions
+                if event.has_payment_required and receipt_image:
+                    registration.payment_status = 'paid'  # Auto-approve teacher payments
+                    registration.total_paid = event.payment_amount
+                    registration.verified = True
+                    registration.verified_by = request.user
+                    registration.verification_date = timezone.now()
+                else:
+                    registration.payment_status = 'not_required'
+                    registration.verified = True
+                
+                registration.save()
+                registered_count += 1
+                
+                # Send notification to student
+                send_realtime_notification(
+                    student.id,
+                    f"Your teacher, {request.user.get_full_name()}, has registered you for {event.title}",
+                    type='event'
+                )
+                
+                # Send email to student
+                try:
+                    from django.core.mail import send_mail
+                    subject = f'Event Registration: {event.title}'
+                    message = f"""
+Hello {student.get_full_name()},
+
+Your teacher, {request.user.get_full_name()}, has registered you for the following event:
+
+Event: {event.title}
+Date: {event.date.strftime('%B %d, %Y')}
+Time: {event.time.strftime('%I:%M %p')}
+Location: {event.location}
+
+{event.description}
+
+Please log in to view more details.
+
+Best regards,
+Boy Scout System
+"""
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [student.email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    pass  # Silently fail email
+            
+            # Success message
+            if registered_count > 0:
+                if event.has_payment_required:
+                    messages.success(
+                        request, 
+                        f'Successfully registered {registered_count} student(s) for {event.title}. '
+                        f'Total amount: ₱{total_amount}. Payment auto-approved.'
+                    )
+                else:
+                    messages.success(request, f'Successfully registered {registered_count} student(s) for {event.title}.')
+            
+            if already_registered:
+                messages.warning(
+                    request, 
+                    f'The following students were already registered: {", ".join(already_registered)}'
+                )
+            
+            return redirect('accounts:teacher_dashboard')
+    else:
+        form = TeacherBulkEventRegistrationForm(teacher=request.user)
+    
+    # Get upcoming events with payment info
+    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:5]
+    
+    return render(request, 'events/teacher_bulk_register.html', {
+        'form': form,
+        'upcoming_events': upcoming_events,
+    })
+
+@login_required
+def teacher_mark_attendance(request):
+    """Teacher marks attendance for their students"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access this page.')
+        return redirect('home')
+    
+    # Get events where teacher's students are registered
+    from django.db.models import Q
+    managed_students = User.objects.filter(managed_by=request.user)
+    
+    # Get events with registrations from teacher's students
+    events_with_students = Event.objects.filter(
+        registrations__user__in=managed_students
+    ).distinct().order_by('-date', '-time')[:10]
+    
+    selected_event = None
+    students_attendance = []
+    
+    if request.method == 'POST':
+        if 'select_event' in request.POST:
+            event_id = request.POST.get('event')
+            if event_id:
+                selected_event = get_object_or_404(Event, pk=event_id)
+                # Get teacher's students registered for this event
+                registered_students = User.objects.filter(
+                    managed_by=request.user,
+                    event_registrations__event=selected_event
+                ).distinct()
+                
+                # Get existing attendance
+                for student in registered_students:
+                    attendance = Attendance.objects.filter(event=selected_event, user=student).first()
+                    students_attendance.append({
+                        'student': student,
+                        'attendance': attendance,
+                    })
+        
+        elif 'mark_attendance' in request.POST:
+            event_id = request.POST.get('event_id')
+            selected_event = get_object_or_404(Event, pk=event_id)
+            
+            marked_count = 0
+            for key, value in request.POST.items():
+                if key.startswith('attendance_'):
+                    student_id = key.split('_')[1]
+                    student = get_object_or_404(User, pk=student_id, managed_by=request.user)
+                    
+                    # Create or update attendance
+                    attendance, created = Attendance.objects.update_or_create(
+                        event=selected_event,
+                        user=student,
+                        defaults={
+                            'status': value,
+                            'marked_by': request.user,
+                        }
+                    )
+                    marked_count += 1
+            
+            messages.success(request, f'Attendance marked for {marked_count} student(s).')
+            return redirect('accounts:teacher_dashboard')
+    
+    return render(request, 'events/teacher_mark_attendance.html', {
+        'events_with_students': events_with_students,
+        'selected_event': selected_event,
+        'students_attendance': students_attendance,
+    })

@@ -34,7 +34,7 @@ from django.db.models import Sum, Q
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import user_passes_test
 from .models import Payment, PaymentQRCode
-from .forms import PaymentForm, PaymentQRCodeForm
+from .forms import PaymentForm, PaymentQRCodeForm, TeacherPaymentForm
 from accounts.models import User
 from notifications.services import NotificationService, send_realtime_notification
 from django.utils import timezone
@@ -312,3 +312,129 @@ def qr_code_toggle_active(request, qr_code_id):
         qr_code.save()
     
     return redirect('payments:qr_code_manage')
+
+
+# ============================================
+# Teacher Payment Management Views
+# ============================================
+
+@login_required
+def teacher_submit_payment(request):
+    """Allow teachers to submit payments on behalf of their students"""
+    if not request.user.is_teacher():
+        messages.error(request, "Only teachers can access this page.")
+        return redirect('accounts:dashboard')
+    
+    # Get teacher's students
+    students = User.objects.filter(
+        managed_by=request.user,
+        registration_status='active'
+    ).order_by('first_name', 'last_name')
+    
+    if not students.exists():
+        messages.warning(request, "You don't have any active students to submit payments for.")
+        return redirect('accounts:teacher_dashboard')
+    
+    if request.method == 'POST':
+        form = TeacherPaymentForm(request.user, request.POST, request.FILES)
+        if form.is_valid():
+            payment = form.save(commit=False)
+            student = form.cleaned_data['student']
+            payment.user = student
+            payment.payee_name = f"{student.first_name} {student.last_name}"
+            payment.payee_email = student.email
+            payment.payment_type = 'other'
+            
+            # Auto-approve payments submitted by teachers
+            payment.status = 'verified'
+            payment.verified_by = request.user
+            payment.verification_date = timezone.now()
+            payment.expiry_date = timezone.now() + timedelta(days=365)  # No real expiry for verified payments
+            payment.save()
+            
+            # Notify the student about the payment
+            NotificationService.send_email(
+                subject="Payment Submitted by Your Teacher",
+                message=f"Your teacher has submitted a payment of ₱{payment.amount} on your behalf. This payment has been automatically approved.",
+                recipient_list=[student.email],
+            )
+            
+            # Send real-time notification
+            send_realtime_notification(
+                student,
+                f"Your teacher submitted a payment of ₱{payment.amount} on your behalf.",
+                'payment'
+            )
+            
+            messages.success(request, f'Payment of ₱{payment.amount} submitted and approved for {student.get_full_name()}.')
+            return redirect('payments:teacher_payment_history')
+    else:
+        form = TeacherPaymentForm(request.user)
+    
+    # Get active QR code for payment
+    active_qr_code = PaymentQRCode.get_active_qr_code()
+    
+    return render(request, 'payments/teacher_submit_payment.html', {
+        'form': form,
+        'active_qr_code': active_qr_code,
+        'students': students
+    })
+
+
+@login_required
+def teacher_payment_history(request):
+    """Show payment history for all students managed by the teacher"""
+    if not request.user.is_teacher():
+        messages.error(request, "Only teachers can access this page.")
+        return redirect('accounts:dashboard')
+    
+    # Get all students managed by this teacher
+    students = User.objects.filter(managed_by=request.user).order_by('first_name', 'last_name')
+    
+    # Get payments for all these students
+    payments = Payment.objects.filter(
+        user__in=students
+    ).select_related('user', 'verified_by').order_by('-date')
+    
+    # Filter by status if requested
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        payments = payments.filter(status=status_filter)
+    
+    # Filter by student if requested
+    student_filter = request.GET.get('student', '')
+    if student_filter:
+        try:
+            student_id = int(student_filter)
+            payments = payments.filter(user_id=student_id)
+        except (ValueError, TypeError):
+            pass
+    
+    # Pagination
+    paginator = Paginator(payments, 15)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Calculate summary statistics
+    total_verified = payments.filter(status='verified').aggregate(total=Sum('amount'))['total'] or 0
+    total_pending = payments.filter(status='pending').aggregate(total=Sum('amount'))['total'] or 0
+    total_rejected = payments.filter(status='rejected').aggregate(total=Sum('amount'))['total'] or 0
+    
+    payment_summary = {
+        'total_payments': payments.count(),
+        'verified_count': payments.filter(status='verified').count(),
+        'pending_count': payments.filter(status='pending').count(),
+        'rejected_count': payments.filter(status='rejected').count(),
+        'total_verified_amount': total_verified,
+        'total_pending_amount': total_pending,
+        'total_rejected_amount': total_rejected,
+    }
+    
+    return render(request, 'payments/teacher_payment_history.html', {
+        'page_obj': page_obj,
+        'students': students,
+        'payment_summary': payment_summary,
+        'status_choices': Payment.STATUS_CHOICES,
+        'current_status_filter': status_filter,
+        'current_student_filter': student_filter,
+    })

@@ -13,4 +13,8 @@ urlpatterns = [
     path('qr-codes/edit/<int:qr_code_id>/', views.qr_code_edit, name='qr_code_edit'),
     path('qr-codes/delete/<int:qr_code_id>/', views.qr_code_delete, name='qr_code_delete'),
     path('qr-codes/toggle/<int:qr_code_id>/', views.qr_code_toggle_active, name='qr_code_toggle_active'),
+    
+    # Teacher Payment Management URLs
+    path('teacher/submit/', views.teacher_submit_payment, name='teacher_submit_payment'),
+    path('teacher/history/', views.teacher_payment_history, name='teacher_payment_history'),
 ] 

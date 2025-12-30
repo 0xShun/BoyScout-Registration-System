@@ -59,6 +59,10 @@ pip-delete-this-directory.txt
 *.pdf
 *.md
 !README.md
+!PHASE_*.md
+!NOTIFICATION_SETUP.md
+!TEACHER_STUDENT_IMPLEMENTATION_PLAN.md
+!flow.md
 
 # Misc
 .cache/

@@ -1,0 +1,183 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-clipboard-check-fill me-2"></i>
+                        Mark Attendance for Your Students
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Note:</strong> You can only mark attendance for your own students who are registered for events.
+                    </div>
+
+                    <!-- Step 1: Select Event -->
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <h5 class="text-info border-bottom pb-2">
+                                    <i class="bi bi-calendar-event me-2"></i>Select Event
+                                </h5>
+                            </div>
+
+                            <div class="col-md-8 mb-3">
+                                <label for="event" class="form-label">Event</label>
+                                <select name="event" id="event" class="form-select" required>
+                                    <option value="">-- Select an event --</option>
+                                    {% for event in events_with_students %}
+                                        <option value="{{ event.id }}" {% if selected_event and selected_event.id == event.id %}selected{% endif %}>
+                                            {{ event.title }} - {{ event.date|date:"M d, Y" }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-4 mb-3 align-self-end">
+                                <button type="submit" name="select_event" class="btn btn-primary w-100">
+                                    <i class="bi bi-search me-2"></i>Load Students
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Step 2: Mark Attendance -->
+                    {% if selected_event and students_attendance %}
+                        <form method="post" class="mt-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="event_id" value="{{ selected_event.id }}">
+                            
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <h5 class="text-info border-bottom pb-2">
+                                        <i class="bi bi-people-fill me-2"></i>
+                                        Mark Attendance for: {{ selected_event.title }}
+                                    </h5>
+                                    <p class="text-muted">{{ selected_event.date|date:"F d, Y" }} at {{ selected_event.time|time:"g:i A" }}</p>
+                                </div>
+
+                                <div class="col-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Student</th>
+                                                    <th>Email</th>
+                                                    <th>Status</th>
+                                                    <th>Current Attendance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in students_attendance %}
+                                                <tr>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <div class="student-avatar me-3">
+                                                                {{ item.student.first_name|first|upper }}{{ item.student.last_name|first|upper }}
+                                                            </div>
+                                                            <strong>{{ item.student.get_full_name }}</strong>
+                                                        </div>
+                                                    </td>
+                                                    <td>{{ item.student.email }}</td>
+                                                    <td>
+                                                        <div class="btn-group" role="group">
+                                                            <input type="radio" 
+                                                                   class="btn-check" 
+                                                                   name="attendance_{{ item.student.id }}" 
+                                                                   id="present_{{ item.student.id }}" 
+                                                                   value="present"
+                                                                   {% if item.attendance and item.attendance.status == 'present' %}checked{% endif %}
+                                                                   required>
+                                                            <label class="btn btn-outline-success" for="present_{{ item.student.id }}">
+                                                                <i class="bi bi-check-circle me-1"></i>Present
+                                                            </label>
+
+                                                            <input type="radio" 
+                                                                   class="btn-check" 
+                                                                   name="attendance_{{ item.student.id }}" 
+                                                                   id="absent_{{ item.student.id }}" 
+                                                                   value="absent"
+                                                                   {% if item.attendance and item.attendance.status == 'absent' %}checked{% endif %}>
+                                                            <label class="btn btn-outline-danger" for="absent_{{ item.student.id }}">
+                                                                <i class="bi bi-x-circle me-1"></i>Absent
+                                                            </label>
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        {% if item.attendance %}
+                                                            {% if item.attendance.status == 'present' %}
+                                                                <span class="badge bg-success">Marked Present</span>
+                                                            {% else %}
+                                                                <span class="badge bg-danger">Marked Absent</span>
+                                                            {% endif %}
+                                                            <br>
+                                                            <small class="text-muted">
+                                                                by {{ item.attendance.marked_by.get_full_name }}
+                                                            </small>
+                                                        {% else %}
+                                                            <span class="badge bg-secondary">Not Marked</span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 mt-3">
+                                    <div class="d-flex justify-content-between">
+                                        <a href="{% url 'accounts:teacher_dashboard' %}" class="btn btn-outline-secondary">
+                                            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+                                        </a>
+                                        <button type="submit" name="mark_attendance" class="btn btn-info">
+                                            <i class="bi bi-check-circle me-2"></i>Save Attendance
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    {% elif selected_event %}
+                        <div class="alert alert-warning mt-4">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            No students found registered for this event.
+                        </div>
+                    {% endif %}
+
+                    {% if not events_with_students %}
+                        <div class="text-center py-5">
+                            <i class="bi bi-calendar-x display-1 text-muted"></i>
+                            <p class="text-muted mt-3">No events with your students registered yet.</p>
+                            <a href="{% url 'events:teacher_register_students_event' %}" class="btn btn-primary">
+                                <i class="bi bi-calendar-check me-2"></i>Register Students for Event
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+}
+</style>
+{% endblock %}

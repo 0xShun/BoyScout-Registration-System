@@ -3,6 +3,10 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm, Authenti
 from .models import User, Group
 from django.conf import settings
 
+# The current form doesn't have a csrf token yet.
+#
+
+
 class CustomLoginForm(AuthenticationForm):
     username = forms.CharField(
         widget=forms.TextInput(
@@ -51,9 +55,16 @@ class CustomLoginForm(AuthenticationForm):
 
 class UserRegisterForm(UserCreationForm):
     amount = forms.DecimalField(label='Registration Payment', min_value=1, max_value=1000, initial=500)
+    rank = forms.ChoiceField(
+        choices=[('scout', 'Scout'), ('teacher', 'Teacher')],
+        initial='scout',
+        label='Register as',
+        help_text='Choose whether you are registering as a Scout or Teacher'
+    )
+    
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'registration_receipt', 'amount']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'rank', 'registration_receipt', 'amount']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -71,6 +82,8 @@ class UserRegisterForm(UserCreationForm):
         self.fields['password2'].label = "Confirm password"
         self.fields['password2'].widget.attrs.update({'placeholder': 'Confirm password'})
 
+        self.fields['rank'].widget.attrs.update({'class': 'form-select'})
+        
         self.fields['date_of_birth'].label = "Date of Birth"
         self.fields['phone_number'].label = "Phone Number"
         self.fields['phone_number'].widget.attrs.update({'placeholder': 'Enter your phone number'})
@@ -93,9 +106,68 @@ class UserRegisterForm(UserCreationForm):
 
     def clean_username(self):
         username = self.cleaned_data.get('username')
-        if username and User.objects.filter(username=username).exists():
+        if username and User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError('A user with this username already exists.')
         return username
+
+
+class AdminCreateTeacherForm(UserCreationForm):
+    """Form for admins to create teacher accounts directly"""
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 3}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+        # Email is required
+        self.fields['email'].required = True
+        self.fields['email'].help_text = "Teacher will receive login credentials via email"
+        
+        # Username is required
+        self.fields['username'].required = True
+        self.fields['username'].help_text = "Unique username for login"
+        
+        # Make some fields optional
+        self.fields['phone_number'].required = False
+        self.fields['date_of_birth'].required = False
+        self.fields['address'].required = False
+        
+        # Password fields
+        self.fields['password1'].label = "Password"
+        self.fields['password1'].help_text = "Create a password for the teacher (minimum 8 characters)"
+        self.fields['password2'].label = "Confirm Password"
+        self.fields['password2'].help_text = None
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.rank = 'teacher'
+        user.is_active = True
+        user.registration_status = 'pending_payment'  # Teachers need to pay registration fee
+        user.registration_amount_required = 500  # Standard registration fee
+        
+        if commit:
+            user.save()
+        return user
 
     def clean(self):
         cleaned_data = super().clean()
@@ -156,4 +228,120 @@ class GroupForm(forms.ModelForm):
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        } 
+        }
+
+class TeacherCreateStudentForm(UserCreationForm):
+    """Form for teachers to create student accounts"""
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
+        widgets = {
+            'address': forms.Textarea(attrs={'rows': 3}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.teacher = kwargs.pop('teacher', None)
+        super().__init__(*args, **kwargs)
+        
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+
+        # Make username auto-generated hint
+        self.fields['username'].help_text = "Leave blank to auto-generate from first and last name"
+        self.fields['username'].required = False
+        
+        # Email is required
+        self.fields['email'].required = True
+        self.fields['email'].help_text = "Student will receive login credentials via email"
+        
+        # Make some fields optional
+        self.fields['phone_number'].required = False
+        self.fields['date_of_birth'].required = False
+        self.fields['address'].required = False
+        
+        # Password fields
+        self.fields['password1'].label = "Password"
+        self.fields['password1'].help_text = "Create a password for the student (minimum 8 characters)"
+        self.fields['password2'].label = "Confirm Password"
+        self.fields['password2'].help_text = None
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username and User.objects.filter(username=username).exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        user.rank = 'scout'  # Students are scouts by default
+        user.managed_by = self.teacher
+        user.is_active = True
+        user.registration_status = 'payment_verified'  # Auto-verify students created by teachers
+        
+        # Auto-generate username if not provided
+        if not user.username:
+            from django.utils.text import slugify
+            base_username = slugify(f"{user.first_name}_{user.last_name}")
+            unique_username = base_username
+            counter = 1
+            while User.objects.filter(username=unique_username).exists():
+                unique_username = f"{base_username}_{counter:03d}"
+                counter += 1
+            user.username = unique_username
+        
+        if commit:
+            user.save()
+        return user
+
+class TeacherEditStudentForm(forms.ModelForm):
+    """Form for teachers to edit student accounts they manage"""
+    class Meta:
+        model = User
+        fields = [
+            'first_name', 'last_name', 'email', 'username',
+            'date_of_birth', 'phone_number', 'address', 
+            'emergency_contact', 'emergency_phone',
+            'medical_conditions', 'allergies', 'registration_status'
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'medical_conditions': forms.Textarea(attrs={'rows': 3}),
+            'allergies': forms.Textarea(attrs={'rows': 3}),
+            'address': forms.Textarea(attrs={'rows': 3}),
+        }
+
+        
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        for field_name, field in self.fields.items():
+            field.widget.attrs.update({'class': 'form-control'})
+        
+        # Limit status choices for teachers
+        self.fields['registration_status'].choices = [
+            ('active', 'Active Member'),
+            ('inactive', 'Inactive'),
+            ('graduated', 'Graduated'),
+            ('suspended', 'Suspended'),
+        ]
+        self.fields['registration_status'].widget.attrs.update({'class': 'form-select'})
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('A user with this email already exists.')
+        return email
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if username and User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError('A user with this username already exists.')
+        return username

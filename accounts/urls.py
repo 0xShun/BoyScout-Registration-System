@@ -11,8 +11,16 @@ urlpatterns = [
     path('login/', views.MyLoginView.as_view(), name='login'),
     path('logout/', views.MyLogoutView.as_view(), name='logout'),
     path('admin-dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    path('teacher-dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('scout-dashboard/', views.scout_dashboard, name='scout_dashboard'),
     path('quick-announcement/', views.quick_announcement, name='quick_announcement'),
+    
+    # Teacher student management URLs
+    path('teacher/students/', views.teacher_student_list, name='teacher_student_list'),
+    path('teacher/students/create/', views.teacher_create_student, name='teacher_create_student'),
+    path('teacher/students/<int:student_id>/', views.teacher_student_detail, name='teacher_student_detail'),
+    path('teacher/students/<int:student_id>/edit/', views.teacher_edit_student, name='teacher_edit_student'),
+    
     path('members/', views.member_list, name='member_list'),
     path('members/<int:pk>/', views.member_detail, name='member_detail'),
     path('members/<int:pk>/edit/', views.member_edit, name='member_edit'),
@@ -31,6 +39,11 @@ urlpatterns = [
     # Registration payment management
     path('pending-registrations/', views.pending_registrations, name='pending_registrations'),
     path('verify-registration/<int:user_id>/', views.verify_registration_payment, name='verify_registration_payment'),
+    
+    # Admin teacher management URLs
+    path('admin/teachers/create/', views.admin_create_teacher, name='admin_create_teacher'),
+    path('admin/teachers/', views.admin_teacher_list, name='admin_teacher_list'),
+    path('admin/teachers/hierarchy/', views.admin_teacher_hierarchy, name='admin_teacher_hierarchy'),
     
     # Password reset URLs
     path('password_reset/', auth_views.PasswordResetView.as_view(

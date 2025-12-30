@@ -25,4 +25,15 @@
 - [ ] View and export payment reports (CSV, PDF)
 - [ ] View audit log of key actions
 - [ ] Ensure all admin/member actions are protected by login and role checks
-- [ ] Test all pages for mobile responsiveness 
+- [ ] Test all pages for mobile responsiveness '
+
+
+
+
+# Things to manually test
+1. Make a teacher account using the admin
+2. Make a teacher accountn on the registration page
+3. Make 2 student accounts using the teacher account. 
+4. Join 2 students to an event using the teacher account
+5. Join another event using one of the student accounts made by the teacher
+6. 

@@ -1,0 +1,271 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-calendar-check-fill me-2"></i>
+                        Register Students for Event
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Bulk Registration:</strong> Select an event and the students you want to register. 
+                        If the event requires payment, upload one receipt for all students and the payment will be auto-approved.
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" id="bulkRegisterForm">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <!-- Select Event -->
+                            <div class="col-12 mb-4">
+                                <h5 class="text-success border-bottom pb-2">
+                                    <i class="bi bi-calendar-event me-2"></i>Step 1: Select Event
+                                </h5>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.event.id_for_label }}" class="form-label">
+                                    Event <span class="text-danger">*</span>
+                                </label>
+                                {% render_field form.event class="form-select" id="eventSelect" %}
+                                {% if form.event.errors %}
+                                    <div class="text-danger small mt-1">{{ form.event.errors }}</div>
+                                {% endif %}
+                                <div id="eventDetails" class="mt-3 p-3 bg-light rounded d-none">
+                                    <h6 class="fw-bold">Event Details:</h6>
+                                    <div id="eventInfo"></div>
+                                </div>
+                            </div>
+
+                            <!-- Select Students -->
+                            <div class="col-12 mb-4 mt-3">
+                                <h5 class="text-success border-bottom pb-2">
+                                    <i class="bi bi-people-fill me-2"></i>Step 2: Select Students
+                                </h5>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="selectAll">
+                                    <label class="form-check-label fw-bold" for="selectAll">
+                                        Select All Students
+                                    </label>
+                                </div>
+                                
+                                <div class="student-checkbox-list p-3 bg-light rounded">
+                                    {% for checkbox in form.students %}
+                                        <div class="form-check mb-2">
+                                            {{ checkbox.tag }}
+                                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                                {{ checkbox.choice_label }}
+                                            </label>
+                                        </div>
+                                    {% empty %}
+                                        <p class="text-muted">You have no active students to register.</p>
+                                    {% endfor %}
+                                </div>
+                                {% if form.students.errors %}
+                                    <div class="text-danger small mt-1">{{ form.students.errors }}</div>
+                                {% endif %}
+                                <small class="text-muted">Selected: <span id="selectedCount">0</span> student(s)</small>
+                            </div>
+
+                            <!-- RSVP Status -->
+                            <div class="col-12 mb-4 mt-3">
+                                <h5 class="text-success border-bottom pb-2">
+                                    <i class="bi bi-ui-checks me-2"></i>Step 3: RSVP Status
+                                </h5>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label class="form-label">RSVP Status</label>
+                                <div class="d-flex gap-3">
+                                    {% for radio in form.rsvp %}
+                                        <div class="form-check">
+                                            {{ radio.tag }}
+                                            <label class="form-check-label" for="{{ radio.id_for_label }}">
+                                                {{ radio.choice_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.rsvp.errors %}
+                                    <div class="text-danger small mt-1">{{ form.rsvp.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Payment Receipt -->
+                            <div class="col-12 mb-4 mt-3">
+                                <h5 class="text-success border-bottom pb-2">
+                                    <i class="bi bi-receipt me-2"></i>Step 4: Payment (if required)
+                                </h5>
+                            </div>
+
+                            <div class="col-12 mb-3">
+                                <label for="{{ form.receipt_image.id_for_label }}" class="form-label">
+                                    Payment Receipt
+                                </label>
+                                {% render_field form.receipt_image class="form-control" %}
+                                <small class="text-muted">{{ form.receipt_image.help_text }}</small>
+                                <div id="paymentInfo" class="mt-2"></div>
+                                {% if form.receipt_image.errors %}
+                                    <div class="text-danger small mt-1">{{ form.receipt_image.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'accounts:teacher_dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="bi bi-check-circle me-2"></i>Register Students
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Upcoming Events Info -->
+            {% if upcoming_events %}
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Upcoming Events</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Event</th>
+                                    <th>Date & Time</th>
+                                    <th>Location</th>
+                                    <th>Fee</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for event in upcoming_events %}
+                                <tr>
+                                    <td><strong>{{ event.title }}</strong></td>
+                                    <td>
+                                        {{ event.date|date:"M d, Y" }}<br>
+                                        <small class="text-muted">{{ event.time|time:"g:i A" }}</small>
+                                    </td>
+                                    <td>{{ event.location }}</td>
+                                    <td>
+                                        {% if event.payment_amount %}
+                                            <span class="badge bg-warning text-dark">₱{{ event.payment_amount }}</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Free</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const eventSelect = document.getElementById('eventSelect');
+    const eventDetails = document.getElementById('eventDetails');
+    const eventInfo = document.getElementById('eventInfo');
+    const paymentInfo = document.getElementById('paymentInfo');
+    const studentCheckboxes = document.querySelectorAll('input[name="students"]');
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Event data from Django (would need to pass this via JSON)
+    const events = {{ upcoming_events|safe|default:"[]" }};
+    
+    // Select All functionality
+    selectAllCheckbox.addEventListener('change', function() {
+        studentCheckboxes.forEach(cb => cb.checked = this.checked);
+        updateSelectedCount();
+    });
+    
+    // Update selected count
+    studentCheckboxes.forEach(cb => {
+        cb.addEventListener('change', updateSelectedCount);
+    });
+    
+    function updateSelectedCount() {
+        const count = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
+        selectedCountSpan.textContent = count;
+        
+        // Update payment info if event selected
+        if (eventSelect.value) {
+            updatePaymentInfo(count);
+        }
+    }
+    
+    // Event selection handler
+    eventSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (this.value) {
+            const eventText = selectedOption.text;
+            eventDetails.classList.remove('d-none');
+            eventInfo.innerHTML = '<p class="mb-0">' + eventText + '</p>';
+            updatePaymentInfo(Array.from(studentCheckboxes).filter(cb => cb.checked).length);
+        } else {
+            eventDetails.classList.add('d-none');
+            paymentInfo.innerHTML = '';
+        }
+    });
+    
+    function updatePaymentInfo(studentCount) {
+        // This is a placeholder - you'd need to pass event payment amounts via AJAX or data attributes
+        if (studentCount > 0) {
+            paymentInfo.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>Note:</strong> If this event requires payment, the total for ${studentCount} student(s) will be calculated automatically.
+                    Upload ONE receipt for all students and the payment will be auto-approved.
+                </div>
+            `;
+        }
+    }
+    
+    // Form submission
+    const form = document.getElementById('bulkRegisterForm');
+    form.addEventListener('submit', function(e) {
+        const selectedCount = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
+        if (selectedCount === 0) {
+            e.preventDefault();
+            alert('Please select at least one student to register.');
+            return false;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
+    });
+});
+</script>
+
+<style>
+.student-checkbox-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+</style>
+{% endblock %}

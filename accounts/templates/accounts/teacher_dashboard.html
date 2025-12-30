@@ -1,0 +1,411 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+{% block content %}
+  <style>
+    .dashboard-card {
+      border-radius: 18px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      background: #fff;
+      margin-bottom: 2rem;
+      transition: box-shadow 0.2s;
+    }
+    .dashboard-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.12);
+    }
+    .dashboard-section-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      padding: 1.5rem;
+      color: white;
+      margin-bottom: 1.5rem;
+      transition: transform 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+    .stat-card.students { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card.active { background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%); }
+    .stat-card.inactive { background: linear-gradient(135deg, #f57c00 0%, #ff9800 100%); }
+    .stat-card.graduated { background: linear-gradient(135deg, #1976d2 0%, #42a5f5 100%); }
+    .stat-card-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    .stat-card-label {
+      font-size: 0.95rem;
+      opacity: 0.9;
+    }
+    .student-list-item {
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      background: #f8fafc;
+      box-shadow: 0 1px 4px rgba(102, 126, 234, 0.07);
+      padding: 1.1rem 1.2rem;
+      transition: background 0.2s, box-shadow 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .student-list-item:hover {
+      background: #e8eaf6;
+      box-shadow: 0 4px 16px rgba(102, 126, 234, 0.13);
+    }
+    .student-avatar {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+      font-size: 1.2rem;
+      margin-right: 1rem;
+    }
+    .status-badge {
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .status-active { background: #e8f5e9; color: #2e7d32; }
+    .status-inactive { background: #fff3e0; color: #e65100; }
+    .status-pending { background: #fff9c4; color: #f57f17; }
+    .status-graduated { background: #e3f2fd; color: #1565c0; }
+    .status-suspended { background: #ffebee; color: #c62828; }
+    .quick-action-btn {
+      border-radius: 10px;
+      padding: 0.6rem 1.2rem;
+      font-weight: 600;
+      transition: all 0.2s;
+      border: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .quick-action-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+    .event-item {
+      border-left: 4px solid #667eea;
+      padding-left: 1rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+
+  <div class="container-fluid py-4">
+    {% if profile_incomplete %}
+    <div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i>
+      <strong>Complete Your Profile!</strong> Missing: {{ incomplete_fields|join:", " }}
+      <a href="{% url 'accounts:profile_edit' %}" class="alert-link">Update Now</a>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h2 class="mb-1">
+          <i class="bi bi-person-workspace text-primary me-2"></i>
+          Teacher Dashboard
+        </h2>
+        <p class="text-muted mb-0">Welcome back, {{ request.user.get_full_name }}!</p>
+      </div>
+      <a href="{% url 'accounts:teacher_create_student' %}" class="btn btn-primary quick-action-btn">
+        <i class="bi bi-person-plus-fill me-2"></i>Create New Student
+      </a>
+    </div>
+
+    <!-- Registration Payment Alert -->
+    {% if registration_payment_pending %}
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+      <h5 class="alert-heading">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>Registration Payment Required
+      </h5>
+      <p class="mb-2">
+        Your teacher account requires a registration payment of <strong>₱500.00</strong> to be fully activated.
+      </p>
+      <p class="mb-0">
+        Please submit your payment through the <strong>My Payments</strong> tab below with proof of payment (GCash receipt).
+        Once verified by the admin, you will have full access to all teacher features.
+      </p>
+      <hr>
+      <a href="{% url 'accounts:registration_payment' request.user.id %}" class="btn btn-warning btn-sm">
+        <i class="bi bi-credit-card me-1"></i>Submit Payment Now
+      </a>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card students">
+          <div class="stat-card-number">{{ total_students }}</div>
+          <div class="stat-card-label">
+            <i class="bi bi-people-fill me-1"></i>Total Students
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card active">
+          <div class="stat-card-number">{{ active_students }}</div>
+          <div class="stat-card-label">
+            <i class="bi bi-check-circle-fill me-1"></i>Active Students
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card inactive">
+          <div class="stat-card-number">{{ inactive_students }}</div>
+          <div class="stat-card-label">
+            <i class="bi bi-pause-circle-fill me-1"></i>Inactive Students
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 col-sm-6">
+        <div class="stat-card graduated">
+          <div class="stat-card-number">{{ graduated_students }}</div>
+          <div class="stat-card-label">
+            <i class="bi bi-mortarboard-fill me-1"></i>Graduated Students
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="dashboard-card p-4">
+          <h5 class="dashboard-section-title">
+            <i class="bi bi-lightning-charge-fill text-warning"></i>
+            Quick Actions
+          </h5>
+          <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-outline-primary quick-action-btn">
+              <i class="bi bi-list-ul me-2"></i>View All Students
+            </a>
+            <a href="{% url 'events:teacher_register_students_event' %}" class="btn btn-outline-success quick-action-btn">
+              <i class="bi bi-calendar-check me-2"></i>Register Students for Event
+            </a>
+            <a href="{% url 'events:teacher_mark_attendance' %}" class="btn btn-outline-info quick-action-btn">
+              <i class="bi bi-clipboard-check me-2"></i>Mark Attendance
+            </a>
+            <a href="{% url 'payments:teacher_submit_payment' %}" class="btn btn-outline-warning quick-action-btn">
+              <i class="bi bi-currency-dollar me-2"></i>Submit Payment
+            </a>
+            {% comment %}
+            <!-- Export Data feature - Phase 9 (Not yet implemented) -->
+            <a href="{% url 'accounts:teacher_export_data' %}" class="btn btn-outline-secondary quick-action-btn">
+              <i class="bi bi-file-earmark-excel me-2"></i>Export Data
+            </a>
+            {% endcomment %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <!-- Left Column -->
+      <div class="col-lg-8">
+        <!-- My Students -->
+        <div class="dashboard-card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="dashboard-section-title mb-0">
+              <i class="bi bi-people-fill text-primary"></i>
+              My Students
+              <span class="dashboard-badge">{{ managed_students.count }}</span>
+            </h5>
+            <a href="{% url 'accounts:teacher_student_list' %}" class="text-primary text-decoration-none">
+              View All <i class="bi bi-arrow-right"></i>
+            </a>
+          </div>
+          
+          {% if managed_students %}
+            {% for student in managed_students|slice:":5" %}
+            <div class="student-list-item">
+              <div class="d-flex align-items-center flex-grow-1">
+                <div class="student-avatar">
+                  {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
+                </div>
+                <div>
+                  <div class="fw-bold">{{ student.get_full_name }}</div>
+                  <small class="text-muted">{{ student.email }}</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                {% if student.registration_status == 'active' or student.registration_status == 'payment_verified' %}
+                  <span class="status-badge status-active">Active</span>
+                {% elif student.registration_status == 'inactive' %}
+                  <span class="status-badge status-inactive">Inactive</span>
+                {% elif student.registration_status == 'graduated' %}
+                  <span class="status-badge status-graduated">Graduated</span>
+                {% elif student.registration_status == 'suspended' %}
+                  <span class="status-badge status-suspended">Suspended</span>
+                {% else %}
+                  <span class="status-badge status-pending">{{ student.get_registration_status_display }}</span>
+                {% endif %}
+                <a href="{% url 'accounts:teacher_edit_student' student.id %}" class="btn btn-sm btn-outline-primary">
+                  <i class="bi bi-pencil"></i>
+                </a>
+              </div>
+            </div>
+            {% endfor %}
+            
+            {% if managed_students.count > 5 %}
+            <div class="text-center mt-3">
+              <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-outline-primary">
+                View All {{ managed_students.count }} Students
+              </a>
+            </div>
+            {% endif %}
+          {% else %}
+            <div class="text-center py-5">
+              <i class="bi bi-people display-1 text-muted"></i>
+              <p class="text-muted mt-3">No students yet. Create your first student!</p>
+              <a href="{% url 'accounts:teacher_create_student' %}" class="btn btn-primary">
+                <i class="bi bi-person-plus-fill me-2"></i>Create Student
+              </a>
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Students in Upcoming Events -->
+        <div class="dashboard-card p-4">
+          <h5 class="dashboard-section-title">
+            <i class="bi bi-calendar-event text-success"></i>
+            Students in Upcoming Events
+          </h5>
+          
+          {% if students_in_events %}
+            {% for registration in students_in_events %}
+            <div class="event-item">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <strong>{{ registration.user.get_full_name }}</strong> 
+                  <i class="bi bi-arrow-right mx-2"></i>
+                  {{ registration.event.title }}
+                  <div class="small text-muted mt-1">
+                    <i class="bi bi-calendar3 me-1"></i>{{ registration.event.date|date:"M d, Y" }}
+                    at {{ registration.event.time|time:"g:i A" }}
+                  </div>
+                </div>
+                {% if registration.payment_status == 'pending' %}
+                  <span class="status-badge status-pending">Payment Pending</span>
+                {% elif registration.payment_status == 'paid' %}
+                  <span class="status-badge status-active">Paid</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-center py-3">No students registered for upcoming events.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Right Column -->
+      <div class="col-lg-4">
+        <!-- Upcoming Events -->
+        <div class="dashboard-card p-4 mb-4">
+          <h5 class="dashboard-section-title">
+            <i class="bi bi-calendar-week text-info"></i>
+            Upcoming Events
+          </h5>
+          
+          {% if upcoming_events %}
+            {% for event in upcoming_events %}
+            <div class="mb-3 p-3 bg-light rounded">
+              <h6 class="mb-1">{{ event.title }}</h6>
+              <small class="text-muted d-block mb-2">
+                <i class="bi bi-calendar3 me-1"></i>{{ event.date|date:"M d, Y" }}
+                <i class="bi bi-clock ms-2 me-1"></i>{{ event.time|time:"g:i A" }}
+              </small>
+              {% if event.payment_amount %}
+                <small class="text-success d-block">
+                  <i class="bi bi-currency-dollar me-1"></i>₱{{ event.payment_amount }}
+                </small>
+              {% endif %}
+              <a href="{% url 'events:event_detail' event.id %}" class="btn btn-sm btn-outline-primary mt-2">
+                View Details
+              </a>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-center py-3">No upcoming events.</p>
+          {% endif %}
+        </div>
+
+        <!-- Recent Payments -->
+        <div class="dashboard-card p-4 mb-4">
+          <h5 class="dashboard-section-title">
+            <i class="bi bi-cash-coin text-warning"></i>
+            Recent Payments
+          </h5>
+          
+          {% if recent_payments %}
+            {% for payment in recent_payments %}
+            <div class="mb-3 p-3 bg-light rounded">
+              <div class="d-flex justify-content-between align-items-start">
+                <div>
+                  <strong class="d-block">{{ payment.user.get_full_name }}</strong>
+                  <small class="text-muted">₱{{ payment.amount }}</small>
+                </div>
+                {% if payment.status == 'verified' %}
+                  <span class="status-badge status-active">Verified</span>
+                {% elif payment.status == 'pending' %}
+                  <span class="status-badge status-pending">Pending</span>
+                {% elif payment.status == 'rejected' %}
+                  <span class="status-badge status-suspended">Rejected</span>
+                {% endif %}
+              </div>
+              <small class="text-muted d-block mt-1">
+                <i class="bi bi-calendar3 me-1"></i>{{ payment.date|date:"M d, Y" }}
+              </small>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted text-center py-3">No recent payments.</p>
+          {% endif %}
+        </div>
+
+        <!-- Latest Announcements -->
+        <div class="dashboard-card p-4">
+          <h5 class="dashboard-section-title">
+            <i class="bi bi-megaphone text-danger"></i>
+            Announcements
+          </h5>
+          
+          {% if latest_announcements %}
+            {% for announcement in latest_announcements %}
+            <div class="mb-3 p-3 bg-light rounded">
+              <h6 class="mb-1">{{ announcement.title }}</h6>
+              <p class="mb-1 small">{{ announcement.message|truncatewords:20 }}</p>
+              <small class="text-muted">
+                <i class="bi bi-calendar3 me-1"></i>{{ announcement.date_posted|date:"M d, Y" }}
+              </small>
+            </div>
+            {% endfor %}
+            <div class="text-center">
+              <a href="{% url 'announcements:announcement_list' %}" class="btn btn-sm btn-outline-primary">
+                View All Announcements
+              </a>
+            </div>
+          {% else %}
+            <p class="text-muted text-center py-3">No announcements.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
