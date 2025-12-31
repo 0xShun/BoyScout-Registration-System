@@ -73,10 +73,8 @@ def event_list(request):
     if hasattr(request.user, 'is_scout') and request.user.is_scout() and not request.user.is_registration_complete:
         messages.warning(request, 'Events are locked until your registration payment is verified.')
         return redirect('accounts:registration_payment', user_id=request.user.id)
+    # Show all events for calendar view (including past events)
     events = Event.objects.all().order_by('-date', '-time')
-    paginator = Paginator(events, 10)
-    page = request.GET.get('page')
-    events = paginator.get_page(page)
     return render(request, 'events/event_list.html', {'events': events})
 
 @admin_required
@@ -94,7 +92,11 @@ def event_create(request):
             messages.success(request, 'Event created successfully.')
             return redirect('events:event_detail', pk=event.pk)
     else:
-        form = EventForm()
+        # Pre-fill date if provided in query parameter (from calendar)
+        initial_data = {}
+        if 'date' in request.GET:
+            initial_data['date'] = request.GET.get('date')
+        form = EventForm(initial=initial_data)
     return render(request, 'events/event_form.html', {'form': form})
 
 @login_required
