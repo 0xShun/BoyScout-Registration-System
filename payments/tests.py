@@ -129,13 +129,14 @@ class TeacherPaymentManagementTests(TestCase):
         form_data = {
             'student': self.student1.id,
             'amount': '500.00',
+            'reference_number': 'TEST123456789',
             'notes': 'Test payment'
         }
         
         form = TeacherPaymentForm(
             teacher=self.teacher,
             data=form_data,
-            files={'gcash_receipt_image': receipt}
+            files={'receipt_image': receipt}
         )
         
         self.assertTrue(form.is_valid())
@@ -193,13 +194,14 @@ class TeacherPaymentManagementTests(TestCase):
         post_data = {
             'student': self.student1.id,
             'amount': '500.00',
+            'reference_number': 'TEST987654321',
             'notes': 'Monthly membership fee'
         }
         
         response = self.client.post(
             reverse('payments:teacher_submit_payment'),
             data=post_data,
-            files={'gcash_receipt_image': receipt}
+            files={'receipt_image': receipt}
         )
         
         # Should redirect to payment history
@@ -227,13 +229,14 @@ class TeacherPaymentManagementTests(TestCase):
         post_data = {
             'student': self.student1.id,
             'amount': '750.00',
+            'reference_number': 'AUTOTEST111',
             'notes': 'Test auto-approval'
         }
         
         self.client.post(
             reverse('payments:teacher_submit_payment'),
             data=post_data,
-            files={'gcash_receipt_image': receipt}
+            files={'receipt_image': receipt}
         )
         
         payment = Payment.objects.filter(user=self.student1).first()

@@ -138,29 +138,51 @@ def event_detail(request, pk):
                 reg.event = event
                 reg.user = request.user
                 
-                # Handle payment status
-                if event.has_payment_required and reg.receipt_image:
+                # Handle payment for paid events
+                if event.has_payment_required:
+                    receipt_image = registration_form.cleaned_data.get('receipt_image')
+                    reference_number = registration_form.cleaned_data.get('reference_number')
+                    
+                    # Check for duplicate reference number
+                    if EventPayment.objects.filter(reference_number=reference_number).exists():
+                        messages.error(request, 'This reference number has already been used. Please check your receipt.')
+                        return redirect('events:event_detail', pk=event.pk)
+                    
                     reg.payment_status = 'pending'
                     reg.verified = False
-                elif not event.has_payment_required:
-                    reg.payment_status = 'not_required'
-                    reg.verified = True
-                
-                reg.save()
-                
-                # Send notification to admin if payment is pending
-                if reg.payment_status == 'pending':
+                    reg.amount_required = event.payment_amount
+                    reg.receipt_image = None  # Don't store in registration, use EventPayment instead
+                    reg.save()
+                    
+                    # Create EventPayment record
+                    EventPayment.objects.create(
+                        registration=reg,
+                        amount=event.payment_amount,
+                        receipt_image=receipt_image,
+                        reference_number=reference_number,
+                        status='pending'
+                    )
+                    
+                    # Send notification to admin
                     admins = User.objects.filter(rank='admin')
                     for admin in admins:
                         send_realtime_notification(
                             admin.id, 
-                            f"New event registration with payment pending: {reg.user.get_full_name()} for {event.title}",
+                            f"New event payment submitted: {reg.user.get_full_name()} for {event.title} - ₱{event.payment_amount} (Ref: {reference_number})",
                             type='event'
                         )
-                
-                messages.success(request, 'Event registration submitted successfully!')
-                if reg.payment_status == 'pending':
+                    
+                    messages.success(request, 'Event registration submitted successfully!')
                     messages.info(request, 'Your payment receipt is pending verification by an administrator.')
+                else:
+                    # Free event - auto approve
+                    reg.payment_status = 'not_required'
+                    reg.verified = True
+                    reg.amount_required = 0
+                    reg.receipt_image = None
+                    reg.save()
+                    messages.success(request, 'You have successfully registered for this event!')
+                
                 return redirect('events:event_detail', pk=event.pk)
             else:
                 messages.error(request, 'There was an error with your registration. Please check the form.')
@@ -388,19 +410,46 @@ def verify_event_registration(request, event_pk, reg_pk):
                 messages.success(request, f'Payment of ₱{payment.amount} verified.')
                 
             elif action == 'reject':
+                rejection_reason = request.POST.get('rejection_reason', '').strip()
+                
                 payment.status = 'rejected'
                 payment.verified_by = request.user
                 payment.verification_date = timezone.now()
+                payment.rejection_reason = rejection_reason if rejection_reason else 'No reason provided'
                 payment.notes = notes
                 payment.save()
                 
-                # Email and notification
+                # Update registration payment status to rejected
+                registration.payment_status = 'rejected'
+                registration.save()
+                
+                # Check if this was a teacher-submitted payment
+                teacher_submitted = 'teacher' in payment.notes.lower() if payment.notes else False
+                teacher = registration.user.managed_by if hasattr(registration.user, 'managed_by') and registration.user.managed_by else None
+                
+                # Email and notification to student
                 subject = f"Event Payment Rejected: {registration.event.title}"
-                message = f"Your payment of ₱{payment.amount} for event '{registration.event.title}' has been rejected."
-                if notes:
-                    message += f"\n\nAdmin notes: {notes}"
+                message = f"Your payment of ₱{payment.amount} for event '{registration.event.title}' has been rejected.\n\nReason: {payment.rejection_reason}\n\nPlease submit a new payment receipt."
                 NotificationService.send_email(subject, message, [registration.user.email])
-                send_realtime_notification(registration.user.id, f"Your payment of ₱{payment.amount} for '{registration.event.title}' has been rejected.", type='event')
+                send_realtime_notification(
+                    registration.user.id, 
+                    f"Your payment of ₱{payment.amount} for '{registration.event.title}' has been rejected. Reason: {payment.rejection_reason}", 
+                    type='event'
+                )
+                
+                # Notify teacher if they submitted the payment
+                if teacher_submitted and teacher:
+                    send_realtime_notification(
+                        teacher.id,
+                        f"Bulk payment for {registration.user.get_full_name()} for event '{registration.event.title}' has been rejected. Reason: {payment.rejection_reason}",
+                        type='event'
+                    )
+                    NotificationService.send_email(
+                        f"Bulk Event Payment Rejected: {registration.event.title}",
+                        f"Your bulk payment submission for student {registration.user.get_full_name()} for event '{registration.event.title}' has been rejected.\n\nReason: {payment.rejection_reason}\n\nPlease submit a new payment receipt.",
+                        [teacher.email]
+                    )
+                
                 messages.warning(request, f'Payment of ₱{payment.amount} rejected.')
         else:
             # Legacy verification for old registrations without EventPayment records
@@ -525,6 +574,18 @@ def teacher_register_students_event(request):
             students = form.cleaned_data['students']
             rsvp = form.cleaned_data['rsvp']
             receipt_image = form.cleaned_data.get('receipt_image')
+            reference_number = form.cleaned_data.get('reference_number', '').strip()
+            
+            # Validate reference number for paid events
+            if event.has_payment_required and receipt_image:
+                if not reference_number:
+                    messages.error(request, 'Reference number is required when uploading a payment receipt.')
+                    return redirect('events:teacher_register_students_event')
+                
+                # Check for duplicate reference number
+                if EventPayment.objects.filter(reference_number=reference_number).exists():
+                    messages.error(request, 'This reference number has already been used. Please check your receipt.')
+                    return redirect('events:teacher_register_students_event')
             
             registered_count = 0
             already_registered = []
@@ -546,20 +607,33 @@ def teacher_register_students_event(request):
                     event=event,
                     user=student,
                     rsvp=rsvp,
-                    receipt_image=receipt_image if receipt_image else None,
+                    receipt_image=None,  # Don't store in registration, use EventPayment
                     amount_required=event.payment_amount if event.has_payment_required else Decimal('0.00')
                 )
                 
-                # Handle payment auto-approval for teacher submissions
+                # Handle payment
                 if event.has_payment_required and receipt_image:
-                    registration.payment_status = 'paid'  # Auto-approve teacher payments
-                    registration.total_paid = event.payment_amount
-                    registration.verified = True
-                    registration.verified_by = request.user
-                    registration.verification_date = timezone.now()
-                else:
+                    # Create individual EventPayment record for this student using the same receipt
+                    # Generate unique reference number for each student payment
+                    student_ref_number = f"{reference_number}-S{student.id}"
+                    
+                    EventPayment.objects.create(
+                        registration=registration,
+                        amount=event.payment_amount,
+                        receipt_image=receipt_image,
+                        reference_number=student_ref_number,
+                        status='pending',  # Pending admin verification
+                        notes=f"Submitted by teacher {request.user.get_full_name()} for bulk registration"
+                    )
+                    
+                    registration.payment_status = 'pending'
+                    registration.verified = False
+                elif not event.has_payment_required:
                     registration.payment_status = 'not_required'
                     registration.verified = True
+                else:
+                    registration.payment_status = 'pending'
+                    registration.verified = False
                 
                 registration.save()
                 registered_count += 1
@@ -602,9 +676,19 @@ Boy Scout System
                 except Exception as e:
                     pass  # Silently fail email
             
+            # Notify admins if payment was submitted
+            if event.has_payment_required and receipt_image:
+                admins = User.objects.filter(rank='admin')
+                for admin in admins:
+                    send_realtime_notification(
+                        admin.id,
+                        f"Teacher {request.user.get_full_name()} submitted bulk event payment for {registered_count} students for {event.title} - Total: ₱{total_amount} (Ref: {reference_number})",
+                        type='event'
+                    )
+            
             # Success message
             if registered_count > 0:
-                if event.has_payment_required:
+                if event.has_payment_required and receipt_image:
                     messages.success(
                         request, 
                         f'Successfully registered {registered_count} student(s) for {event.title}. '

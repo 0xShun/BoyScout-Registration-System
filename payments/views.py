@@ -314,6 +314,31 @@ def qr_code_toggle_active(request, qr_code_id):
     return redirect('payments:qr_code_manage')
 
 
+@admin_required
+def system_config_manage(request):
+    """View for admins to manage system-wide QR codes (registration, etc.)"""
+    from .models import SystemConfiguration
+    from .forms import SystemConfigurationForm
+    
+    config = SystemConfiguration.get_config()
+    
+    if request.method == 'POST':
+        form = SystemConfigurationForm(request.POST, request.FILES, instance=config)
+        if form.is_valid():
+            config = form.save(commit=False)
+            config.updated_by = request.user
+            config.save()
+            messages.success(request, 'System QR code updated successfully.')
+            return redirect('payments:system_config_manage')
+    else:
+        form = SystemConfigurationForm(instance=config)
+    
+    return render(request, 'payments/system_config_manage.html', {
+        'form': form,
+        'config': config,
+    })
+
+
 # ============================================
 # Teacher Payment Management Views
 # ============================================

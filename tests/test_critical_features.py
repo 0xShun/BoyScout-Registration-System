@@ -65,7 +65,8 @@ class CriticalFeaturesTest(TestCase):
         
         response = self.client.post(reverse('payments:payment_submit'), {
             'amount': '500.00',
-            'gcash_receipt_image': '',  # Would need actual file in real test
+            'reference_number': 'TESTREF12345',
+            'receipt_image': '',  # Would need actual file in real test
         })
         self.assertEqual(response.status_code, 302)  # Redirect after submission
         self.assertTrue(Payment.objects.filter(user=self.scout).exists())

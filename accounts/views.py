@@ -461,13 +461,13 @@ def register(request):
     else:
         form = UserRegisterForm()
     
-    # Get the active QR code for payment
-    from payments.models import PaymentQRCode
-    active_qr_code = PaymentQRCode.get_active_qr_code()
+    # Get the registration QR code from system configuration
+    from payments.models import SystemConfiguration
+    system_config = SystemConfiguration.get_config()
     
     return render(request, 'accounts/register.html', {
         'form': form,
-        'active_qr_code': active_qr_code
+        'registration_qr_code': system_config.registration_qr_code if system_config else None
     })
 
 def admin_required(view_func):
@@ -940,13 +940,19 @@ def registration_payment(request, user_id):
     if request.method == 'POST':
         amount = request.POST.get('amount')
         receipt = request.FILES.get('receipt')
+        reference_number = request.POST.get('reference_number', '').strip()
         notes = request.POST.get('notes', '')
         
-        if amount and receipt:
+        if amount and receipt and reference_number:
             try:
                 payment_amount = Decimal(amount)
                 if payment_amount <= 0:
                     messages.error(request, 'Payment amount must be greater than 0.')
+                    return redirect('accounts:registration_payment', user_id=user.id)
+                
+                # Check for duplicate reference number
+                if RegistrationPayment.objects.filter(reference_number=reference_number).exists():
+                    messages.error(request, 'This reference number has already been used. Please check your receipt and enter the correct reference number.')
                     return redirect('accounts:registration_payment', user_id=user.id)
                 
                 # Create new registration payment
@@ -954,6 +960,7 @@ def registration_payment(request, user_id):
                     user=user,
                     amount=payment_amount,
                     receipt_image=receipt,
+                    reference_number=reference_number,
                     notes=notes
                 )
                 
@@ -962,7 +969,7 @@ def registration_payment(request, user_id):
                 for admin in admins:
                     send_realtime_notification(
                         admin.id, 
-                        f"New registration payment submitted: {user.get_full_name()} - ₱{payment_amount}",
+                        f"New registration payment submitted: {user.get_full_name()} - ₱{payment_amount} (Ref: {reference_number})",
                         type='registration'
                     )
                 messages.success(request, f'Payment of ₱{payment_amount} submitted successfully! Your payment is pending verification.')
@@ -970,11 +977,11 @@ def registration_payment(request, user_id):
             except (ValueError, TypeError):
                 messages.error(request, 'Please enter a valid payment amount.')
         else:
-            messages.error(request, 'Please enter payment amount and upload a receipt.')
+            messages.error(request, 'Please enter payment amount, reference number, and upload a receipt.')
     
-    # Get the active QR code for payment
-    from payments.models import PaymentQRCode
-    active_qr_code = PaymentQRCode.get_active_qr_code()
+    # Get the registration QR code from system configuration
+    from payments.models import SystemConfiguration
+    system_config = SystemConfiguration.get_config()
     
     # Get payment history for this user
     payments = user.registration_payments.all().order_by('-created_at')
@@ -982,7 +989,7 @@ def registration_payment(request, user_id):
     return render(request, 'accounts/registration_payment.html', {
         'user': user,
         'registration_fee': user.registration_payment_amount,
-        'active_qr_code': active_qr_code,
+        'registration_qr_code': system_config.registration_qr_code if system_config else None,
         'payments': payments,
     })
 
@@ -1045,23 +1052,27 @@ def verify_registration_payment(request, user_id):
                 messages.success(request, f'Registration payment of ₱{payment.amount} verified.')
                 
             elif action == 'reject':
+                rejection_reason = request.POST.get('rejection_reason', '').strip()
+                
                 payment.status = 'rejected'
                 payment.verified_by = request.user
                 payment.verification_date = timezone.now()
+                payment.rejection_reason = rejection_reason if rejection_reason else 'No reason provided'
                 payment.notes = notes
                 payment.save()
                 
                 # Send notification to user
+                reason_text = f" Reason: {rejection_reason}" if rejection_reason else ""
                 send_realtime_notification(
                     user.id, 
-                    f"Your registration payment of ₱{payment.amount} has been rejected.",
+                    f"Your registration payment of ₱{payment.amount} has been rejected.{reason_text}",
                     type='registration'
                 )
                 
                 # Send email notification
                 NotificationService.send_email(
                     subject="Registration Payment Rejected - ScoutConnect",
-                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been rejected by an administrator.\n\nReason: {notes}\n\nPlease submit a new payment receipt.\n\nBest regards,\nScoutConnect Team",
+                    message=f"Dear {user.get_full_name()},\n\nYour registration payment of ₱{payment.amount} has been rejected by an administrator.\n\nReason: {payment.rejection_reason}\n\nPlease submit a new payment receipt with the correct information.\n\nBest regards,\nScoutConnect Team",
                     recipient_list=[user.email]
                 )
                 

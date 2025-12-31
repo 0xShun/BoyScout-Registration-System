@@ -15,9 +15,26 @@ class EventForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control' }),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'location': forms.TextInput(attrs={'class': 'form-control' }),
-            'payment_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
-            'qr_code': forms.ClearableFileInput(attrs={'class': 'form-control' }),
+            'payment_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'placeholder': 'Enter event fee (leave 0 for free events)'}),
+            'qr_code': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png'}),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['qr_code'].label = "Event Payment QR Code"
+        self.fields['qr_code'].help_text = "Upload QR-PH code for this event's payment (JPG or PNG, max 10MB). Leave blank for free events."
+        self.fields['qr_code'].required = False
+        self.fields['payment_amount'].help_text = "Set to 0 or leave blank for free events"
+    
+    def clean_qr_code(self):
+        file = self.cleaned_data.get('qr_code')
+        if file and hasattr(file, 'size'):
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File too large. Maximum is 10MB.')
+            allowed_types = ['image/jpeg', 'image/png']
+            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
+                raise forms.ValidationError('Unsupported file type. Use JPG or PNG.')
+        return file
 
 class EventPhotoForm(forms.ModelForm):
     class Meta:
@@ -28,12 +45,24 @@ class EventPhotoForm(forms.ModelForm):
         }
 
 class EventRegistrationForm(forms.ModelForm):
+    reference_number = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter payment reference number'
+        })
+    )
+    
     class Meta:
         model = EventRegistration
         fields = ['rsvp', 'receipt_image']
         widgets = {
             'rsvp': forms.Select(attrs={'class': 'form-select'}),
-            'receipt_image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'receipt_image': forms.ClearableFileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/jpeg,image/png,application/pdf'
+            }),
         }
     
     def __init__(self, *args, **kwargs):
@@ -42,25 +71,45 @@ class EventRegistrationForm(forms.ModelForm):
         
         if self.event and self.event.has_payment_required:
             self.fields['receipt_image'].required = True
-            self.fields['receipt_image'].help_text = f"Please upload a screenshot of your payment receipt. Event fee: ₱{self.event.payment_amount}"
+            self.fields['receipt_image'].help_text = f"Upload your payment receipt (JPG, PNG, or PDF, max 10MB). Event fee: ₱{self.event.payment_amount}"
+            self.fields['reference_number'].required = True
+            self.fields['reference_number'].help_text = "Enter the payment reference number from your receipt"
         else:
             self.fields['receipt_image'].required = False
             self.fields['receipt_image'].help_text = "Upload payment receipt (optional)"
+            self.fields['reference_number'].required = False
+    
+    def clean_receipt_image(self):
+        file = self.cleaned_data.get('receipt_image')
+        if file and self.event and self.event.has_payment_required:
+            # Max 10MB
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File too large. Maximum is 10MB.')
+            # Check file type
+            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
+            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
+                raise forms.ValidationError('Unsupported file type. Use JPG, PNG, or PDF.')
+        return file
 
 class EventPaymentForm(forms.ModelForm):
     class Meta:
         model = EventPayment
-        fields = ['amount', 'receipt_image', 'notes']
+        fields = ['amount', 'receipt_image', 'reference_number', 'notes']
         widgets = {
             'amount': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'step': '0.01',
                 'min': '0.01',
-                'placeholder': 'Enter payment amount'
+                'placeholder': 'Enter payment amount',
+                'readonly': 'readonly'
             }),
             'receipt_image': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
-                'accept': 'image/*'
+                'accept': 'image/jpeg,image/png,application/pdf'
+            }),
+            'reference_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter payment reference number'
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -78,8 +127,19 @@ class EventPaymentForm(forms.ModelForm):
             if remaining > 0:
                 self.fields['amount'].help_text = f"Remaining amount to pay: ₱{remaining}"
                 self.fields['amount'].widget.attrs['max'] = str(remaining)
-            else:
-                self.fields['amount'].help_text = "Event is fully paid"
+        
+        self.fields['reference_number'].label = "Reference Number"
+        self.fields['reference_number'].help_text = "Enter the payment reference number from your receipt"
+    
+    def clean_receipt_image(self):
+        file = self.cleaned_data.get('receipt_image')
+        if file:
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File too large. Maximum is 10MB.')
+            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
+            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
+                raise forms.ValidationError('Unsupported file type. Use JPG, PNG, or PDF.')
+        return file
 
 class TeacherBulkEventRegistrationForm(forms.Form):
     """Form for teachers to register multiple students for an event"""
@@ -101,9 +161,16 @@ class TeacherBulkEventRegistrationForm(forms.Form):
     )
     receipt_image = forms.ImageField(
         required=False,
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control'}),
+        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png,application/pdf'}),
         label='Payment Receipt (if applicable)',
-        help_text='Upload one receipt for all students if payment is required'
+        help_text='Upload one receipt for all selected students if event requires payment (JPG, PNG, or PDF, max 10MB)'
+    )
+    reference_number = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter payment reference number'}),
+        label='Reference Number',
+        help_text='Enter the payment reference number if uploading receipt'
     )
     
     def __init__(self, *args, **kwargs):
@@ -115,7 +182,17 @@ class TeacherBulkEventRegistrationForm(forms.Form):
             self.fields['students'].queryset = User.objects.filter(
                 managed_by=teacher,
                 registration_status__in=['active', 'payment_verified']
-            ).order_by('last_name', 'first_name')
+            ).order_by('first_name', 'last_name')
+    
+    def clean_receipt_image(self):
+        file = self.cleaned_data.get('receipt_image')
+        if file:
+            if file.size > 10 * 1024 * 1024:
+                raise forms.ValidationError('File too large. Maximum is 10MB.')
+            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
+            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
+                raise forms.ValidationError('Unsupported file type. Use JPG, PNG, or PDF.')
+        return file
     
     def clean(self):
         cleaned_data = super().clean()

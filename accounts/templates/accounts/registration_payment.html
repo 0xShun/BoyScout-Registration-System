@@ -48,25 +48,21 @@
                   <p><strong>Reference:</strong> REG-{{ user.id }}</p>
                 </div>
                 <div class="col-md-6">
-                  {% if active_qr_code %}
+                  {% if registration_qr_code %}
                     <div class="text-center">
-                      <h6>{{ active_qr_code.title }}</h6>
-                      {% if active_qr_code.description %}
-                        <p class="small text-muted">{{ active_qr_code.description }}</p>
-                      {% endif %}
+                      <h6>Registration Payment QR Code</h6>
+                      <p class="small text-muted">Scan with GCash, PayMaya, or any QR-PH compatible app</p>
                       <div class="border rounded p-3 bg-light">
                         <h6 class="mb-3">Scan to Pay</h6>
-                        <img src="{{ active_qr_code.qr_code.url }}" alt="{{ active_qr_code.title }}" class="img-fluid" style="max-width: 200px; max-height: 200px;">
-                        <p class="small text-muted mt-2">Use your GCash app to scan this QR code</p>
+                        <img src="{{ registration_qr_code.url }}" alt="Registration QR Code" class="img-fluid" style="max-width: 200px; max-height: 200px;">
+                        <p class="small text-muted mt-2">Use your mobile payment app to scan this QR code</p>
                       </div>
                     </div>
                   {% else %}
-                    <p><strong>Payment Methods:</strong></p>
-                    <ul class="list-unstyled">
-                      <li>• GCash: 0912-345-6789</li>
-                      <li>• Bank: 1234-5678-9012-3456</li>
-                      <li>• Cash: Tacloban City Council</li>
-                    </ul>
+                    <div class="alert alert-warning">
+                      <i class="fas fa-exclamation-triangle me-2"></i>
+                      QR code not yet configured by admin. Please contact the administrator.
+                    </div>
                   {% endif %}
                 </div>
               </div>
@@ -86,6 +82,7 @@
                       <tr>
                         <th>Date</th>
                         <th>Amount</th>
+                        <th>Reference #</th>
                         <th>Status</th>
                         <th>Receipt</th>
                         <th>Notes</th>
@@ -96,10 +93,14 @@
                         <tr>
                           <td>{{ payment.created_at|date:"M d, Y" }}</td>
                           <td>₱{{ payment.amount }}</td>
+                          <td>{{ payment.reference_number|default:"-" }}</td>
                           <td>
                             <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
                               {{ payment.get_status_display }}
                             </span>
+                            {% if payment.status == 'rejected' and payment.rejection_reason %}
+                              <br><small class="text-danger">{{ payment.rejection_reason }}</small>
+                            {% endif %}
                           </td>
                           <td>
                             {% if payment.receipt_image %}
@@ -143,10 +144,22 @@
                     </div>
                     <div class="col-md-6">
                       <div class="mb-3">
-                        <label for="receipt" class="form-label">Payment Receipt</label>
-                        <input type="file" class="form-control" id="receipt" name="receipt" accept="image/*" required>
+                        <label for="reference_number" class="form-label">Reference Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="reference_number" name="reference_number" 
+                               placeholder="Enter payment reference number" required>
                         <div class="form-text">
-                          Please upload a clear screenshot of your payment receipt.
+                          Enter the reference number from your payment receipt
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-md-12">
+                      <div class="mb-3">
+                        <label for="receipt" class="form-label">Payment Receipt <span class="text-danger">*</span></label>
+                        <input type="file" class="form-control" id="receipt" name="receipt" accept="image/jpeg,image/png,application/pdf" required>
+                        <div class="form-text">
+                          Upload a clear screenshot or photo of your payment receipt (JPG, PNG, or PDF, max 10MB).
                         </div>
                       </div>
                     </div>

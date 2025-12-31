@@ -30,7 +30,7 @@
             <li>Upload your payment receipt now during registration</li>
             <li>Or complete the payment later after registration</li>
           </ul>
-          {% if active_qr_code %}
+          {% if registration_qr_code %}
             <p class="small mb-0"><strong>Mobile users:</strong> You can find the QR code after completing registration.</p>
           {% endif %}
         </div>
@@ -46,17 +46,15 @@
     </div>
     <div class="col-md-5 d-none d-md-block bg-secondary p-5 rounded-end shadow-sm">
       <div class="text-center h-100 d-flex flex-column justify-content-center">
-        {% if active_qr_code %}
+        {% if registration_qr_code %}
           <div class="payment-qr-section">
             <h4 class="text-white mb-3">Pay Registration Fee</h4>
             <div class="bg-white p-3 rounded mb-3">
-              <img src="{{ active_qr_code.qr_code.url }}" alt="{{ active_qr_code.title }}" class="img-fluid" style="max-width: 280px; max-height: 280px;">
+              <img src="{{ registration_qr_code.url }}" alt="Registration QR Code" class="img-fluid" style="max-width: 280px; max-height: 280px;">
             </div>
             <div class="text-white">
-              <h6>{{ active_qr_code.title }}</h6>
-              {% if active_qr_code.description %}
-                <p class="small mb-2">{{ active_qr_code.description }}</p>
-              {% endif %}
+              <h6>Registration Payment QR Code</h6>
+              <p class="small mb-2">Scan with GCash, PayMaya, or any QR-PH compatible app</p>
               <p class="small"><strong>Amount: ₱500.00</strong></p>
               <p class="small">Scan the QR code to pay your registration fee</p>
             </div>

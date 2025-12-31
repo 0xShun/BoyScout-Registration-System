@@ -28,6 +28,25 @@ class PaymentQRCode(models.Model):
         """Get the currently active QR code"""
         return cls.objects.filter(is_active=True).first()
 
+class SystemConfiguration(models.Model):
+    """Model to store system-wide configuration including registration QR code"""
+    registration_qr_code = models.ImageField(upload_to='system_qr_codes/', null=True, blank=True, verbose_name="Registration QR Code")
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='system_config_updates')
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = "System Configuration"
+        verbose_name_plural = "System Configuration"
+    
+    def __str__(self):
+        return "System Configuration"
+    
+    @classmethod
+    def get_config(cls):
+        """Get or create the system configuration singleton"""
+        config, created = cls.objects.get_or_create(pk=1)
+        return config
+
 class Payment(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -38,12 +57,15 @@ class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    payment_type = models.CharField(max_length=30, choices=[('registration', 'Registration'), ('other', 'Other')], default='other')
-    gcash_receipt_image = models.ImageField(upload_to='payment_receipts/', null=True, blank=True)
+    receipt_image = models.ImageField(upload_to='payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
+    reference_number = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="Reference Number")
+    payment_method = models.CharField(max_length=20, default='QR-PH', verbose_name="Payment Method")
+    qr_ph_reference = models.CharField(max_length=100, blank=True, verbose_name="QR PH Reference")
     date = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_payments')
     verification_date = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True, verbose_name="Rejection Reason")
     notes = models.TextField(blank=True)
     payee_name = models.CharField(max_length=100, blank=True)
     payee_email = models.CharField(max_length=100, blank=True)
@@ -52,7 +74,7 @@ class Payment(models.Model):
         ordering = ['-date']
         indexes = [
             models.Index(fields=["user", "status", "date"]),
-            models.Index(fields=["payment_type", "status"]),
+            models.Index(fields=["reference_number"]),
         ]
 
     def __str__(self):
