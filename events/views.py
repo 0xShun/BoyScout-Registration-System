@@ -129,6 +129,31 @@ def event_detail(request, pk):
     registration = None
     registration_form = None
     if request.user.is_authenticated:
+        # Handle QR code upload (Admin only)
+        if request.method == 'POST' and 'upload_qr_code' in request.POST and request.user.is_admin():
+            qr_code_file = request.FILES.get('qr_code')
+            if qr_code_file:
+                # Validate file size (max 10MB)
+                if qr_code_file.size > 10 * 1024 * 1024:
+                    messages.error(request, 'File too large. Maximum size is 10MB.')
+                    return redirect('events:event_detail', pk=event.pk)
+                
+                # Validate file type
+                allowed_types = ['image/jpeg', 'image/png', 'image/jpg']
+                if qr_code_file.content_type not in allowed_types:
+                    messages.error(request, 'Invalid file type. Please upload JPG or PNG image.')
+                    return redirect('events:event_detail', pk=event.pk)
+                
+                # Save the QR code to the event
+                event.qr_code = qr_code_file
+                event.save()
+                
+                messages.success(request, f'Payment QR code {"updated" if event.qr_code else "uploaded"} successfully!')
+                return redirect('events:event_detail', pk=event.pk)
+            else:
+                messages.error(request, 'Please select a QR code image to upload.')
+                return redirect('events:event_detail', pk=event.pk)
+        
         registration = EventRegistration.objects.filter(event=event, user=request.user).first()
         if request.method == 'POST' and 'register_event' in request.POST:
             if registration:

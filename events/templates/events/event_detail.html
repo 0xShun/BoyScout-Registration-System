@@ -43,29 +43,40 @@
           <!-- Payment Information -->
           {% if event.has_payment_required %}
             <div class="alert alert-info">
-              <h5>Payment Required</h5>
+              <h5><i class="fas fa-credit-card"></i> Payment Required</h5>
               <p><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
               
-              {% if qr_code %}
-                <p><strong>Payment QR Code:</strong></p>
-                <img src="{{ qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 200px;">
-                <p class="mt-2">
-                  <small>
-                    {% if event.qr_code %}
-                      Scan this QR code to pay the event fee
-                    {% else %}
-                      Scan this QR code to pay the event fee (using general payment QR code)
-                    {% endif %}
-                  </small>
-                </p>
+              {% if event.qr_code %}
+                <div class="mt-3">
+                  <p><strong><i class="fas fa-qrcode"></i> Payment QR Code:</strong></p>
+                  <div class="p-3 bg-white rounded border text-center">
+                    <img src="{{ event.qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 300px;">
+                  </div>
+                  <p class="mt-3 mb-0">
+                    <i class="fas fa-info-circle"></i> 
+                    <small>
+                      <strong>How to pay:</strong>
+                      <ol class="mt-2">
+                        <li>Open your GCash, Maya, or any QR-PH compatible app</li>
+                        <li>Scan the QR code above</li>
+                        <li>Pay <strong>₱{{ event.payment_amount }}</strong></li>
+                        <li>Take a screenshot of the payment confirmation</li>
+                        <li>Upload the receipt when registering for this event</li>
+                      </ol>
+                    </small>
+                  </p>
+                </div>
               {% else %}
-                <p class="text-warning"><strong>No QR code available.</strong> Please contact an administrator for payment instructions.</p>
+                <div class="alert alert-warning mt-3">
+                  <i class="fas fa-exclamation-triangle"></i> <strong>No QR code available yet.</strong> 
+                  <p class="mb-0 mt-2">The admin has not uploaded the payment QR code for this event. Please contact an administrator for payment instructions.</p>
+                </div>
               {% endif %}
             </div>
           {% else %}
             <div class="alert alert-success">
-              <h5>Free Event</h5>
-              <p>No payment required for this event.</p>
+              <h5><i class="fas fa-check-circle"></i> Free Event</h5>
+              <p class="mb-0">No payment required for this event.</p>
             </div>
           {% endif %}
         </div>
@@ -175,14 +186,44 @@
           <div class="card-body">
             <div class="row">
               <div class="col-md-6">
-                <a href="{% url 'events:event_edit' event.pk %}" class="btn btn-warning mb-2">Edit Event</a>
-                <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info mb-2">Manage Attendance</a>
+                <a href="{% url 'events:event_edit' event.pk %}" class="btn btn-warning mb-2 w-100">
+                  <i class="fas fa-edit"></i> Edit Event
+                </a>
+                <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info mb-2 w-100">
+                  <i class="fas fa-clipboard-check"></i> Manage Attendance
+                </a>
+                {% if event.has_payment_required %}
+                  <button type="button" class="btn btn-success mb-2 w-100" data-bs-toggle="modal" data-bs-target="#uploadQRModal">
+                    <i class="fas fa-qrcode"></i> 
+                    {% if event.qr_code %}Update{% else %}Upload{% endif %} Payment QR Code
+                  </button>
+                {% endif %}
               </div>
               <div class="col-md-6">
-                <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2">Upload Photos</a>
-                <a href="{% url 'events:pending_payments' %}" class="btn btn-primary mb-2">View Pending Payments</a>
+                <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2 w-100">
+                  <i class="fas fa-camera"></i> Upload Photos
+                </a>
+                <a href="{% url 'events:pending_payments' %}" class="btn btn-primary mb-2 w-100">
+                  <i class="fas fa-hourglass-half"></i> View Pending Payments
+                </a>
               </div>
             </div>
+            
+            <!-- Current QR Code Display for Admin -->
+            {% if event.qr_code %}
+              <div class="mt-3 p-3 bg-light rounded">
+                <h6><i class="fas fa-qrcode"></i> Current Payment QR Code:</h6>
+                <img src="{{ event.qr_code.url }}" alt="Event Payment QR Code" class="img-fluid mt-2" style="max-width: 200px;">
+                <p class="text-muted small mt-2 mb-0">
+                  <i class="fas fa-info-circle"></i> This QR code is shown to all users for event payment
+                </p>
+              </div>
+            {% elif event.has_payment_required %}
+              <div class="alert alert-warning mt-3 mb-0">
+                <i class="fas fa-exclamation-triangle"></i> <strong>No Payment QR Code uploaded yet!</strong> 
+                Users will not be able to pay for this event until you upload a QR code.
+              </div>
+            {% endif %}
           </div>
         </div>
 
@@ -271,6 +312,65 @@
     </div>
   </div>
 </div>
+
+<!-- QR Code Upload Modal (Admin Only) -->
+{% if user.is_admin %}
+<div class="modal fade" id="uploadQRModal" tabindex="-1" aria-labelledby="uploadQRModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uploadQRModalLabel">
+          <i class="fas fa-qrcode"></i> 
+          {% if event.qr_code %}Update{% else %}Upload{% endif %} Payment QR Code
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" enctype="multipart/form-data" id="qrUploadForm">
+        {% csrf_token %}
+        <input type="hidden" name="upload_qr_code" value="1">
+        <div class="modal-body">
+          {% if event.qr_code %}
+            <div class="alert alert-info">
+              <i class="fas fa-info-circle"></i> <strong>Current QR Code:</strong>
+              <div class="mt-2">
+                <img src="{{ event.qr_code.url }}" alt="Current QR Code" class="img-fluid" style="max-width: 200px;">
+              </div>
+            </div>
+          {% endif %}
+          
+          <div class="mb-3">
+            <label for="qr_code_file" class="form-label">
+              <i class="fas fa-upload"></i> Select QR Code Image
+            </label>
+            <input type="file" class="form-control" id="qr_code_file" name="qr_code" accept="image/jpeg,image/png,image/jpg" required>
+            <div class="form-text">
+              Upload the QR-PH code from PayMongo for this event's payment. Accepted formats: JPG, PNG (max 10MB)
+            </div>
+          </div>
+          
+          <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong>
+            <ul class="mb-0 mt-2">
+              <li>Upload the QR code image from PayMongo for <strong>{{ event.title }}</strong></li>
+              <li>This QR code will be shown to all users on the event detail page</li>
+              <li>Users will scan this QR code to pay the event fee of <strong>₱{{ event.payment_amount }}</strong></li>
+            </ul>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-upload"></i> 
+            {% if event.qr_code %}Update{% else %}Upload{% endif %} QR Code
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %} 
 
 <style>
