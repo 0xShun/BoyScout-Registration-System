@@ -37,8 +37,16 @@ else:
         '127.0.0.1',
         'scoutconnect.pythonanywhere.com',
         'ScoutConnect.pythonanywhere.com',
+        '*.ngrok-free.app',  # Allow all ngrok domains
+        '.ngrok.io',          # Legacy ngrok domains
     ]
 
+# CSRF trusted origins for ngrok
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.app',
+    'https://*.ngrok.io',
+    'https://scoutconnect.pythonanywhere.com',
+]
 
 # Application definition
 
@@ -190,9 +198,8 @@ PAYMONGO_PUBLIC_KEY = os.environ.get('PAYMONGO_PUBLIC_KEY', '')
 PAYMONGO_SECRET_KEY = os.environ.get('PAYMONGO_SECRET_KEY', '')
 PAYMONGO_WEBHOOK_SECRET = os.environ.get('PAYMONGO_WEBHOOK_SECRET', '')
 
-# Temporarily disable webhook signature verification for debugging
-# TODO: Re-enable in production once webhook secret is confirmed working
-PAYMONGO_VERIFY_WEBHOOK = False
+# Enable webhook signature verification
+PAYMONGO_VERIFY_WEBHOOK = os.environ.get('PAYMONGO_VERIFY_WEBHOOK', 'True').lower() == 'true'
 
 # Site URL for PayMongo redirects
 SITE_URL = os.environ.get('SITE_URL', 'https://scoutconnect.pythonanywhere.com')
