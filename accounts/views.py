@@ -287,13 +287,44 @@ def teacher_create_student(request):
         if form.is_valid():
             student = form.save()
             
-            # Send welcome email to student with login credentials
-            from django.core.mail import send_mail
-            from django.conf import settings
+            # Get registration fee from system config
+            from payments.models import SystemConfiguration
+            from events.paymongo_service import PayMongoService
+            from .models import RegistrationPayment
+            
+            system_config = SystemConfiguration.get_config()
+            registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            
+            # Create PayMongo payment for this student
+            paymongo = PayMongoService()
             
             try:
-                subject = 'Welcome to Boy Scout System - Your Account Details'
-                message = f"""
+                # Create PayMongo source
+                description = f"Registration Fee - {student.get_full_name()} (created by teacher {request.user.get_full_name()})"
+                source_data = paymongo.create_source(
+                    amount=registration_fee,
+                    description=description
+                )
+                
+                if source_data and 'id' in source_data:
+                    # Create RegistrationPayment record linked to the student
+                    reg_payment = RegistrationPayment.objects.create(
+                        user=student,
+                        amount=registration_fee,
+                        paymongo_source_id=source_data['id'],
+                        paymongo_checkout_url=source_data['attributes']['redirect']['checkout_url'],
+                        payment_method='paymongo_gcash',
+                        status='pending',
+                        notes=f"Created by teacher {request.user.get_full_name()}"
+                    )
+                    
+                    # Send welcome email to student with login credentials
+                    from django.core.mail import send_mail
+                    from django.conf import settings
+                    
+                    try:
+                        subject = 'Welcome to Boy Scout System - Your Account Details'
+                        message = f"""
 Hello {student.get_full_name()},
 
 Your teacher, {request.user.get_full_name()}, has created an account for you in the Boy Scout System.
@@ -303,25 +334,41 @@ Email: {student.email}
 Username: {student.username}
 Password: (The password set by your teacher)
 
-You can now log in at: {request.build_absolute_uri('/accounts/login/')}
+Your account will be activated once your teacher completes the registration payment.
+
+You can log in at: {request.build_absolute_uri('/accounts/login/')}
 
 If you have any questions, please contact your teacher.
 
 Best regards,
 Boy Scout System Team
 """
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [student.email],
-                    fail_silently=True,
-                )
+                        send_mail(
+                            subject,
+                            message,
+                            settings.DEFAULT_FROM_EMAIL,
+                            [student.email],
+                            fail_silently=True,
+                        )
+                    except Exception as e:
+                        messages.warning(request, f'Student created but email notification failed: {str(e)}')
+                    
+                    messages.success(
+                        request, 
+                        f'Student {student.get_full_name()} created successfully! Please complete the registration payment of ₱{registration_fee}. '
+                        f'<a href="{reg_payment.paymongo_checkout_url}" target="_blank" class="alert-link">Click here to pay now</a>',
+                        extra_tags='safe'
+                    )
+                    return redirect('accounts:teacher_student_list')
+                else:
+                    # PayMongo failed, delete student and show error
+                    student.delete()
+                    messages.error(request, 'Failed to create payment. Please try again or contact support.')
+                    
             except Exception as e:
-                messages.warning(request, f'Student created but email notification failed: {str(e)}')
-            
-            messages.success(request, f'Student {student.get_full_name()} created successfully! Welcome email sent.')
-            return redirect('accounts:teacher_student_list')
+                # Error creating payment, delete student
+                student.delete()
+                messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
     else:
         form = TeacherCreateStudentForm(teacher=request.user)
     

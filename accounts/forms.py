@@ -283,7 +283,7 @@ class TeacherCreateStudentForm(UserCreationForm):
         user.rank = 'scout'  # Students are scouts by default
         user.managed_by = self.teacher
         user.is_active = True
-        user.registration_status = 'payment_verified'  # Auto-verify students created by teachers
+        user.registration_status = 'pending_payment'  # Teachers must pay for students via PayMongo
         
         # Auto-generate username if not provided
         if not user.username:
