@@ -58,19 +58,6 @@
                   <div class="form-text">Leave empty if no payment is required</div>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="mb-3">
-                  <label for="{{ form.qr_code.id_for_label }}" class="form-label">Payment QR Code</label>
-                  {{ form.qr_code }}
-                  <div class="form-text">Upload QR code for payment collection</div>
-                  {% if form.instance.qr_code %}
-                    <div class="mt-2">
-                      <label>Current QR Code:</label><br>
-                      <img src="{{ form.instance.qr_code.url }}" alt="Current QR Code" class="img-fluid" style="max-width:200px;">
-                    </div>
-                  {% endif %}
-                </div>
-              </div>
             </div>
           </div>
         </div>

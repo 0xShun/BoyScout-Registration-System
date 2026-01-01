@@ -230,27 +230,8 @@
                 <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2 w-100">
                   <i class="fas fa-camera"></i> Upload Photos
                 </a>
-                <a href="{% url 'events:pending_payments' %}" class="btn btn-primary mb-2 w-100">
-                  <i class="fas fa-hourglass-half"></i> View Pending Payments
-                </a>
               </div>
             </div>
-            
-            <!-- Current QR Code Display for Admin -->
-            {% if event.qr_code %}
-              <div class="mt-3 p-3 bg-light rounded">
-                <h6><i class="fas fa-qrcode"></i> Current Payment QR Code:</h6>
-                <img src="{{ event.qr_code.url }}" alt="Event Payment QR Code" class="img-fluid mt-2" style="max-width: 200px;">
-                <p class="text-muted small mt-2 mb-0">
-                  <i class="fas fa-info-circle"></i> This QR code is shown to all users for event payment
-                </p>
-              </div>
-            {% elif event.has_payment_required %}
-              <div class="alert alert-warning mt-3 mb-0">
-                <i class="fas fa-exclamation-triangle"></i> <strong>No Payment QR Code uploaded yet!</strong> 
-                Users will not be able to pay for this event until you upload a QR code.
-              </div>
-            {% endif %}
           </div>
         </div>
 

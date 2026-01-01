@@ -159,19 +159,6 @@
 
         <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Event QR Code -->
-            {% if registration.event.qr_code %}
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header">
-                        <h5 class="mb-0">Event QR Code</h5>
-                    </div>
-                    <div class="card-body text-center">
-                        <img src="{{ registration.event.qr_code.url }}" alt="Event QR Code" class="img-fluid" style="max-width: 200px;">
-                        <p class="mt-2"><small>Expected payment amount: ₱{{ registration.event.payment_amount }}</small></p>
-                    </div>
-                </div>
-            {% endif %}
-
             <!-- Payment Status -->
             <div class="card shadow-sm">
                 <div class="card-header">
