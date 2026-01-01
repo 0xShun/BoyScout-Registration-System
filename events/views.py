@@ -792,13 +792,21 @@ def paymongo_webhook(request):
     - payment.paid: Mark payment as verified
     - payment.failed: Mark payment as failed
     """
+    # CRITICAL DEBUG: Log every webhook request
+    print("=" * 80)
+    print("🔔 PAYMONGO WEBHOOK RECEIVED")
+    print("=" * 80)
+    
     try:
         # Get webhook data
         payload = request.body.decode('utf-8')
         signature = request.META.get('HTTP_PAYMONGO_SIGNATURE', '')
         
-        # Log incoming webhook
+        # Log incoming webhook with full details
+        print(f"📥 Webhook Payload: {payload[:500]}...")  # First 500 chars
+        print(f"🔐 Signature Present: {bool(signature)}")
         logger.info(f"PayMongo webhook received - Signature present: {bool(signature)}")
+        logger.info(f"Webhook payload: {payload}")
         
         # Verify webhook signature
         paymongo_service = PayMongoService()
@@ -815,43 +823,59 @@ def paymongo_webhook(request):
         event_type = data.get('data', {}).get('attributes', {}).get('type')
         event_data = data.get('data', {}).get('attributes', {}).get('data', {})
         
+        print(f"📋 Event Type: {event_type}")
+        print(f"📦 Event Data ID: {event_data.get('id', 'N/A')}")
         logger.info(f"PayMongo webhook event type: {event_type}")
+        logger.info(f"Event data: {json.dumps(event_data, indent=2)}")
         
         if event_type == 'source.chargeable':
+            print("💳 Processing source.chargeable event...")
             # Source is ready to be charged - create payment
             source_id = event_data.get('id')
+            print(f"🔍 Looking for payment with source_id: {source_id}")
             
             # Find the payment record (check both EventPayment and RegistrationPayment)
             payment = EventPayment.objects.filter(paymongo_source_id=source_id).first()
             registration_payment = None
             
             if not payment:
+                print("   Not found in EventPayment, checking RegistrationPayment...")
                 # Check if it's a registration payment
                 from accounts.models import RegistrationPayment
                 registration_payment = RegistrationPayment.objects.filter(paymongo_source_id=source_id).first()
                 
                 if not registration_payment:
+                    print(f"❌ ERROR: Payment not found for source: {source_id}")
                     logger.error(f"Payment not found for source: {source_id}")
                     return JsonResponse({'error': 'Payment not found'}, status=404)
                 else:
+                    print(f"✅ Found RegistrationPayment: ID={registration_payment.id}, User={registration_payment.user.email}")
                     logger.info(f"Found registration payment for source: {source_id}, User: {registration_payment.user.email}")
+            else:
+                print(f"✅ Found EventPayment: ID={payment.id}")
             
             # Create payment via PayMongo
             if payment:
                 # Event payment
                 description = f"Event Payment - {payment.registration.event.title}"
+                print(f"💰 Creating payment for Event: {description}")
             else:
                 # Registration payment
                 description = f"Registration Fee - {registration_payment.user.get_full_name()}"
+                print(f"💰 Creating payment for Registration: {description}")
             
+            print(f"🚀 Calling PayMongo API to create payment...")
             payment_response = paymongo_service.create_payment(
                 source_id=source_id,
                 amount=payment.amount if payment else registration_payment.amount,
                 description=description
             )
             
+            print(f"📨 PayMongo Response: {json.dumps(payment_response, indent=2) if payment_response else 'None'}")
+            
             if payment_response and payment_response.get('data'):
                 payment_id = payment_response['data']['id']
+                print(f"✅ Payment created successfully: {payment_id}")
                 
                 if payment:
                     # Update EventPayment
@@ -862,14 +886,17 @@ def paymongo_webhook(request):
                     # Update registration payment status
                     payment.registration.payment_status = 'pending'
                     payment.registration.save()
+                    print(f"✅ EventPayment updated to processing")
                 else:
                     # Update RegistrationPayment
                     registration_payment.paymongo_payment_id = payment_id
                     registration_payment.status = 'processing'
                     registration_payment.save()
+                    print(f"✅ RegistrationPayment updated to processing")
                 
                 logger.info(f"Payment created: {payment_id}")
             else:
+                print(f"❌ Failed to create payment - No response from PayMongo")
                 if payment:
                     payment.status = 'failed'
                     payment.save()
@@ -882,30 +909,38 @@ def paymongo_webhook(request):
                 logger.error(f"Failed to create payment for source: {source_id}")
         
         elif event_type == 'payment.paid':
+            print("✅ Processing payment.paid event...")
             # Payment successful - mark as verified
             payment_id = event_data.get('id')
+            print(f"🔍 Looking for payment with payment_id: {payment_id}")
             
             # Find the payment record (check both EventPayment and RegistrationPayment)
             payment = EventPayment.objects.filter(paymongo_payment_id=payment_id).first()
             registration_payment = None
             
             if not payment:
+                print("   Not found in EventPayment, checking RegistrationPayment...")
                 # Check if it's a registration payment
                 from accounts.models import RegistrationPayment
                 registration_payment = RegistrationPayment.objects.filter(paymongo_payment_id=payment_id).first()
                 
                 if not registration_payment:
+                    print(f"❌ ERROR: Payment not found for payment_id: {payment_id}")
                     logger.error(f"Payment not found for payment_id: {payment_id}")
                     return JsonResponse({'error': 'Payment not found'}, status=404)
+                else:
+                    print(f"✅ Found RegistrationPayment: ID={registration_payment.id}, User={registration_payment.user.email}")
+            else:
+                print(f"✅ Found EventPayment: ID={payment.id}")
             
             if payment:
                 # Event payment - mark as verified
+                print(f"💚 Marking EventPayment as verified...")
                 payment.status = 'verified'
                 payment.verification_date = timezone.now()
                 payment.save()
                 
                 # Update registration payment status
-                registration = payment.registration
                 registration.payment_status = 'paid'
                 registration.verified = True
                 registration.verification_date = timezone.now()
@@ -921,17 +956,23 @@ def paymongo_webhook(request):
                 )
                 
                 logger.info(f"Event payment verified: {payment_id}")
+                print(f"✅ EventPayment verified successfully")
             else:
                 # Registration payment - mark as verified
+                print(f"💚 Marking RegistrationPayment as verified...")
                 registration_payment.status = 'verified'
                 registration_payment.verification_date = timezone.now()
                 registration_payment.save()
+                print(f"   Status updated to: {registration_payment.status}")
                 
                 # Update user registration status
                 user = registration_payment.user
+                print(f"👤 Updating user {user.email} registration status...")
                 user.registration_status = 'payment_verified'
                 user.update_registration_status()  # This will set to 'active' and set membership expiry
                 user.save()
+                print(f"   User status updated to: {user.registration_status}")
+                print(f"   User is_active: {user.is_active}")
                 
                 # Send notification to user
                 NotificationService.send_notification(
@@ -954,6 +995,8 @@ def paymongo_webhook(request):
                     )
                 
                 logger.info(f"Registration payment verified: {payment_id} for user: {user.email}")
+                print(f"✅ RegistrationPayment verified successfully")
+                print(f"📧 Notifications sent to user and admins")
         
         elif event_type == 'payment.failed':
             # Payment failed - mark as failed
@@ -1007,10 +1050,18 @@ def paymongo_webhook(request):
                 
                 logger.info(f"Registration payment failed: {payment_id}")
         
+        print("=" * 80)
+        print("✅ WEBHOOK PROCESSED SUCCESSFULLY")
+        print("=" * 80)
         return JsonResponse({'status': 'success'}, status=200)
     
     except Exception as e:
+        print("=" * 80)
+        print(f"❌ WEBHOOK ERROR: {str(e)}")
+        print("=" * 80)
         logger.error(f"PayMongo webhook error: {str(e)}", exc_info=True)
+        import traceback
+        traceback.print_exc()
         return JsonResponse({'error': 'Internal server error'}, status=500)
 
 
