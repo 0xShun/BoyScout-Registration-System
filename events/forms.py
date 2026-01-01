@@ -69,11 +69,22 @@ class EventRegistrationForm(forms.ModelForm):
         self.event = kwargs.pop('event', None)
         super().__init__(*args, **kwargs)
         
+        # Check if this is an existing registration (update) or new registration
+        is_new_registration = not self.instance.pk
+        
         if self.event and self.event.has_payment_required:
-            self.fields['receipt_image'].required = True
-            self.fields['receipt_image'].help_text = f"Upload your payment receipt (JPG, PNG, or PDF, max 10MB). Event fee: ₱{self.event.payment_amount}"
-            self.fields['reference_number'].required = True
-            self.fields['reference_number'].help_text = "Enter the payment reference number from your receipt"
+            # For new registrations, receipt and reference are required
+            # For existing registrations, they're optional (allows updating RSVP without re-uploading)
+            if is_new_registration:
+                self.fields['receipt_image'].required = True
+                self.fields['reference_number'].required = True
+                self.fields['receipt_image'].help_text = f"Upload your payment receipt (JPG, PNG, or PDF, max 10MB). Event fee: ₱{self.event.payment_amount}"
+                self.fields['reference_number'].help_text = "Enter the payment reference number from your receipt"
+            else:
+                self.fields['receipt_image'].required = False
+                self.fields['reference_number'].required = False
+                self.fields['receipt_image'].help_text = f"Upload additional payment receipt (optional). Event fee: ₱{self.event.payment_amount}"
+                self.fields['reference_number'].help_text = "Enter the payment reference number (optional for additional payments)"
         else:
             self.fields['receipt_image'].required = False
             self.fields['receipt_image'].help_text = "Upload payment receipt (optional)"

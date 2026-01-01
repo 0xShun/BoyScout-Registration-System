@@ -227,7 +227,12 @@ def event_detail(request, pk):
                 
                 return redirect('events:event_detail', pk=event.pk)
             else:
-                messages.error(request, 'There was an error with your registration. Please check the form.')
+                # Form validation failed - show specific errors
+                for field, errors in registration_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f"{field.replace('_', ' ').title()}: {error}")
+                if not registration_form.errors:
+                    messages.error(request, 'There was an error with your registration. Please check the form.')
         else:
             registration_form = EventRegistrationForm(instance=registration, event=event)
 
