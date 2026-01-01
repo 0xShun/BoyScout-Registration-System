@@ -303,11 +303,14 @@ def teacher_create_student(request):
             
             try:
                 # Create PayMongo source
+                # Build redirect URL with student ID
+                redirect_url = request.build_absolute_uri(f'/accounts/registration-payment/{student.id}/')
+                
                 source_data = paymongo.create_source(
                     amount=registration_fee,
                     type='gcash',
-                    redirect_success=request.build_absolute_uri('/accounts/registration-payment/'),
-                    redirect_failed=request.build_absolute_uri('/accounts/registration-payment/'),
+                    redirect_success=redirect_url,
+                    redirect_failed=redirect_url,
                     metadata={
                         'user_email': student.email,
                         'user_name': student.get_full_name(),
@@ -506,11 +509,14 @@ def register(request):
             
             try:
                 # Create PayMongo source with registration details
+                # Build redirect URL with user ID
+                redirect_url = request.build_absolute_uri(f'/accounts/registration-payment/{user.id}/')
+                
                 source_data = paymongo.create_source(
                     amount=registration_fee,
                     type='gcash',
-                    redirect_success=request.build_absolute_uri('/accounts/registration-payment/'),
-                    redirect_failed=request.build_absolute_uri('/accounts/registration-payment/'),
+                    redirect_success=redirect_url,
+                    redirect_failed=redirect_url,
                     metadata={
                         'user_email': user.email,
                         'user_name': user.get_full_name(),
