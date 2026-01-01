@@ -83,6 +83,11 @@
             </div>
             <h2 class="text-warning">Awaiting Payment</h2>
             <p class="lead">Complete your payment for <strong>{{ event.title }}</strong> to confirm your registration.</p>
+            {% if payment and payment.status == 'pending' %}
+                <div class="spinner"></div>
+                <p class="text-muted">Checking payment status...</p>
+                <p class="text-muted small">This page will automatically update when your payment is confirmed.</p>
+            {% endif %}
             <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-primary mt-3">
                 <i class="fas fa-arrow-left"></i> Back to Event
             </a>
@@ -140,7 +145,7 @@
     </div>
 </div>
 
-{% if payment and payment.status == 'processing' %}
+{% if payment and payment.status in 'pending,processing' %}
 <script>
     // Auto-refresh every 3 seconds to check payment status
     setTimeout(function() {
