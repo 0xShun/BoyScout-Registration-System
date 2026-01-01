@@ -21,6 +21,7 @@
                 <th>User</th>
                 <th>Event</th>
                 <th>Payment Status</th>
+                <th>Receipt(s)</th>
                 <th>Amount Required</th>
                 <th>Amount Paid</th>
                 <th>Amount Remaining</th>
@@ -44,6 +45,31 @@
                     <span class="badge {% if registration.payment_status == 'paid' %}bg-success{% elif registration.payment_status == 'partial' %}bg-info{% elif registration.payment_status == 'pending' %}bg-warning{% elif registration.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
                       {{ registration.get_payment_status_display }}
                     </span>
+                  </td>
+                  <td>
+                    {% if registration.payments.exists %}
+                      <div class="d-flex gap-1 flex-wrap">
+                        {% for payment in registration.payments.all %}
+                          {% if payment.receipt_image %}
+                            <div style="position: relative;">
+                              <img src="{{ payment.receipt_image.url }}" 
+                                   alt="Receipt" 
+                                   style="width: 50px; height: 50px; object-fit: cover; cursor: pointer; border-radius: 4px;"
+                                   class="border {% if payment.status == 'verified' %}border-success{% elif payment.status == 'rejected' %}border-danger{% else %}border-warning{% endif %}"
+                                   data-bs-toggle="modal" 
+                                   data-bs-target="#receiptModal{{ payment.id }}"
+                                   title="₱{{ payment.amount }} - {{ payment.get_status_display }}">
+                              <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}" style="font-size: 0.6rem;">
+                                {{ payment.status|slice:":1"|upper }}
+                              </span>
+                            </div>
+                          {% endif %}
+                        {% endfor %}
+                      </div>
+                      <small class="text-muted d-block mt-1">{{ registration.payments.count }} receipt(s)</small>
+                    {% else %}
+                      <span class="text-muted">No receipts</span>
+                    {% endif %}
                   </td>
                   <td>
                     <span class="badge bg-info">₱{{ registration.amount_required }}</span>
@@ -83,4 +109,70 @@
     </div>
   {% endif %}
 </div>
+
+<!-- Receipt Image Modals -->
+{% if pending_registrations %}
+  {% for registration in pending_registrations %}
+    {% for payment in registration.payments.all %}
+      {% if payment.receipt_image %}
+        <div class="modal fade" id="receiptModal{{ payment.id }}" tabindex="-1" aria-labelledby="receiptModalLabel{{ payment.id }}" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="receiptModalLabel{{ payment.id }}">
+                  <i class="fas fa-receipt"></i> Payment Receipt - {{ registration.user.get_full_name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img src="{{ payment.receipt_image.url }}" class="img-fluid" alt="Payment Receipt">
+                <div class="mt-3">
+                  <div class="row">
+                    <div class="col-md-6">
+                      <p><strong>User:</strong> {{ registration.user.get_full_name }}</p>
+                      <p><strong>Event:</strong> {{ registration.event.title }}</p>
+                      <p><strong>Amount:</strong> ₱{{ payment.amount }}</p>
+                    </div>
+                    <div class="col-md-6">
+                      <p><strong>Date Submitted:</strong> {{ payment.created_at|date:"M d, Y g:i A" }}</p>
+                      {% if payment.reference_number %}
+                        <p><strong>Reference Number:</strong> {{ payment.reference_number }}</p>
+                      {% endif %}
+                      <p><strong>Status:</strong> 
+                        <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                          {{ payment.get_status_display }}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  {% if payment.rejection_reason %}
+                    <div class="alert alert-danger mt-2">
+                      <strong>Rejection Reason:</strong> {{ payment.rejection_reason }}
+                    </div>
+                  {% endif %}
+                  {% if payment.verified_by %}
+                    <div class="alert alert-success mt-2">
+                      <strong>Verified by:</strong> {{ payment.verified_by.get_full_name }} on {{ payment.verification_date|date:"M d, Y g:i A" }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="modal-footer">
+                <a href="{{ payment.receipt_image.url }}" target="_blank" class="btn btn-secondary">
+                  <i class="fas fa-external-link-alt"></i> Open in New Tab
+                </a>
+                {% if payment.status == 'pending' %}
+                  <a href="{% url 'events:verify_event_registration' registration.event.pk registration.pk %}" class="btn btn-success">
+                    <i class="fas fa-check"></i> Verify This Payment
+                  </a>
+                {% endif %}
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+{% endif %}
 {% endblock %} 
