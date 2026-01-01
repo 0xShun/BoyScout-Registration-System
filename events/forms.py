@@ -33,7 +33,6 @@ class EventPhotoForm(forms.ModelForm):
 class EventRegistrationForm(forms.ModelForm):
     PAYMENT_METHOD_CHOICES = [
         ('gcash', 'GCash'),
-        ('grab_pay', 'GrabPay'),
         ('paymaya', 'Maya (PayMaya)'),
     ]
     

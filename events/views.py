@@ -158,9 +158,9 @@ def event_detail(request, pk):
         registration = EventRegistration.objects.filter(event=event, user=request.user).first()
         if request.method == 'POST' and 'register_event' in request.POST:
             if registration:
-                registration_form = EventRegistrationForm(request.POST, request.FILES, instance=registration, event=event)
+                registration_form = EventRegistrationForm(request.POST, instance=registration, event=event)
             else:
-                registration_form = EventRegistrationForm(request.POST, request.FILES, event=event)
+                registration_form = EventRegistrationForm(request.POST, event=event)
             if registration_form.is_valid():
                 reg = registration_form.save(commit=False)
                 reg.event = event
@@ -170,8 +170,8 @@ def event_detail(request, pk):
                 if event.has_payment_required:
                     # Cancel old pending payments for this user/event
                     old_payments = EventPayment.objects.filter(
-                        event_registration__event=event,
-                        event_registration__user=request.user,
+                        registration__event=event,
+                        registration__user=request.user,
                         status='pending'
                     )
                     old_payments.update(status='cancelled')
@@ -179,15 +179,15 @@ def event_detail(request, pk):
                     # Save registration first
                     if not registration:
                         # New registration
-                        reg.status = 'pending'
+                        reg.payment_status = 'pending'
                         reg.save()
                     else:
                         reg.save()
                     
                     # Calculate amount to pay (total - already paid)
                     total_paid = EventPayment.objects.filter(
-                        event_registration=reg,
-                        is_verified=True
+                        registration=reg,
+                        status='verified'
                     ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
                     
                     amount_to_pay = event.payment_amount - total_paid
@@ -219,13 +219,17 @@ def event_detail(request, pk):
                             
                             # Create EventPayment record
                             payment = EventPayment.objects.create(
-                                event_registration=reg,
+                                registration=reg,
                                 amount=amount_to_pay,
                                 paymongo_source_id=source_id,
                                 payment_method=f'paymongo_{payment_method}',
                                 status='pending',
                                 expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None
                             )
+                            
+                            # Update registration payment status
+                            reg.payment_status = 'pending'
+                            reg.save()
                             
                             messages.success(request, 'Registration created! Redirecting to PayMongo for payment...')
                             # Store checkout URL in session to open in new tab
@@ -236,13 +240,13 @@ def event_detail(request, pk):
                             return redirect('events:event_detail', pk=event.pk)
                     else:
                         # Already fully paid
-                        reg.status = 'approved'
+                        reg.payment_status = 'paid'
                         reg.save()
                         messages.success(request, 'Registration updated! Payment already complete.')
                         return redirect('events:event_detail', pk=event.pk)
                 else:
                     # Free event - auto approve
-                    reg.status = 'approved'
+                    reg.payment_status = 'not_required'
                     reg.save()
                     messages.success(request, 'You have successfully registered for this event!')
                 
@@ -908,7 +912,7 @@ def paymongo_webhook(request):
             payment_response = paymongo_service.create_payment(
                 source_id=source_id,
                 amount=payment.amount,
-                description=f"Event Payment - {payment.event_registration.event.title}"
+                description=f"Event Payment - {payment.registration.event.title}"
             )
             
             if payment_response and payment_response.get('data'):
@@ -916,10 +920,20 @@ def paymongo_webhook(request):
                 payment.paymongo_payment_id = payment_id
                 payment.status = 'processing'
                 payment.save()
+                
+                # Update registration payment status
+                payment.registration.payment_status = 'pending'
+                payment.registration.save()
+                
                 logger.info(f"Payment created: {payment_id}")
             else:
                 payment.status = 'failed'
                 payment.save()
+                
+                # Update registration payment status
+                payment.registration.payment_status = 'rejected'
+                payment.registration.save()
+                
                 logger.error(f"Failed to create payment for source: {source_id}")
         
         elif event_type == 'payment.paid':
@@ -933,14 +947,15 @@ def paymongo_webhook(request):
                 return JsonResponse({'error': 'Payment not found'}, status=404)
             
             # Mark payment as verified
-            payment.is_verified = True
             payment.status = 'verified'
-            payment.verified_at = timezone.now()
+            payment.verification_date = timezone.now()
             payment.save()
             
-            # Update registration status
-            registration = payment.event_registration
-            registration.status = 'approved'
+            # Update registration payment status
+            registration = payment.registration
+            registration.payment_status = 'paid'
+            registration.verified = True
+            registration.verification_date = timezone.now()
             registration.save()
             
             # Send notification to user
@@ -968,11 +983,15 @@ def paymongo_webhook(request):
             payment.status = 'failed'
             payment.save()
             
+            # Update registration payment status
+            payment.registration.payment_status = 'rejected'
+            payment.registration.save()
+            
             # Send notification to user
             NotificationService.send_notification(
-                user=payment.event_registration.user,
+                user=payment.registration.user,
                 title="Payment Failed",
-                message=f"Payment for {payment.event_registration.event.title} failed. Please try again.",
+                message=f"Payment for {payment.registration.event.title} failed. Please try again.",
                 notification_type='payment',
                 related_object=payment
             )

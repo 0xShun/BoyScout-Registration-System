@@ -74,7 +74,6 @@ class EventPayment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('paymongo_gcash', 'GCash via PayMongo'),
         ('paymongo_maya', 'Maya via PayMongo'),
-        ('paymongo_grabpay', 'GrabPay via PayMongo'),
         ('manual', 'Manual Upload'),
     ]
     

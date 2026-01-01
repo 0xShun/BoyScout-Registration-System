@@ -61,34 +61,11 @@
           {% if event.has_payment_required %}
             <div class="alert alert-info">
               <h5><i class="fas fa-credit-card"></i> Payment Required</h5>
-              <p><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
-              
-              {% if event.qr_code %}
-                <div class="mt-3">
-                  <p><strong><i class="fas fa-qrcode"></i> Payment QR Code:</strong></p>
-                  <div class="p-3 bg-white rounded border text-center">
-                    <img src="{{ event.qr_code.url }}" alt="Payment QR Code" class="img-fluid" style="max-width: 300px;">
-                  </div>
-                  <p class="mt-3 mb-0">
-                    <i class="fas fa-info-circle"></i> 
-                    <small>
-                      <strong>How to pay:</strong>
-                      <ol class="mt-2">
-                        <li>Open your GCash, Maya, or any QR-PH compatible app</li>
-                        <li>Scan the QR code above</li>
-                        <li>Pay <strong>₱{{ event.payment_amount }}</strong></li>
-                        <li>Take a screenshot of the payment confirmation</li>
-                        <li>Upload the receipt when registering for this event</li>
-                      </ol>
-                    </small>
-                  </p>
-                </div>
-              {% else %}
-                <div class="alert alert-warning mt-3">
-                  <i class="fas fa-exclamation-triangle"></i> <strong>No QR code available yet.</strong> 
-                  <p class="mb-0 mt-2">The admin has not uploaded the payment QR code for this event. Please contact an administrator for payment instructions.</p>
-                </div>
-              {% endif %}
+              <p class="mb-0"><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
+              <p class="mt-2 mb-0">
+                <i class="fas fa-mobile-alt"></i> 
+                <small>Payment will be processed via PayMongo (GCash or Maya). You'll be redirected to complete payment after registration.</small>
+              </p>
             </div>
           {% else %}
             <div class="alert alert-success">
@@ -128,56 +105,32 @@
                 {% endif %}
               </div>
               
-              <!-- Payment Receipts Display -->
-              {% if user_payments %}
+              <!-- Payment Status (PayMongo) -->
+              {% if event.has_payment_required and user_payments %}
                 <div class="mb-3">
-                  <h6><i class="fas fa-receipt"></i> Payment Receipts</h6>
-                  <div class="row g-2">
-                    {% for payment in user_payments %}
-                      {% if payment.receipt_image %}
-                        <div class="col-6 col-md-4 col-lg-3">
-                          <div class="card h-100">
-                            <img src="{{ payment.receipt_image.url }}" 
-                                 class="card-img-top" 
-                                 alt="Payment Receipt"
-                                 style="cursor: pointer; object-fit: cover; height: 150px;"
-                                 data-bs-toggle="modal" 
-                                 data-bs-target="#receiptModal{{ payment.id }}">
-                            <div class="card-body p-2">
-                              <small class="text-muted d-block">
-                                <i class="fas fa-calendar"></i> {{ payment.created_at|date:"M d, Y" }}
-                              </small>
-                              <small class="text-muted d-block">
-                                <i class="fas fa-money-bill"></i> ₱{{ payment.amount }}
-                              </small>
-                              <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %} w-100 mt-1">
-                                {{ payment.get_status_display }}
-                              </span>
-                              {% if payment.reference_number %}
-                                <small class="text-muted d-block mt-1">
-                                  Ref: {{ payment.reference_number }}
-                                </small>
-                              {% endif %}
-                            </div>
+                  <h6><i class="fas fa-receipt"></i> Payment Status</h6>
+                  {% for payment in user_payments %}
+                    {% if payment.payment_method != 'manual' %}
+                      <div class="alert {% if payment.status == 'verified' %}alert-success{% elif payment.status == 'failed' or payment.status == 'rejected' %}alert-danger{% else %}alert-warning{% endif %} mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                          <div>
+                            <strong>₱{{ payment.amount }}</strong> - 
+                            {% if payment.payment_method == 'paymongo_gcash' %}
+                              <i class="fas fa-wallet"></i> GCash
+                            {% elif payment.payment_method == 'paymongo_maya' %}
+                              <i class="fas fa-mobile-alt"></i> Maya
+                            {% endif %}
                           </div>
+                          <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'failed' or payment.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ payment.get_status_display }}
+                          </span>
                         </div>
-                      {% endif %}
-                    {% endfor %}
-                  </div>
-                </div>
-              {% endif %}
-              
-              <!-- Payment Actions -->
-              {% if event.has_payment_required and registration.amount_remaining > 0 %}
-                <div class="mb-3">
-                  <a href="{% url 'events:event_payment' event.pk %}" class="btn btn-success">
-                    <i class="fas fa-credit-card"></i> 
-                    {% if registration.total_paid > 0 %}
-                      Add Payment (₱{{ registration.amount_remaining }} remaining)
-                    {% else %}
-                      Pay for Event (₱{{ registration.amount_required }})
+                        <small class="text-muted d-block mt-1">
+                          <i class="fas fa-calendar"></i> {{ payment.created_at|date:"M d, Y g:i A" }}
+                        </small>
+                      </div>
                     {% endif %}
-                  </a>
+                  {% endfor %}
                 </div>
               {% endif %}
               
