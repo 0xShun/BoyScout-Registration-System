@@ -8,6 +8,9 @@ urlpatterns = [
     path('submit/', views.payment_submit, name='payment_submit'),
     path('verify/<int:payment_id>/', views.payment_verify, name='payment_verify'),
     
+    # Webhook redirect (for backward compatibility with old PayMongo webhook URL)
+    path('webhook/', views.paymongo_webhook_redirect, name='paymongo_webhook_redirect'),
+    
     # System Configuration URLs
     path('system-config/', views.system_config_manage, name='system_config_manage'),
     

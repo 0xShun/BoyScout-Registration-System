@@ -463,3 +463,18 @@ def teacher_payment_history(request):
         'current_status_filter': status_filter,
         'current_student_filter': student_filter,
     })
+
+
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+from django.http import HttpResponse
+
+@csrf_exempt
+@require_POST
+def paymongo_webhook_redirect(request):
+    """
+    Redirect webhook from /payments/webhook/ to /events/webhooks/paymongo/
+    This is for backward compatibility with old webhook URL configuration
+    """
+    from events.views import paymongo_webhook
+    return paymongo_webhook(request)
