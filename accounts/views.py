@@ -541,7 +541,6 @@ def register(request):
     return render(request, 'accounts/register.html', {
         'form': form,
         'registration_fee': system_config.registration_fee if system_config else Decimal('500.00')
-```
     })
 
 def admin_required(view_func):
