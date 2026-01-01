@@ -185,6 +185,14 @@ TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN', '')
 TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER', '')
 TWILIO_MESSAGING_SERVICE_SID = os.environ.get('TWILIO_MESSAGING_SERVICE_SID', '')
 
+# PayMongo Configuration for QR Payments
+PAYMONGO_PUBLIC_KEY = os.environ.get('PAYMONGO_PUBLIC_KEY', '')
+PAYMONGO_SECRET_KEY = os.environ.get('PAYMONGO_SECRET_KEY', '')
+PAYMONGO_WEBHOOK_SECRET = os.environ.get('PAYMONGO_WEBHOOK_SECRET', '')
+
+# Site URL for PayMongo redirects
+SITE_URL = os.environ.get('SITE_URL', 'https://scoutconnect.pythonanywhere.com')
+
 # Alternative: Vonage (Nexmo)
 # VONAGE_API_KEY = 'your-api-key'
 # VONAGE_API_SECRET = 'your-api-secret'

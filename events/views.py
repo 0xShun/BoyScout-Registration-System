@@ -5,7 +5,8 @@ from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayme
 from .forms import EventForm, EventPhotoForm, EventRegistrationForm, EventPaymentForm
 from accounts.views import admin_required # Reusing the admin_required decorator
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
+from django.db import models
 from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden, JsonResponse
 from django.conf import settings
@@ -167,61 +168,81 @@ def event_detail(request, pk):
                 
                 # Handle payment for paid events
                 if event.has_payment_required:
-                    receipt_image = registration_form.cleaned_data.get('receipt_image')
-                    reference_number = registration_form.cleaned_data.get('reference_number')
+                    # Cancel old pending payments for this user/event
+                    old_payments = EventPayment.objects.filter(
+                        event_registration__event=event,
+                        event_registration__user=request.user,
+                        status='pending'
+                    )
+                    old_payments.update(status='cancelled')
                     
-                    # Only check for duplicate reference number if one is provided
-                    if reference_number and EventPayment.objects.filter(reference_number=reference_number).exists():
-                        messages.error(request, 'This reference number has already been used. Please check your receipt.')
-                        return redirect('events:event_detail', pk=event.pk)
-                    
-                    # Save registration first (without receipt in the registration model)
+                    # Save registration first
                     if not registration:
                         # New registration
-                        reg.payment_status = 'pending'
-                        reg.verified = False
-                        reg.amount_required = event.payment_amount
+                        reg.status = 'pending'
+                        reg.save()
+                    else:
+                        reg.save()
                     
-                    reg.receipt_image = None  # Don't store in registration, use EventPayment instead
-                    reg.save()
+                    # Calculate amount to pay (total - already paid)
+                    total_paid = EventPayment.objects.filter(
+                        event_registration=reg,
+                        is_verified=True
+                    ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0')
                     
-                    # Create EventPayment record if receipt was uploaded
-                    if receipt_image:
-                        EventPayment.objects.create(
-                            registration=reg,
-                            amount=event.payment_amount,
-                            receipt_image=receipt_image,
-                            reference_number=reference_number if reference_number else None,
-                            status='pending'
+                    amount_to_pay = event.payment_amount - total_paid
+                    
+                    if amount_to_pay > 0:
+                        # Create PayMongo source for QR payment
+                        from .paymongo_service import PayMongoService
+                        paymongo_service = PayMongoService()
+                        
+                        # Get selected payment method from form
+                        payment_method = request.POST.get('payment_method', 'gcash')
+                        
+                        source_response = paymongo_service.create_source(
+                            amount=amount_to_pay,
+                            type=payment_method,  # gcash, grab_pay, or paymaya
+                            redirect_success=f"{settings.SITE_URL}/events/payment-status/{reg.id}/success/",
+                            redirect_failed=f"{settings.SITE_URL}/events/payment-status/{reg.id}/failed/",
+                            metadata={
+                                'registration_id': str(reg.id),
+                                'event_id': str(event.id),
+                                'user_id': str(request.user.id)
+                            }
                         )
                         
-                        # Send notification to admin (only if user is not admin)
-                        if not request.user.is_admin():
-                            admins = User.objects.filter(rank='admin')
-                            for admin in admins:
-                                send_realtime_notification(
-                                    admin.id, 
-                                    f"New event payment submitted: {reg.user.get_full_name()} for {event.title} - ₱{event.payment_amount}" + (f" (Ref: {reference_number})" if reference_number else ""),
-                                    type='event'
-                                )
-                        
-                        if registration:
-                            messages.success(request, 'Payment receipt uploaded successfully!')
+                        if source_response and source_response.get('data'):
+                            source_id = source_response['data']['id']
+                            checkout_url = source_response['data']['attributes']['redirect']['checkout_url']
+                            expires_at = source_response['data']['attributes']['redirect'].get('return_url_expires_at')
+                            
+                            # Create EventPayment record
+                            payment = EventPayment.objects.create(
+                                event_registration=reg,
+                                amount=amount_to_pay,
+                                paymongo_source_id=source_id,
+                                payment_method=f'paymongo_{payment_method}',
+                                status='pending',
+                                expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None
+                            )
+                            
+                            messages.success(request, 'Registration created! Redirecting to PayMongo for payment...')
+                            # Store checkout URL in session to open in new tab
+                            request.session['paymongo_checkout_url'] = checkout_url
+                            return redirect('events:event_detail', pk=event.pk)
                         else:
-                            messages.success(request, 'Event registration submitted successfully!')
-                        messages.info(request, 'Your payment receipt is pending verification by an administrator.')
+                            messages.error(request, 'Failed to create payment link. Please try again.')
+                            return redirect('events:event_detail', pk=event.pk)
                     else:
-                        # No receipt uploaded
-                        if registration:
-                            messages.success(request, 'Registration updated successfully!')
-                        else:
-                            messages.warning(request, 'Registration saved, but no payment receipt was uploaded. Please upload your receipt to complete registration.')
+                        # Already fully paid
+                        reg.status = 'approved'
+                        reg.save()
+                        messages.success(request, 'Registration updated! Payment already complete.')
+                        return redirect('events:event_detail', pk=event.pk)
                 else:
                     # Free event - auto approve
-                    reg.payment_status = 'not_required'
-                    reg.verified = True
-                    reg.amount_required = 0
-                    reg.receipt_image = None
+                    reg.status = 'approved'
                     reg.save()
                     messages.success(request, 'You have successfully registered for this event!')
                 
@@ -835,3 +856,162 @@ def teacher_mark_attendance(request):
         'selected_event': selected_event,
         'students_attendance': students_attendance,
     })
+
+
+# PayMongo Webhook Endpoint
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
+import json
+import logging
+from .paymongo_service import PayMongoService
+
+logger = logging.getLogger(__name__)
+
+@csrf_exempt
+@require_POST
+def paymongo_webhook(request):
+    """
+    Handle PayMongo webhook events:
+    - source.chargeable: Create payment when source becomes chargeable
+    - payment.paid: Mark payment as verified
+    - payment.failed: Mark payment as failed
+    """
+    try:
+        # Get webhook data
+        payload = request.body.decode('utf-8')
+        signature = request.META.get('HTTP_PAYMONGO_SIGNATURE', '')
+        
+        # Verify webhook signature
+        paymongo_service = PayMongoService()
+        if not paymongo_service.verify_webhook_signature(payload, signature):
+            logger.warning("Invalid PayMongo webhook signature")
+            return JsonResponse({'error': 'Invalid signature'}, status=401)
+        
+        # Parse webhook data
+        data = json.loads(payload)
+        event_type = data.get('data', {}).get('attributes', {}).get('type')
+        event_data = data.get('data', {}).get('attributes', {}).get('data', {})
+        
+        logger.info(f"PayMongo webhook received: {event_type}")
+        
+        if event_type == 'source.chargeable':
+            # Source is ready to be charged - create payment
+            source_id = event_data.get('id')
+            
+            # Find the payment record
+            payment = EventPayment.objects.filter(paymongo_source_id=source_id).first()
+            if not payment:
+                logger.error(f"Payment not found for source: {source_id}")
+                return JsonResponse({'error': 'Payment not found'}, status=404)
+            
+            # Create payment via PayMongo
+            payment_response = paymongo_service.create_payment(
+                source_id=source_id,
+                amount=payment.amount,
+                description=f"Event Payment - {payment.event_registration.event.title}"
+            )
+            
+            if payment_response and payment_response.get('data'):
+                payment_id = payment_response['data']['id']
+                payment.paymongo_payment_id = payment_id
+                payment.status = 'processing'
+                payment.save()
+                logger.info(f"Payment created: {payment_id}")
+            else:
+                payment.status = 'failed'
+                payment.save()
+                logger.error(f"Failed to create payment for source: {source_id}")
+        
+        elif event_type == 'payment.paid':
+            # Payment successful - mark as verified
+            payment_id = event_data.get('id')
+            
+            # Find the payment record
+            payment = EventPayment.objects.filter(paymongo_payment_id=payment_id).first()
+            if not payment:
+                logger.error(f"Payment not found for payment_id: {payment_id}")
+                return JsonResponse({'error': 'Payment not found'}, status=404)
+            
+            # Mark payment as verified
+            payment.is_verified = True
+            payment.status = 'verified'
+            payment.verified_at = timezone.now()
+            payment.save()
+            
+            # Update registration status
+            registration = payment.event_registration
+            registration.status = 'approved'
+            registration.save()
+            
+            # Send notification to user
+            NotificationService.send_notification(
+                user=registration.user,
+                title="Payment Verified",
+                message=f"Your payment for {registration.event.title} has been verified. Your registration is confirmed!",
+                notification_type='payment',
+                related_object=payment
+            )
+            
+            logger.info(f"Payment verified: {payment_id}")
+        
+        elif event_type == 'payment.failed':
+            # Payment failed - mark as failed
+            payment_id = event_data.get('id')
+            
+            # Find the payment record
+            payment = EventPayment.objects.filter(paymongo_payment_id=payment_id).first()
+            if not payment:
+                logger.error(f"Payment not found for payment_id: {payment_id}")
+                return JsonResponse({'error': 'Payment not found'}, status=404)
+            
+            # Mark payment as failed
+            payment.status = 'failed'
+            payment.save()
+            
+            # Send notification to user
+            NotificationService.send_notification(
+                user=payment.event_registration.user,
+                title="Payment Failed",
+                message=f"Payment for {payment.event_registration.event.title} failed. Please try again.",
+                notification_type='payment',
+                related_object=payment
+            )
+            
+            logger.info(f"Payment failed: {payment_id}")
+        
+        return JsonResponse({'status': 'success'}, status=200)
+    
+    except Exception as e:
+        logger.error(f"PayMongo webhook error: {str(e)}", exc_info=True)
+        return JsonResponse({'error': 'Internal server error'}, status=500)
+
+
+@login_required
+def payment_status(request, registration_id, status):
+    """
+    Payment status page - shows payment result after PayMongo redirect
+    Auto-refreshes to check payment status from webhooks
+    """
+    registration = get_object_or_404(EventRegistration, id=registration_id, user=request.user)
+    
+    # Get latest payment for this registration
+    latest_payment = EventPayment.objects.filter(
+        event_registration=registration
+    ).order_by('-created_at').first()
+    
+    context = {
+        'registration': registration,
+        'payment': latest_payment,
+        'status': status,
+        'event': registration.event,
+    }
+    
+    return render(request, 'events/payment_status.html', context)
+
+
+@login_required
+def clear_paymongo_session(request):
+    """Clear PayMongo checkout URL from session after opening in new tab"""
+    if 'paymongo_checkout_url' in request.session:
+        del request.session['paymongo_checkout_url']
+    return JsonResponse({'status': 'ok'})

@@ -20,4 +20,9 @@ urlpatterns = [
     # Teacher URLs
     path('teacher/register-students/', views.teacher_register_students_event, name='teacher_register_students_event'),
     path('teacher/mark-attendance/', views.teacher_mark_attendance, name='teacher_mark_attendance'),
+    
+    # PayMongo Webhook & Payment Status
+    path('webhooks/paymongo/', views.paymongo_webhook, name='paymongo_webhook'),
+    path('payment-status/<int:registration_id>/<str:status>/', views.payment_status, name='payment_status'),
+    path('clear-paymongo-session/', views.clear_paymongo_session, name='clear_paymongo_session'),
 ] 

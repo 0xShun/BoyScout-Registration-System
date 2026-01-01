@@ -182,7 +182,7 @@
               {% endif %}
               
               <!-- Update Registration Form -->
-              <form method="post" enctype="multipart/form-data">
+              <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="register_event" value="1">
                 <div class="row">
@@ -192,21 +192,33 @@
                       {{ registration_form.rsvp }}
                     </div>
                   </div>
+                  {% if event.has_payment_required %}
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label for="{{ registration_form.receipt_image.id_for_label }}" class="form-label">Payment Receipt</label>
-                      {{ registration_form.receipt_image }}
-                      {% if registration_form.receipt_image.help_text %}
-                        <div class="form-text">{{ registration_form.receipt_image.help_text }}</div>
+                      <label class="form-label">Payment Method</label>
+                      {% for choice in registration_form.payment_method %}
+                        <div class="form-check">
+                          {{ choice.tag }}
+                          <label class="form-check-label" for="{{ choice.id_for_label }}">
+                            <i class="fas {% if 'gcash' in choice.choice_label|lower %}fa-wallet{% elif 'grab' in choice.choice_label|lower %}fa-car{% else %}fa-mobile-alt{% endif %} me-1"></i>
+                            {{ choice.choice_label }}
+                          </label>
+                        </div>
+                      {% endfor %}
+                      {% if registration_form.payment_method.help_text %}
+                        <div class="form-text">{{ registration_form.payment_method.help_text }}</div>
                       {% endif %}
                     </div>
                   </div>
+                  {% endif %}
                 </div>
-                <button type="submit" class="btn btn-primary">Update Registration</button>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-edit me-1"></i> Update Registration
+                </button>
               </form>
             {% else %}
               <!-- New Registration Form -->
-              <form method="post" enctype="multipart/form-data">
+              <form method="post">
                 {% csrf_token %}
                 <input type="hidden" name="register_event" value="1">
                 <div class="row">
@@ -216,17 +228,29 @@
                       {{ registration_form.rsvp }}
                     </div>
                   </div>
+                  {% if event.has_payment_required %}
                   <div class="col-md-6">
                     <div class="mb-3">
-                      <label for="{{ registration_form.receipt_image.id_for_label }}" class="form-label">Payment Receipt</label>
-                      {{ registration_form.receipt_image }}
-                      {% if registration_form.receipt_image.help_text %}
-                        <div class="form-text">{{ registration_form.receipt_image.help_text }}</div>
+                      <label class="form-label">Payment Method</label>
+                      {% for choice in registration_form.payment_method %}
+                        <div class="form-check">
+                          {{ choice.tag }}
+                          <label class="form-check-label" for="{{ choice.id_for_label }}">
+                            <i class="fas {% if 'gcash' in choice.choice_label|lower %}fa-wallet{% elif 'grab' in choice.choice_label|lower %}fa-car{% else %}fa-mobile-alt{% endif %} me-1"></i>
+                            {{ choice.choice_label }}
+                          </label>
+                        </div>
+                      {% endfor %}
+                      {% if registration_form.payment_method.help_text %}
+                        <div class="form-text">{{ registration_form.payment_method.help_text }}</div>
                       {% endif %}
                     </div>
                   </div>
+                  {% endif %}
                 </div>
-                <button type="submit" class="btn btn-success">Register for Event</button>
+                <button type="submit" class="btn btn-success">
+                  <i class="fas fa-check-circle me-1"></i> Register for Event
+                </button>
               </form>
             {% endif %}
           </div>
@@ -248,12 +272,6 @@
                 <a href="{% url 'events:event_attendance' event.pk %}" class="btn btn-info mb-2 w-100">
                   <i class="fas fa-clipboard-check"></i> Manage Attendance
                 </a>
-                {% if event.has_payment_required %}
-                  <button type="button" class="btn btn-success mb-2 w-100" data-bs-toggle="modal" data-bs-target="#uploadQRModal">
-                    <i class="fas fa-qrcode"></i> 
-                    {% if event.qr_code %}Update{% else %}Upload{% endif %} Payment QR Code
-                  </button>
-                {% endif %}
               </div>
               <div class="col-md-6">
                 <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2 w-100">
@@ -488,64 +506,6 @@
   {% endfor %}
 {% endif %}
 
-<!-- QR Code Upload Modal (Admin Only) -->
-{% if user.is_admin %}
-<div class="modal fade" id="uploadQRModal" tabindex="-1" aria-labelledby="uploadQRModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="uploadQRModalLabel">
-          <i class="fas fa-qrcode"></i> 
-          {% if event.qr_code %}Update{% else %}Upload{% endif %} Payment QR Code
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form method="post" enctype="multipart/form-data" id="qrUploadForm">
-        {% csrf_token %}
-        <input type="hidden" name="upload_qr_code" value="1">
-        <div class="modal-body">
-          {% if event.qr_code %}
-            <div class="alert alert-info">
-              <i class="fas fa-info-circle"></i> <strong>Current QR Code:</strong>
-              <div class="mt-2">
-                <img src="{{ event.qr_code.url }}" alt="Current QR Code" class="img-fluid" style="max-width: 200px;">
-              </div>
-            </div>
-          {% endif %}
-          
-          <div class="mb-3">
-            <label for="qr_code_file" class="form-label">
-              <i class="fas fa-upload"></i> Select QR Code Image
-            </label>
-            <input type="file" class="form-control" id="qr_code_file" name="qr_code" accept="image/jpeg,image/png,image/jpg" required>
-            <div class="form-text">
-              Upload the QR-PH code from PayMongo for this event's payment. Accepted formats: JPG, PNG (max 10MB)
-            </div>
-          </div>
-          
-          <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> <strong>Important:</strong>
-            <ul class="mb-0 mt-2">
-              <li>Upload the QR code image from PayMongo for <strong>{{ event.title }}</strong></li>
-              <li>This QR code will be shown to all users on the event detail page</li>
-              <li>Users will scan this QR code to pay the event fee of <strong>₱{{ event.payment_amount }}</strong></li>
-            </ul>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            <i class="fas fa-times"></i> Cancel
-          </button>
-          <button type="submit" class="btn btn-success">
-            <i class="fas fa-upload"></i> 
-            {% if event.qr_code %}Update{% else %}Upload{% endif %} QR Code
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
 {% endblock %} 
 
 {% block extra_js %}
@@ -558,6 +518,22 @@
       toast.show();
       return toast;
     });
+    
+    // Open PayMongo checkout in new tab if URL exists
+    {% if request.session.paymongo_checkout_url %}
+      window.open('{{ request.session.paymongo_checkout_url }}', '_blank');
+      
+      // Clear session variable via AJAX
+      fetch('{% url "events:clear_paymongo_session" %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json'
+        }
+      }).catch(function(error) {
+        console.error('Error clearing session:', error);
+      });
+    {% endif %}
   });
 </script>
 {% endblock %}

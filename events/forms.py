@@ -8,7 +8,7 @@ User = get_user_model()
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        fields = ['title', 'description', 'date', 'time', 'location', 'banner', 'qr_code', 'payment_amount']
+        fields = ['title', 'description', 'date', 'time', 'location', 'banner', 'payment_amount']
         widgets = {
             'date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control' }),
             'time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control' }),
@@ -16,25 +16,11 @@ class EventForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'location': forms.TextInput(attrs={'class': 'form-control' }),
             'payment_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'placeholder': 'Enter event fee (leave 0 for free events)'}),
-            'qr_code': forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png'}),
         }
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['qr_code'].label = "Event Payment QR Code"
-        self.fields['qr_code'].help_text = "Upload QR-PH code for this event's payment (JPG or PNG, max 10MB). Leave blank for free events."
-        self.fields['qr_code'].required = False
-        self.fields['payment_amount'].help_text = "Set to 0 or leave blank for free events"
-    
-    def clean_qr_code(self):
-        file = self.cleaned_data.get('qr_code')
-        if file and hasattr(file, 'size'):
-            if file.size > 10 * 1024 * 1024:
-                raise forms.ValidationError('File too large. Maximum is 10MB.')
-            allowed_types = ['image/jpeg', 'image/png']
-            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
-                raise forms.ValidationError('Unsupported file type. Use JPG or PNG.')
-        return file
+        self.fields['payment_amount'].help_text = "Set to 0 or leave blank for free events. Payment will be processed via PayMongo."
 
 class EventPhotoForm(forms.ModelForm):
     class Meta:
@@ -45,61 +31,40 @@ class EventPhotoForm(forms.ModelForm):
         }
 
 class EventRegistrationForm(forms.ModelForm):
-    reference_number = forms.CharField(
-        max_length=50,
+    PAYMENT_METHOD_CHOICES = [
+        ('gcash', 'GCash'),
+        ('grab_pay', 'GrabPay'),
+        ('paymaya', 'Maya (PayMaya)'),
+    ]
+    
+    payment_method = forms.ChoiceField(
+        choices=PAYMENT_METHOD_CHOICES,
         required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter payment reference number'
-        })
+        initial='gcash',
+        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
+        label='Payment Method',
+        help_text='Select your preferred e-wallet for payment'
     )
     
     class Meta:
         model = EventRegistration
-        fields = ['rsvp', 'receipt_image']
+        fields = ['rsvp']
         widgets = {
             'rsvp': forms.Select(attrs={'class': 'form-select'}),
-            'receipt_image': forms.ClearableFileInput(attrs={
-                'class': 'form-control',
-                'accept': 'image/jpeg,image/png,application/pdf'
-            }),
         }
     
     def __init__(self, *args, **kwargs):
         self.event = kwargs.pop('event', None)
         super().__init__(*args, **kwargs)
         
-        # Check if this is an existing registration (update) or new registration
-        is_new_registration = not self.instance.pk
-        
-        # Reference number is always optional - users don't need to provide it
-        self.fields['reference_number'].required = False
-        self.fields['reference_number'].help_text = "Optional: Enter payment reference number if you have one"
-        
+        # Show payment method only for paid events
         if self.event and self.event.has_payment_required:
-            # For new registrations, only receipt is required
-            # For existing registrations, receipt is optional (allows updating RSVP without re-uploading)
-            if is_new_registration:
-                self.fields['receipt_image'].required = True
-                self.fields['receipt_image'].help_text = f"Upload your payment receipt (JPG, PNG, or PDF, max 10MB). Event fee: ₱{self.event.payment_amount}"
-            else:
-                self.fields['receipt_image'].required = False
-                self.fields['receipt_image'].help_text = f"Upload additional payment receipt (optional). Event fee: ₱{self.event.payment_amount}"
+            self.fields['payment_method'].required = True
+            self.fields['payment_method'].help_text = f"Select payment method for ₱{self.event.payment_amount}"
         else:
-            self.fields['receipt_image'].required = False
-            self.fields['receipt_image'].help_text = "Upload payment receipt (optional)"
-    
-    def clean_receipt_image(self):
-        file = self.cleaned_data.get('receipt_image')
-        if file and self.event and self.event.has_payment_required:
-            # Max 10MB
-            if file.size > 10 * 1024 * 1024:
-                raise forms.ValidationError('File too large. Maximum is 10MB.')
-            # Check file type
-            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
-            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
-                raise forms.ValidationError('Unsupported file type. Use JPG, PNG, or PDF.')
-        return file
+            # Hide payment method for free events
+            self.fields['payment_method'].widget = forms.HiddenInput()
+            self.fields['payment_method'].required = False
 
 class EventPaymentForm(forms.ModelForm):
     class Meta:

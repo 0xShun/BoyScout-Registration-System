@@ -64,14 +64,34 @@ class EventPayment(models.Model):
     """Model to track individual payments for event registrations"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('processing', 'Processing'),
         ('verified', 'Verified'),
+        ('failed', 'Failed'),
+        ('expired', 'Expired'),
         ('rejected', 'Rejected'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('paymongo_gcash', 'GCash via PayMongo'),
+        ('paymongo_maya', 'Maya via PayMongo'),
+        ('paymongo_grabpay', 'GrabPay via PayMongo'),
+        ('manual', 'Manual Upload'),
     ]
     
     registration = models.ForeignKey('EventRegistration', on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Payment Amount")
+    
+    # Legacy fields (for backward compatibility with manual uploads)
     receipt_image = models.ImageField(upload_to='event_payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
-    reference_number = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="Reference Number")
+    reference_number = models.CharField(max_length=50, null=True, blank=True, verbose_name="Reference Number")
+    
+    # PayMongo fields
+    paymongo_source_id = models.CharField(max_length=100, null=True, blank=True, unique=True, verbose_name="PayMongo Source ID")
+    paymongo_payment_id = models.CharField(max_length=100, null=True, blank=True, unique=True, verbose_name="PayMongo Payment ID")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='paymongo_gcash')
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="Payment Expiration")
+    is_expired = models.BooleanField(default=False)
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     rejection_reason = models.TextField(blank=True, verbose_name="Rejection Reason")
     notes = models.TextField(blank=True, verbose_name="Payment Notes")
@@ -84,10 +104,18 @@ class EventPayment(models.Model):
         ordering = ['-created_at']
         indexes = [
             models.Index(fields=["registration", "status", "created_at"]),
+            models.Index(fields=["paymongo_source_id"]),
+            models.Index(fields=["paymongo_payment_id"]),
         ]
 
     def __str__(self):
         return f"{self.registration.user.get_full_name()} - {self.registration.event.title} - ₱{self.amount} ({self.get_status_display()})"
+    
+    def mark_as_expired(self):
+        """Mark payment as expired"""
+        self.is_expired = True
+        self.status = 'expired'
+        self.save()
 
 class EventRegistration(models.Model):
     RSVP_CHOICES = [
