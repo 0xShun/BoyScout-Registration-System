@@ -1028,6 +1028,10 @@ def badge_manage(request, pk):
 
 def registration_payment(request, user_id):
     """View for users to view their registration payment status"""
+    from .models import RegistrationPayment
+    from payments.models import SystemConfiguration
+    from events.paymongo_service import PayMongoService
+    
     user = get_object_or_404(User, id=user_id)
     
     # Allow users to access their own registration payment page, or admins to view any user
@@ -1050,8 +1054,6 @@ def registration_payment(request, user_id):
     
     # Handle creating new payment if source expired
     if request.method == 'POST' and request.POST.get('action') == 'create_new_payment':
-        from payments.models import SystemConfiguration
-        from events.paymongo_service import PayMongoService
         
         # Get registration fee
         system_config = SystemConfiguration.get_config()
@@ -1095,7 +1097,6 @@ def registration_payment(request, user_id):
         return redirect('accounts:registration_payment', user_id=user.id)
     
     # Get payment history for this user
-    from .models import RegistrationPayment
     payments = user.registration_payments.all().order_by('-created_at')
     
     return render(request, 'accounts/registration_payment.html', {
