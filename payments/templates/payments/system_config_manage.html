@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>System QR Code Configuration</h2>
+    <h2>System Configuration</h2>
     <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
   </div>
 
@@ -19,54 +19,47 @@
   {% endif %}
 
   <div class="row">
-    <!-- Registration QR Code -->
+    <!-- Registration Fee Configuration -->
     <div class="col-lg-6">
       <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-          <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Registration Payment QR Code</h5>
+          <h5 class="mb-0"><i class="fas fa-dollar-sign me-2"></i>Registration Fee</h5>
         </div>
         <div class="card-body">
           <p class="text-muted">
-            Upload the QR-PH code that students will use to pay their registration fee. This QR code will be shown to new users immediately after they create their account.
+            Set the registration fee amount that all new members must pay. This applies to self-registering users and students created by teachers. Payments are processed automatically via PayMongo (GCash/Maya).
           </p>
 
-          <form method="post" enctype="multipart/form-data">
+          <form method="post">
             {% csrf_token %}
             
             <div class="mb-3">
-              {% if config.registration_qr_code %}
-                <div class="mb-3">
-                  <label class="form-label fw-bold">Current QR Code:</label>
-                  <div class="text-center">
-                    <img src="{{ config.registration_qr_code.url }}" alt="Registration QR Code" class="img-fluid border rounded" style="max-width: 300px;">
-                  </div>
-                  <small class="text-muted d-block mt-2">
-                    Last updated: {{ config.updated_at|date:"M d, Y h:i A" }}
-                    {% if config.updated_by %}by {{ config.updated_by.get_full_name }}{% endif %}
-                  </small>
-                </div>
-              {% else %}
-                <div class="alert alert-warning">
-                  <i class="fas fa-exclamation-triangle me-2"></i>
-                  No registration QR code uploaded yet. Students won't be able to see payment instructions until you upload one.
-                </div>
-              {% endif %}
-
-              <label for="{{ form.registration_qr_code.id_for_label }}" class="form-label fw-bold">
-                {{ form.registration_qr_code.label }}
+              <label for="{{ form.registration_fee.id_for_label }}" class="form-label fw-bold">
+                {{ form.registration_fee.label }}
               </label>
-              {{ form.registration_qr_code }}
-              {% if form.registration_qr_code.help_text %}
-                <div class="form-text">{{ form.registration_qr_code.help_text }}</div>
+              <div class="input-group">
+                <span class="input-group-text">₱</span>
+                {{ form.registration_fee }}
+              </div>
+              {% if form.registration_fee.help_text %}
+                <div class="form-text">{{ form.registration_fee.help_text }}</div>
               {% endif %}
-              {% if form.registration_qr_code.errors %}
-                <div class="text-danger mt-2">{{ form.registration_qr_code.errors }}</div>
+              {% if form.registration_fee.errors %}
+                <div class="text-danger mt-2">{{ form.registration_fee.errors }}</div>
               {% endif %}
             </div>
 
+            {% if config.updated_at %}
+              <div class="alert alert-info small">
+                <i class="fas fa-info-circle me-2"></i>
+                Last updated: {{ config.updated_at|date:"M d, Y h:i A" }}
+                {% if config.updated_by %}by {{ config.updated_by.get_full_name }}{% endif %}
+              </div>
+            {% endif %}
+
             <div class="d-grid">
               <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>Save QR Code
+                <i class="fas fa-save me-2"></i>Save Configuration
               </button>
             </div>
           </form>
@@ -78,40 +71,49 @@
     <div class="col-lg-6">
       <div class="card shadow-sm bg-light">
         <div class="card-header bg-info text-white">
-          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How to Use</h5>
+          <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>How It Works</h5>
         </div>
         <div class="card-body">
-          <h6 class="fw-bold">Step 1: Generate QR-PH Code</h6>
+          <h6 class="fw-bold">PayMongo Automatic Payment System</h6>
+          <p class="small">
+            The registration fee is now fully automated using PayMongo. No more manual QR code uploads or receipt verification!
+          </p>
+
+          <h6 class="fw-bold mt-3">For Self-Registering Users:</h6>
           <ol class="small">
-            <li>Log in to your payment provider (GCash, PayMaya, etc.)</li>
-            <li>Navigate to "QR PH" or "Generate QR Code" section</li>
-            <li>Set the fixed amount for registration fee (if applicable)</li>
-            <li>Download or screenshot the QR code</li>
+            <li>User creates an account</li>
+            <li>System generates PayMongo payment link automatically</li>
+            <li>User clicks "Pay Now" button</li>
+            <li>User scans QR code with GCash or Maya</li>
+            <li>Payment verified automatically via webhook (5-30 seconds)</li>
+            <li>User account activated automatically</li>
           </ol>
 
-          <h6 class="fw-bold mt-3">Step 2: Upload QR Code</h6>
+          <h6 class="fw-bold mt-3">For Teacher Bulk Registration:</h6>
           <ol class="small">
-            <li>Click "Choose File" above</li>
-            <li>Select your QR code image (JPG or PNG format)</li>
-            <li>Click "Save QR Code"</li>
+            <li>Teacher creates multiple student accounts</li>
+            <li>System calculates total (students × registration fee)</li>
+            <li>Teacher pays total amount once via PayMongo</li>
+            <li>All student accounts activated automatically when paid</li>
           </ol>
 
-          <h6 class="fw-bold mt-3">How Students Will See It:</h6>
+          <h6 class="fw-bold mt-3">Payment Methods:</h6>
           <ul class="small">
-            <li>After creating an account, students immediately see the QR code</li>
-            <li>They scan it using their payment app to pay the registration fee</li>
-            <li>They upload their payment receipt with reference number</li>
-            <li>Admin verifies the payment and grants access to events</li>
+            <li><strong>GCash</strong> - via PayMongo QR code</li>
+            <li><strong>Maya (PayMaya)</strong> - via PayMongo QR code</li>
           </ul>
 
-          <div class="alert alert-info mt-3 mb-0">
-            <i class="fas fa-lightbulb me-2"></i>
-            <strong>Tip:</strong> You can update this QR code anytime. The new QR code will be shown to all new registrations and pending payments.
+          <div class="alert alert-success mt-3">
+            <i class="fas fa-check-circle me-2"></i>
+            <strong>Zero Manual Work:</strong> All payments are verified automatically. No receipt uploads, no admin verification needed!
+          </div>
+
+          <div class="alert alert-warning mt-2 mb-0">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Note:</strong> Changing the registration fee will only affect NEW registrations. Existing pending payments will keep their original amount.
           </div>
         </div>
       </div>
-
-      <!-- Future: Donation QR Code section can be added here -->
     </div>
   </div>
 </div>

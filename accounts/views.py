@@ -18,6 +18,7 @@ from django.contrib.auth.views import LoginView, LogoutView
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
+from decimal import Decimal
 from datetime import date
 from events.models import Attendance
 from django import forms
@@ -414,60 +415,86 @@ def teacher_student_detail(request, student_id):
 
 def register(request):
     from django.db import models
-    from payments.models import Payment
+    from payments.models import Payment, SystemConfiguration
     from django.utils import timezone
+    from events.paymongo_service import PayMongoService
     try:
         from dateutil.relativedelta import relativedelta
     except ImportError:
         relativedelta = None
+    
     if request.method == 'POST':
         form = UserRegisterForm(request.POST, request.FILES)
         if form.is_valid():
-            # Create user but don't commit, so we can set flags
+            # Create user account
             user = form.save(commit=False)
-            user.rank = form.cleaned_data.get('rank', 'scout')  # Use rank from form
-            # Allow login but keep not verified; receipt submission marks as submitted
+            user.rank = form.cleaned_data.get('rank', 'scout')
             user.is_active = True
-            user.registration_status = 'payment_submitted'
+            user.registration_status = 'pending_payment'
             user.save()
 
-            amount = form.cleaned_data.get('amount')
-            receipt = form.cleaned_data.get('registration_receipt')
+            # Get registration fee from system config
+            system_config = SystemConfiguration.get_config()
+            registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            
+            # Create PayMongo payment
             from .models import RegistrationPayment
-            reg_payment = RegistrationPayment.objects.create(
-                user=user,
-                amount=amount,
-                receipt_image=receipt,
-                status='pending'
-            )
-
-            total_paid = RegistrationPayment.objects.filter(user=user, status='verified').aggregate(models.Sum('amount'))['amount__sum'] or 0
-            if total_paid >= 500 and relativedelta:
-                user.is_active = True
-                user.registration_status = 'active'
-                years = min(int(total_paid // 500), 2)
-                user.membership_expiry = timezone.now() + relativedelta(years=years)
-                user.save()
-
-            admins = User.objects.filter(rank='admin')
-            for admin in admins:
-                send_realtime_notification(
-                    admin.id,
-                    f"New registration payment submitted: {user.get_full_name()} ({user.email})",
-                    type='registration'
+            paymongo = PayMongoService()
+            
+            try:
+                # Create PayMongo source with registration details
+                description = f"Registration Fee - {user.get_full_name()}"
+                source_data = paymongo.create_source(
+                    amount=registration_fee,
+                    description=description
                 )
-            messages.success(request, 'Registration successful! Your payment is pending verification by an administrator. You can log in, but events are locked until verified.')
-            return redirect('accounts:registration_payment', user_id=user.id)
+                
+                if source_data and 'id' in source_data:
+                    # Create RegistrationPayment record with PayMongo data
+                    reg_payment = RegistrationPayment.objects.create(
+                        user=user,
+                        amount=registration_fee,
+                        paymongo_source_id=source_data['id'],
+                        paymongo_checkout_url=source_data['attributes']['redirect']['checkout_url'],
+                        payment_method='paymongo_gcash',
+                        status='pending',
+                        notes=f"PayMongo payment created for registration"
+                    )
+                    
+                    # Notify admins
+                    admins = User.objects.filter(rank='admin')
+                    for admin in admins:
+                        send_realtime_notification(
+                            admin.id,
+                            f"New user registered: {user.get_full_name()} ({user.email}) - Payment pending",
+                            type='registration'
+                        )
+                    
+                    messages.success(
+                        request, 
+                        f'Registration successful! Please complete your payment of ₱{registration_fee}. Click the "Pay Now" button on the next page.'
+                    )
+                    return redirect('accounts:registration_payment', user_id=user.id)
+                else:
+                    # PayMongo failed, show error
+                    user.delete()  # Clean up user account
+                    messages.error(request, 'Failed to create payment. Please try again or contact support.')
+                    
+            except Exception as e:
+                # Error creating payment
+                user.delete()  # Clean up user account
+                messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
+                
     else:
         form = UserRegisterForm()
     
-    # Get the registration QR code from system configuration
-    from payments.models import SystemConfiguration
+    # Get the registration fee from system configuration
     system_config = SystemConfiguration.get_config()
     
     return render(request, 'accounts/register.html', {
         'form': form,
-        'registration_qr_code': system_config.registration_qr_code if system_config else None
+        'registration_fee': system_config.registration_fee if system_config else Decimal('500.00')
+```
     })
 
 def admin_required(view_func):

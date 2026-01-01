@@ -104,24 +104,26 @@ class SystemConfigurationForm(forms.ModelForm):
     """Form for managing system-wide QR codes"""
     class Meta:
         model = SystemConfiguration
-        fields = ['registration_qr_code']
+        fields = ['registration_fee']
         widgets = {
-            'registration_qr_code': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png'}),
+            'registration_fee': forms.NumberInput(attrs={
+                'class': 'form-control', 
+                'min': '0',
+                'step': '0.01',
+                'placeholder': '500.00'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['registration_qr_code'].label = "Registration QR Code"
-        self.fields['registration_qr_code'].help_text = "Upload the QR-PH code for registration payments (JPG or PNG, max 10MB)"
-        self.fields['registration_qr_code'].required = False
+        self.fields['registration_fee'].label = "Registration Fee Amount"
+        self.fields['registration_fee'].help_text = "Set the registration fee amount (in Philippine Pesos)"
+        self.fields['registration_fee'].required = True
 
-    def clean_registration_qr_code(self):
-        file = self.cleaned_data.get('registration_qr_code')
-        if file:
-            if file.size > 10 * 1024 * 1024:
-                raise forms.ValidationError('File too large. Maximum is 10MB.')
-            allowed = ['image/jpeg', 'image/png']
-            if hasattr(file, 'content_type') and file.content_type not in allowed:
-                raise forms.ValidationError('Unsupported file type. Use JPG or PNG.')
+    def clean_registration_fee(self):
+        fee = self.cleaned_data.get('registration_fee')
+        if fee and fee < 0:
+            raise forms.ValidationError('Registration fee cannot be negative.')
+        return fee
         return file
  

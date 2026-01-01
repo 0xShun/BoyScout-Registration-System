@@ -29,8 +29,10 @@ class PaymentQRCode(models.Model):
         return cls.objects.filter(is_active=True).first()
 
 class SystemConfiguration(models.Model):
-    """Model to store system-wide configuration including registration QR code"""
-    registration_qr_code = models.ImageField(upload_to='system_qr_codes/', null=True, blank=True, verbose_name="Registration QR Code")
+    """Model to store system-wide configuration including registration fee"""
+    registration_fee = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, verbose_name="Registration Fee")
+    # Legacy field - will be removed after PayMongo migration
+    registration_qr_code = models.ImageField(upload_to='system_qr_codes/', null=True, blank=True, verbose_name="Registration QR Code (Legacy)")
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='system_config_updates')
     updated_at = models.DateTimeField(auto_now=True)
     

@@ -19,14 +19,32 @@ class RegistrationPayment(models.Model):
     """Model to track individual registration payments"""
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('processing', 'Processing'),
         ('verified', 'Verified'),
+        ('failed', 'Failed'),
+        ('expired', 'Expired'),
         ('rejected', 'Rejected'),
+    ]
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('paymongo_gcash', 'GCash via PayMongo'),
+        ('paymongo_maya', 'Maya via PayMongo'),
+        ('manual', 'Manual Upload'),
     ]
     
     user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='registration_payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Payment Amount")
+    
+    # Legacy fields (for backward compatibility with manual uploads)
     receipt_image = models.ImageField(upload_to='registration_payment_receipts/', null=True, blank=True, verbose_name="Payment Receipt")
     reference_number = models.CharField(max_length=50, unique=True, null=True, blank=True, verbose_name="Reference Number")
+    
+    # PayMongo fields
+    paymongo_source_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="PayMongo Source ID")
+    paymongo_payment_id = models.CharField(max_length=100, null=True, blank=True, verbose_name="PayMongo Payment ID")
+    paymongo_checkout_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="PayMongo Checkout URL")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='paymongo_gcash', verbose_name="Payment Method")
+    
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     rejection_reason = models.TextField(blank=True, verbose_name="Rejection Reason")
     notes = models.TextField(blank=True, verbose_name="Payment Notes")
