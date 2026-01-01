@@ -1025,14 +1025,17 @@ def registration_payment(request, user_id):
     user = get_object_or_404(User, id=user_id)
     
     # Allow users to access their own registration payment page, or admins to view any user
-    if request.user != user and not request.user.is_admin():
-        messages.error(request, 'You can only access your own registration payment page.')
-        return redirect('accounts:login')
+    # Allow anonymous users who just registered (not logged in yet)
+    if request.user.is_authenticated:
+        if request.user != user and not request.user.is_admin():
+            messages.error(request, 'You can only access your own registration payment page.')
+            return redirect('accounts:login')
+    # For anonymous users, we trust the URL parameter since they just registered
     
     # Admin users don't need to pay registration fees
     if user.rank == 'admin':
         messages.info(request, 'Admin users do not need to pay registration fees.')
-        return redirect('accounts:admin_dashboard' if user.is_admin() else 'accounts:scout_dashboard')
+        return redirect('accounts:admin_dashboard' if request.user.is_authenticated and user.is_admin() else 'accounts:scout_dashboard')
     
     # If user is already active and registration is complete, redirect to dashboard
     if user.is_active and user.registration_status == 'active':
