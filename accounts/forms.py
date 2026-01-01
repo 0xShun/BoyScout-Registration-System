@@ -275,6 +275,9 @@ class TeacherCreateStudentForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.rank = 'scout'  # Students are scouts by default
+        # Set role for backward compatibility with old database schema
+        if hasattr(user, 'role'):
+            user.role = user.rank
         user.managed_by = self.teacher
         user.is_active = True
         user.registration_status = 'pending_payment'  # Teachers must pay for students via PayMongo
