@@ -89,10 +89,6 @@ class UserRegisterForm(UserCreationForm):
         self.fields['address'].label = "Address"
         self.fields['address'].widget.attrs.update({'placeholder': 'Enter your address'})
 
-        self.fields['registration_receipt'].label = "Registration Payment Receipt"
-        self.fields['registration_receipt'].widget.attrs.update({'placeholder': 'Upload payment receipt (₱500.00)'})
-        self.fields['registration_receipt'].help_text = "Upload a screenshot of your registration payment receipt. Registration fee: ₱500.00"
-
         self.fields['password1'].help_text = "Must be at least 8 characters."
         self.fields['password2'].help_text = None
 
