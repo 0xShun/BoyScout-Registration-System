@@ -4,38 +4,45 @@
     <div class="col-md-7 bg-white p-5 rounded-start shadow-sm">
       <div class="mb-4">
         <h2 class="fw-bold mb-2">Register</h2>
-        <p class="text-muted">Join ScoutConnect - Complete your registration with payment</p>
+        <p class="text-muted">Join ScoutConnect - Secure payment via PayMongo</p>
       </div>
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% for field in form %}
-          <div class="mb-3">
-            <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}
-              <div class="form-text">{{ field.help_text }}</div>
-            {% endif %}
-            {% for error in field.errors %}
-              <div class="text-danger">{{ error }}</div>
-            {% endfor %}
-          </div>
+          {% if field.name != 'amount' and field.name != 'registration_receipt' %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <div class="form-text">{{ field.help_text }}</div>
+              {% endif %}
+              {% for error in field.errors %}
+                <div class="text-danger">{{ error }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
         {% endfor %}
         
         <!-- Registration Fee Information -->
         <div class="alert alert-info">
-          <h6 class="alert-heading">Registration Fee: ₱500.00</h6>
-          <p class="mb-2">To complete your registration, you'll need to pay the registration fee. You can:</p>
-          <ul class="mb-2">
-            <li>Scan the QR code on the right to pay via GCash</li>
-            <li>Upload your payment receipt now during registration</li>
-            <li>Or complete the payment later after registration</li>
-          </ul>
-          {% if registration_qr_code %}
-            <p class="small mb-0"><strong>Mobile users:</strong> You can find the QR code after completing registration.</p>
-          {% endif %}
+          <h6 class="alert-heading"><i class="fas fa-info-circle me-2"></i>Registration Fee: ₱{{ registration_fee|default:"500.00" }}</h6>
+          <p class="mb-2"><strong>How it works:</strong></p>
+          <ol class="mb-2 small">
+            <li>Complete this registration form</li>
+            <li>Click "Pay Now" on the next page</li>
+            <li>Scan QR code with GCash or Maya</li>
+            <li>Payment verified automatically (5-30 seconds)</li>
+            <li>Account activated - you're ready to go!</li>
+          </ol>
+          <p class="small mb-0">
+            <i class="fas fa-shield-alt me-1"></i>
+            <strong>100% Secure:</strong> Payments processed by PayMongo. No manual verification needed.
+          </p>
         </div>
         
-        <button type="submit" class="btn btn-dark w-100 py-2 mt-4">Complete Registration</button>
+        <button type="submit" class="btn btn-dark w-100 py-2 mt-4">
+          <i class="fas fa-user-plus me-2"></i>Complete Registration
+        </button>
       </form>
       <div class="text-center mt-3">
         <a href="{% url 'accounts:login' %}" class="text-decoration-none">Already have an account? Log in</a>
@@ -45,30 +52,37 @@
       </div>
     </div>
     <div class="col-md-5 d-none d-md-block bg-secondary p-5 rounded-end shadow-sm">
-      <div class="text-center h-100 d-flex flex-column justify-content-center">
-        {% if registration_qr_code %}
-          <div class="payment-qr-section">
-            <h4 class="text-white mb-3">Pay Registration Fee</h4>
-            <div class="bg-white p-3 rounded mb-3">
-              <img src="{{ registration_qr_code.url }}" alt="Registration QR Code" class="img-fluid" style="max-width: 280px; max-height: 280px;">
-            </div>
-            <div class="text-white">
-              <h6>Registration Payment QR Code</h6>
-              <p class="small mb-2">Scan with GCash, PayMaya, or any QR-PH compatible app</p>
-              <p class="small"><strong>Amount: ₱500.00</strong></p>
-              <p class="small">Scan the QR code to pay your registration fee</p>
+      <div class="text-center h-100 d-flex flex-column justify-content-center text-white">
+        <div class="payment-info-section">
+          <i class="fas fa-mobile-alt fa-4x mb-4"></i>
+          <h4 class="mb-3">Automatic Payment</h4>
+          <div class="bg-white text-dark p-4 rounded mb-4">
+            <h6 class="text-success"><i class="fas fa-check-circle me-2"></i>PayMongo Integration</h6>
+            <p class="small mb-3">Secure, instant payment verification</p>
+            <div class="row text-center">
+              <div class="col-6">
+                <i class="fab fa-cc-visa fa-2x text-primary mb-2"></i>
+                <p class="small mb-0">GCash</p>
+              </div>
+              <div class="col-6">
+                <i class="fab fa-cc-mastercard fa-2x text-warning mb-2"></i>
+                <p class="small mb-0">Maya</p>
+              </div>
             </div>
           </div>
-        {% else %}
-          <div class="text-center text-white">
-            <h4 class="mb-3">Registration Payment</h4>
-            <div class="bg-white p-4 rounded mb-3 text-dark">
-              <i class="fas fa-credit-card fa-3x text-secondary mb-3"></i>
-              <p>Payment QR code will be available soon</p>
-            </div>
-            <p class="small">Contact admin for payment details</p>
+          <div class="text-left">
+            <h6 class="mb-3"><i class="fas fa-rocket me-2"></i>Quick Registration</h6>
+            <ul class="list-unstyled">
+              <li class="mb-2"><i class="fas fa-check text-success me-2"></i>No receipt uploads</li>
+              <li class="mb-2"><i class="fas fa-check text-success me-2"></i>No manual verification</li>
+              <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Instant account activation</li>
+              <li class="mb-2"><i class="fas fa-check text-success me-2"></i>100% secure</li>
+            </ul>
           </div>
-        {% endif %}
+          <p class="small mt-4 opacity-75">
+            Registration fee: <strong>₱{{ registration_fee|default:"500.00" }}</strong>
+          </p>
+        </div>
       </div>
     </div>
   </div>

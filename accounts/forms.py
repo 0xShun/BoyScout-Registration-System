@@ -54,7 +54,6 @@ class CustomLoginForm(AuthenticationForm):
         return cleaned_data
 
 class UserRegisterForm(UserCreationForm):
-    amount = forms.DecimalField(label='Registration Payment', min_value=1, max_value=1000, initial=500)
     rank = forms.ChoiceField(
         choices=[('scout', 'Scout'), ('teacher', 'Teacher')],
         initial='scout',
@@ -64,11 +63,10 @@ class UserRegisterForm(UserCreationForm):
     
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'rank', 'registration_receipt', 'amount']
+        fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'rank']
         widgets = {
             'address': forms.Textarea(attrs={'rows': 3}),
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'registration_receipt': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
     def __init__(self, *args, **kwargs):
