@@ -13,8 +13,7 @@ class Event(models.Model):
     time = models.TimeField(default=get_current_time)
     location = models.CharField(max_length=200)
     banner = models.ImageField(upload_to='event_banners/', null=True, blank=True)
-    # New fields for payment flow
-    qr_code = models.ImageField(upload_to='event_qr_codes/', null=True, blank=True, verbose_name="Payment QR Code")
+    # Payment amount - used by PayMongo to generate unique QR codes per registration
     payment_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Event Fee")
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     created_at = models.DateTimeField(auto_now_add=True)

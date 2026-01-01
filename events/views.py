@@ -116,45 +116,11 @@ def event_detail(request, pk):
     present_count = len(present_list)
     absent_count = len(absent_list)
     total_scouts = present_count + absent_count
-
-    # Get QR code for payment (event-specific or fallback to general)
-    from payments.models import PaymentQRCode
-    # Use the actual event.qr_code object if it exists, otherwise get the general QR code
-    qr_code = None
-    if event.qr_code:
-        qr_code = event.qr_code
-    else:
-        qr_code = PaymentQRCode.get_active_qr_code()
     
     # Registration logic
     registration = None
     registration_form = None
     if request.user.is_authenticated:
-        # Handle QR code upload (Admin only)
-        if request.method == 'POST' and 'upload_qr_code' in request.POST and request.user.is_admin():
-            qr_code_file = request.FILES.get('qr_code')
-            if qr_code_file:
-                # Validate file size (max 10MB)
-                if qr_code_file.size > 10 * 1024 * 1024:
-                    messages.error(request, 'File too large. Maximum size is 10MB.')
-                    return redirect('events:event_detail', pk=event.pk)
-                
-                # Validate file type
-                allowed_types = ['image/jpeg', 'image/png', 'image/jpg']
-                if qr_code_file.content_type not in allowed_types:
-                    messages.error(request, 'Invalid file type. Please upload JPG or PNG image.')
-                    return redirect('events:event_detail', pk=event.pk)
-                
-                # Save the QR code to the event
-                event.qr_code = qr_code_file
-                event.save()
-                
-                messages.success(request, f'Payment QR code {"updated" if event.qr_code else "uploaded"} successfully!')
-                return redirect('events:event_detail', pk=event.pk)
-            else:
-                messages.error(request, 'Please select a QR code image to upload.')
-                return redirect('events:event_detail', pk=event.pk)
-        
         registration = EventRegistration.objects.filter(event=event, user=request.user).first()
         if request.method == 'POST' and 'register_event' in request.POST:
             if registration:
@@ -282,7 +248,6 @@ def event_detail(request, pk):
         'registration': registration,
         'registration_form': registration_form,
         'registrations': registrations,
-        'qr_code': qr_code,
         'user_payments': user_payments,
     })
 
@@ -568,71 +533,6 @@ def verify_event_registration(request, event_pk, reg_pk):
         return redirect('events:event_detail', pk=event_pk)
     
     return render(request, 'events/verify_event_registration.html', {'registration': registration, 'event_pk': event_pk})
-
-@login_required
-def event_payment(request, pk):
-    """Dedicated payment page for a specific event"""
-    event = get_object_or_404(Event, pk=pk)
-    
-    # Check if user is registered for this event
-    try:
-        registration = EventRegistration.objects.get(event=event, user=request.user)
-    except EventRegistration.DoesNotExist:
-        messages.error(request, 'You must register for this event first before making a payment.')
-        return redirect('events:event_detail', pk=event.pk)
-    
-    # Check if event requires payment
-    if not event.has_payment_required:
-        messages.info(request, 'This event does not require payment.')
-        return redirect('events:event_detail', pk=event.pk)
-    
-    # Handle new payment submission
-    if request.method == 'POST':
-        form = EventPaymentForm(request.POST, request.FILES, registration=registration)
-        if form.is_valid():
-            payment = form.save(commit=False)
-            payment.registration = registration
-            payment.save()
-            
-            # Notify admins about payment submission
-            admins = User.objects.filter(rank='admin')
-            for admin in admins:
-                send_realtime_notification(
-                    admin.id, 
-                    f"Event payment submitted: {registration.user.get_full_name()} - ₱{payment.amount} for {event.title}",
-                    type='event'
-                )
-            
-            messages.success(request, f'Payment of ₱{payment.amount} submitted successfully! Your payment is pending verification.')
-            return redirect('events:event_payment', pk=event.pk)
-    else:
-        form = EventPaymentForm(registration=registration)
-    
-    # Get QR code (event-specific or general)
-    from payments.models import PaymentQRCode
-    qr_code = event.qr_code if event.qr_code else PaymentQRCode.get_active_qr_code()
-    
-    # Get payment history for this registration
-    payments = registration.payments.all().order_by('-created_at')
-    
-    return render(request, 'events/event_payment.html', {
-        'event': event,
-        'registration': registration,
-        'form': form,
-        'qr_code': qr_code,
-        'payments': payments,
-    })
-
-@admin_required
-def pending_payments(request):
-    """View for admins to see all pending payment registrations"""
-    pending_registrations = EventRegistration.objects.filter(
-        payment_status__in=['pending', 'partial']
-    ).select_related('user', 'event').prefetch_related('payments').order_by('-registered_at')
-    
-    return render(request, 'events/pending_payments.html', {
-        'pending_registrations': pending_registrations,
-    })
 
 # ==================== TEACHER VIEWS ====================
 
