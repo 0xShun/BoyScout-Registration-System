@@ -26,6 +26,9 @@ from notifications.services import NotificationService, send_realtime_notificati
 from decimal import Decimal
 from .models import RegistrationPayment
 from analytics.models import AuditLog, AnalyticsEvent
+import logging
+
+logger = logging.getLogger(__name__)
 
 @login_required
 def admin_dashboard(request):
@@ -313,7 +316,11 @@ def teacher_create_student(request):
                     }
                 )
                 
-                if source_data and 'id' in source_data:
+                if not source_data:
+                    messages.error(request, 'Failed to create PayMongo payment. Please check server logs or try again.')
+                    return redirect('accounts:teacher_create_student')
+                
+                if 'id' in source_data and 'attributes' in source_data:
                     # Create RegistrationPayment record linked to the student
                     reg_payment = RegistrationPayment.objects.create(
                         user=student,
@@ -369,11 +376,13 @@ Boy Scout System Team
                     return redirect('accounts:teacher_student_list')
                 else:
                     # PayMongo failed, delete student and show error
+                    logger.error(f"PayMongo source creation failed for student {student.email}. Source data: {source_data}")
                     student.delete()
-                    messages.error(request, 'Failed to create payment. Please try again or contact support.')
+                    messages.error(request, 'Failed to create PayMongo payment. Please check your PayMongo API keys and try again.')
                     
             except Exception as e:
                 # Error creating payment, delete student
+                logger.error(f"Exception creating PayMongo payment for student: {str(e)}", exc_info=True)
                 student.delete()
                 messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
     else:
@@ -510,7 +519,11 @@ def register(request):
                     }
                 )
                 
-                if source_data and 'id' in source_data:
+                if not source_data:
+                    messages.error(request, 'Failed to create PayMongo payment. Please check server logs or try again.')
+                    return redirect('accounts:register')
+                
+                if 'id' in source_data and 'attributes' in source_data:
                     # Create RegistrationPayment record with PayMongo data
                     reg_payment = RegistrationPayment.objects.create(
                         user=user,
@@ -538,11 +551,13 @@ def register(request):
                     return redirect('accounts:registration_payment', user_id=user.id)
                 else:
                     # PayMongo failed, show error
+                    logger.error(f"PayMongo source creation failed for user {user.email}. Source data: {source_data}")
                     user.delete()  # Clean up user account
-                    messages.error(request, 'Failed to create payment. Please try again or contact support.')
+                    messages.error(request, 'Failed to create PayMongo payment. Please check your PayMongo API keys or try again later.')
                     
             except Exception as e:
                 # Error creating payment
+                logger.error(f"Exception creating PayMongo payment for registration: {str(e)}", exc_info=True)
                 user.delete()  # Clean up user account
                 messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
                 

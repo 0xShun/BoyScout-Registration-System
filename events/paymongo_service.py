@@ -76,11 +76,19 @@ class PayMongoService:
                 timeout=30
             )
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            
+            # PayMongo returns data in {'data': {...}} format
+            # Return the data object directly for easier access
+            if 'data' in result:
+                return result['data']
+            return result
+            
         except requests.exceptions.RequestException as e:
             print(f"PayMongo create_source error: {e}")
             if hasattr(e, 'response') and e.response is not None:
-                print(f"Response: {e.response.text}")
+                print(f"Response status: {e.response.status_code}")
+                print(f"Response body: {e.response.text}")
             return None
     
     def create_payment(self, source_id, description):
