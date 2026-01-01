@@ -134,22 +134,6 @@ def event_detail(request, pk):
                 
                 # Handle payment for paid events
                 if event.has_payment_required:
-                    # Cancel old pending payments for this user/event
-                    old_payments = EventPayment.objects.filter(
-                        registration__event=event,
-                        registration__user=request.user,
-                        status='pending'
-                    )
-                    old_payments.update(status='cancelled')
-                    
-                    # Save registration first
-                    if not registration:
-                        # New registration
-                        reg.payment_status = 'pending'
-                        reg.save()
-                    else:
-                        reg.save()
-                    
                     # Calculate amount to pay (total - already paid)
                     total_paid = EventPayment.objects.filter(
                         registration=reg,
@@ -158,7 +142,25 @@ def event_detail(request, pk):
                     
                     amount_to_pay = event.payment_amount - total_paid
                     
-                    if amount_to_pay > 0:
+                    # Check if user already has a pending payment
+                    existing_pending = EventPayment.objects.filter(
+                        registration__event=event,
+                        registration__user=request.user,
+                        status='pending'
+                    ).first()
+                    
+                    # Save registration first
+                    if not registration:
+                        # New registration
+                        reg.payment_status = 'pending' if amount_to_pay > 0 else 'paid'
+                        reg.save()
+                        is_update = False
+                    else:
+                        reg.save()
+                        is_update = True
+                    
+                    # Only create new payment if no pending payment exists and amount is due
+                    if amount_to_pay > 0 and not existing_pending:
                         # Create PayMongo source for QR payment
                         from .paymongo_service import PayMongoService
                         paymongo_service = PayMongoService()
@@ -205,11 +207,21 @@ def event_detail(request, pk):
                         else:
                             messages.error(request, 'Failed to create payment link. Please try again.')
                             return redirect('events:event_detail', pk=event.pk)
+                    elif amount_to_pay > 0 and existing_pending:
+                        # User already has pending payment
+                        if is_update:
+                            messages.success(request, 'Registration updated! Use the "Pay Now" button below to complete payment.')
+                        else:
+                            messages.success(request, 'Registration created! Use the "Pay Now" button below to complete payment.')
+                        return redirect('events:event_detail', pk=event.pk)
                     else:
                         # Already fully paid
                         reg.payment_status = 'paid'
                         reg.save()
-                        messages.success(request, 'Registration updated! Payment already complete.')
+                        if is_update:
+                            messages.success(request, 'Registration updated! Payment already complete.')
+                        else:
+                            messages.success(request, 'Registration created! Payment already complete.')
                         return redirect('events:event_detail', pk=event.pk)
                 else:
                     # Free event - auto approve
