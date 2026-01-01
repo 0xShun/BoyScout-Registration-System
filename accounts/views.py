@@ -993,11 +993,11 @@ def badge_manage(request, pk):
     })
 
 def registration_payment(request, user_id):
-    """View for users to submit registration payment receipt"""
+    """View for users to view their registration payment status"""
     user = get_object_or_404(User, id=user_id)
     
-    # Allow users to access their own registration payment page
-    if request.user != user:
+    # Allow users to access their own registration payment page, or admins to view any user
+    if request.user != user and not request.user.is_admin():
         messages.error(request, 'You can only access your own registration payment page.')
         return redirect('accounts:login')
     
@@ -1008,62 +1008,15 @@ def registration_payment(request, user_id):
     
     # If user is already active and registration is complete, redirect to dashboard
     if user.is_active and user.registration_status == 'active':
-        messages.info(request, 'Your account is already active. Please log in.')
-        return redirect('accounts:login')
-    
-    if request.method == 'POST':
-        amount = request.POST.get('amount')
-        receipt = request.FILES.get('receipt')
-        reference_number = request.POST.get('reference_number', '').strip()
-        notes = request.POST.get('notes', '')
-        
-        if amount and receipt and reference_number:
-            try:
-                payment_amount = Decimal(amount)
-                if payment_amount <= 0:
-                    messages.error(request, 'Payment amount must be greater than 0.')
-                    return redirect('accounts:registration_payment', user_id=user.id)
-                
-                # Check for duplicate reference number
-                if RegistrationPayment.objects.filter(reference_number=reference_number).exists():
-                    messages.error(request, 'This reference number has already been used. Please check your receipt and enter the correct reference number.')
-                    return redirect('accounts:registration_payment', user_id=user.id)
-                
-                # Create new registration payment
-                payment = RegistrationPayment.objects.create(
-                    user=user,
-                    amount=payment_amount,
-                    receipt_image=receipt,
-                    reference_number=reference_number,
-                    notes=notes
-                )
-                
-                # Notify admins about new registration payment
-                admins = User.objects.filter(rank='admin')
-                for admin in admins:
-                    send_realtime_notification(
-                        admin.id, 
-                        f"New registration payment submitted: {user.get_full_name()} - ₱{payment_amount} (Ref: {reference_number})",
-                        type='registration'
-                    )
-                messages.success(request, f'Payment of ₱{payment_amount} submitted successfully! Your payment is pending verification.')
-                return redirect('accounts:registration_payment', user_id=user.id)
-            except (ValueError, TypeError):
-                messages.error(request, 'Please enter a valid payment amount.')
-        else:
-            messages.error(request, 'Please enter payment amount, reference number, and upload a receipt.')
-    
-    # Get the registration QR code from system configuration
-    from payments.models import SystemConfiguration
-    system_config = SystemConfiguration.get_config()
+        messages.info(request, 'Your account is already active!')
+        return redirect('home')
     
     # Get payment history for this user
+    from .models import RegistrationPayment
     payments = user.registration_payments.all().order_by('-created_at')
     
     return render(request, 'accounts/registration_payment.html', {
         'user': user,
-        'registration_fee': user.registration_payment_amount,
-        'registration_qr_code': system_config.registration_qr_code if system_config else None,
         'payments': payments,
     })
 

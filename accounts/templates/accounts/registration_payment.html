@@ -5,31 +5,33 @@
   <div class="row justify-content-center">
     <div class="col-lg-8">
       <div class="card shadow-sm">
-        <div class="card-header">
-          <h3 class="mb-0">Complete Your Registration</h3>
+        <div class="card-header bg-primary text-white">
+          <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Complete Your Registration</h3>
         </div>
         <div class="card-body">
           
           <!-- Registration Status -->
           <div class="alert 
-            {% if user.registration_status == 'payment_verified' %}alert-success
-            {% elif user.registration_status == 'active' %}alert-primary
-            {% elif user.registration_status == 'payment_submitted' or user.registration_status == 'partial_payment' or user.registration_status == 'pending_payment' %}alert-warning
+            {% if user.registration_status == 'payment_verified' or user.registration_status == 'active' %}alert-success
+            {% elif user.registration_status == 'pending_payment' %}alert-warning
+            {% elif user.registration_status == 'payment_submitted' %}alert-info
             {% else %}alert-secondary{% endif %} mb-4">
             <h5 class="alert-heading">
-              {% if user.registration_status == 'payment_submitted' or user.registration_status == 'partial_payment' %}
-                <i class="fas fa-clock"></i> Payment Submitted - Pending Verification
+              {% if user.registration_status == 'payment_verified' or user.registration_status == 'active' %}
+                <i class="fas fa-check-circle"></i> Registration Complete
+              {% elif user.registration_status == 'pending_payment' %}
+                <i class="fas fa-exclamation-triangle"></i> Payment Required
               {% else %}
-                <i class="fas fa-exclamation-triangle"></i> Registration Payment Required
+                <i class="fas fa-clock"></i> Payment Processing
               {% endif %}
             </h5>
             <p class="mb-0">
-              {% if user.registration_status == 'payment_submitted' or user.registration_status == 'partial_payment' %}
-                Your registration payment has been submitted and is being reviewed by an administrator. <br>
-                <strong>You can continue using your account and log in at any time.</strong> Once your payment is verified, you will become a fully active member.
+              {% if user.registration_status == 'payment_verified' or user.registration_status == 'active' %}
+                Your registration payment has been verified. You are now an active member!
+              {% elif user.registration_status == 'pending_payment' %}
+                Please complete your registration payment to activate your account and access all features.
               {% else %}
-                To complete your registration, please submit a payment receipt for the registration fee.<br>
-                <strong>You can already log in and use your account while waiting for payment verification.</strong>
+                Your payment is being processed. This usually takes 5-30 seconds.
               {% endif %}
             </p>
           </div>
@@ -37,33 +39,23 @@
           <!-- Payment Information -->
           <div class="card mb-4">
             <div class="card-header">
-              <h5 class="mb-0">Payment Information</h5>
+              <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Payment Information</h5>
             </div>
             <div class="card-body">
               <div class="row">
                 <div class="col-md-6">
-                  <p><strong>Registration Fee Required:</strong> ₱{{ user.registration_amount_required }}</p>
+                  <p><strong>Registration Fee:</strong> ₱{{ user.registration_amount_required }}</p>
                   <p><strong>Amount Paid:</strong> ₱{{ user.registration_total_paid }}</p>
                   <p><strong>Amount Remaining:</strong> ₱{{ user.registration_amount_remaining }}</p>
-                  <p><strong>Reference:</strong> REG-{{ user.id }}</p>
+                  <p><strong>User ID:</strong> {{ user.id }}</p>
                 </div>
                 <div class="col-md-6">
-                  {% if registration_qr_code %}
-                    <div class="text-center">
-                      <h6>Registration Payment QR Code</h6>
-                      <p class="small text-muted">Scan with GCash, PayMaya, or any QR-PH compatible app</p>
-                      <div class="border rounded p-3 bg-light">
-                        <h6 class="mb-3">Scan to Pay</h6>
-                        <img src="{{ registration_qr_code.url }}" alt="Registration QR Code" class="img-fluid" style="max-width: 200px; max-height: 200px;">
-                        <p class="small text-muted mt-2">Use your mobile payment app to scan this QR code</p>
-                      </div>
-                    </div>
-                  {% else %}
-                    <div class="alert alert-warning">
-                      <i class="fas fa-exclamation-triangle me-2"></i>
-                      QR code not yet configured by admin. Please contact the administrator.
-                    </div>
-                  {% endif %}
+                  <div class="alert alert-info">
+                    <h6><i class="fas fa-shield-alt me-2"></i>Secure Payment via PayMongo</h6>
+                    <p class="small mb-0">
+                      Pay securely using GCash or Maya. Your payment will be verified automatically within 5-30 seconds.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -73,45 +65,60 @@
           {% if payments %}
             <div class="card mb-4">
               <div class="card-header">
-                <h5 class="mb-0">Payment History</h5>
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>Payment History</h5>
               </div>
               <div class="card-body">
                 <div class="table-responsive">
-                  <table class="table table-striped">
+                  <table class="table table-hover">
                     <thead>
                       <tr>
                         <th>Date</th>
                         <th>Amount</th>
-                        <th>Reference #</th>
+                        <th>Payment Method</th>
                         <th>Status</th>
-                        <th>Receipt</th>
-                        <th>Notes</th>
+                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
                       {% for payment in payments %}
                         <tr>
-                          <td>{{ payment.created_at|date:"M d, Y" }}</td>
+                          <td>{{ payment.created_at|date:"M d, Y h:i A" }}</td>
                           <td>₱{{ payment.amount }}</td>
-                          <td>{{ payment.reference_number|default:"-" }}</td>
                           <td>
-                            <span class="badge {% if payment.status == 'verified' %}bg-success{% elif payment.status == 'pending' %}bg-warning{% else %}bg-danger{% endif %}">
-                              {{ payment.get_status_display }}
-                            </span>
-                            {% if payment.status == 'rejected' and payment.rejection_reason %}
-                              <br><small class="text-danger">{{ payment.rejection_reason }}</small>
+                            {% if payment.payment_method == 'paymongo_gcash' %}
+                              <span class="badge bg-success">GCash (PayMongo)</span>
+                            {% elif payment.payment_method == 'paymongo_maya' %}
+                              <span class="badge bg-info">Maya (PayMongo)</span>
+                            {% else %}
+                              <span class="badge bg-secondary">Manual</span>
                             {% endif %}
                           </td>
                           <td>
-                            {% if payment.receipt_image %}
+                            {% if payment.status == 'verified' %}
+                              <span class="badge bg-success"><i class="fas fa-check"></i> Verified</span>
+                            {% elif payment.status == 'pending' %}
+                              <span class="badge bg-warning"><i class="fas fa-clock"></i> Pending</span>
+                            {% elif payment.status == 'processing' %}
+                              <span class="badge bg-info"><i class="fas fa-spinner"></i> Processing</span>
+                            {% elif payment.status == 'failed' %}
+                              <span class="badge bg-danger"><i class="fas fa-times"></i> Failed</span>
+                            {% else %}
+                              <span class="badge bg-secondary">{{ payment.get_status_display }}</span>
+                            {% endif %}
+                          </td>
+                          <td>
+                            {% if payment.status == 'pending' and payment.paymongo_checkout_url %}
+                              <a href="{{ payment.paymongo_checkout_url }}" target="_blank" class="btn btn-sm btn-primary">
+                                <i class="fas fa-credit-card"></i> Pay Now
+                              </a>
+                            {% elif payment.receipt_image %}
                               <a href="{{ payment.receipt_image.url }}" target="_blank" class="btn btn-sm btn-info">
-                                <i class="fas fa-image"></i> View
+                                <i class="fas fa-image"></i> Receipt
                               </a>
                             {% else %}
-                              <span class="text-muted">No receipt</span>
+                              -
                             {% endif %}
                           </td>
-                          <td>{{ payment.notes|default:"-" }}</td>
                         </tr>
                       {% endfor %}
                     </tbody>
@@ -121,67 +128,50 @@
             </div>
           {% endif %}
 
-          <!-- Add New Payment Form -->
+          <!-- Pay Now Button (if pending payment exists) -->
           {% if user.registration_amount_remaining > 0 %}
-            <div class="card">
-              <div class="card-header">
-                <h5 class="mb-0">Add New Payment</h5>
-              </div>
-              <div class="card-body">
-                <form method="post" enctype="multipart/form-data">
-                  {% csrf_token %}
-                  <div class="row">
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label for="amount" class="form-label">Payment Amount</label>
-                        <input type="number" class="form-control" id="amount" name="amount" 
-                               step="0.01" min="0.01" max="{{ user.registration_amount_remaining }}" 
-                               placeholder="Enter amount paid" required>
-                        <div class="form-text">
-                          Maximum amount: ₱{{ user.registration_amount_remaining }}
-                        </div>
-                      </div>
-                    </div>
-                    <div class="col-md-6">
-                      <div class="mb-3">
-                        <label for="reference_number" class="form-label">Reference Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="reference_number" name="reference_number" 
-                               placeholder="Enter payment reference number" required>
-                        <div class="form-text">
-                          Enter the reference number from your payment receipt
-                        </div>
-                      </div>
-                    </div>
+            {% for payment in payments %}
+              {% if payment.status == 'pending' and payment.paymongo_checkout_url %}
+                <div class="card border-success mb-4">
+                  <div class="card-header bg-success text-white">
+                    <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Complete Your Payment</h5>
                   </div>
-                  <div class="row">
-                    <div class="col-md-12">
-                      <div class="mb-3">
-                        <label for="receipt" class="form-label">Payment Receipt <span class="text-danger">*</span></label>
-                        <input type="file" class="form-control" id="receipt" name="receipt" accept="image/jpeg,image/png,application/pdf" required>
-                        <div class="form-text">
-                          Upload a clear screenshot or photo of your payment receipt (JPG, PNG, or PDF, max 10MB).
-                        </div>
-                      </div>
-                    </div>
+                  <div class="card-body text-center">
+                    <p class="lead">Click the button below to pay ₱{{ payment.amount }} via PayMongo</p>
+                    <a href="{{ payment.paymongo_checkout_url }}" 
+                       target="_blank" 
+                       class="btn btn-success btn-lg pulse-button" 
+                       id="payNowBtn">
+                      <i class="fas fa-credit-card me-2"></i>Pay Now with GCash/Maya
+                    </a>
+                    <p class="text-muted mt-3 small">
+                      <i class="fas fa-info-circle"></i> You'll be redirected to PayMongo's secure payment page. 
+                      Scan the QR code with your GCash or Maya app.
+                    </p>
+                    <p class="text-muted small">
+                      <i class="fas fa-shield-alt"></i> Payment is automatically verified within 5-30 seconds. 
+                      You can close this page after payment.
+                    </p>
                   </div>
-                  <div class="mb-3">
-                    <label for="notes" class="form-label">Notes (optional)</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="2" 
-                              placeholder="Add any notes about this payment..."></textarea>
-                  </div>
-                  <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-upload"></i> Submit Payment
-                  </button>
-                </form>
-              </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div class="alert alert-success text-center">
+              <i class="fas fa-check-circle fa-3x mb-3"></i>
+              <h4>Registration Complete!</h4>
+              <p class="mb-0">Your payment has been verified. Welcome to Boy Scout System!</p>
+              <a href="{% url 'home' %}" class="btn btn-primary mt-3">
+                <i class="fas fa-home me-2"></i>Go to Dashboard
+              </a>
             </div>
           {% endif %}
 
-          <!-- Admin Notes -->
+          <!-- Notes -->
           {% if user.registration_notes %}
             <div class="card mt-4">
               <div class="card-header">
-                <h5 class="mb-0">Administrator Notes</h5>
+                <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Administrator Notes</h5>
               </div>
               <div class="card-body">
                 <p class="mb-0">{{ user.registration_notes }}</p>
@@ -194,4 +184,33 @@
     </div>
   </div>
 </div>
+
+<style>
+.pulse-button {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(25, 135, 84, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+  }
+}
+</style>
+
+<script>
+// Auto-scroll to Pay Now button if it exists
+window.addEventListener('DOMContentLoaded', function() {
+  const payNowBtn = document.getElementById('payNowBtn');
+  if (payNowBtn) {
+    payNowBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+});
+</script>
+
 {% endblock %} 
