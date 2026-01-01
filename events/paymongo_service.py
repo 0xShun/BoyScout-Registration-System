@@ -91,13 +91,14 @@ class PayMongoService:
                 print(f"Response body: {e.response.text}")
             return None
     
-    def create_payment(self, source_id, description):
+    def create_payment(self, source_id, amount=None, description="Payment"):
         """
         Create a Payment from a chargeable Source
         Called when source.chargeable webhook is received
         
         Args:
             source_id (str): PayMongo source ID
+            amount (Decimal): Payment amount (optional, uses source amount if not provided)
             description (str): Payment description
         
         Returns:
@@ -106,7 +107,7 @@ class PayMongoService:
         payload = {
             "data": {
                 "attributes": {
-                    "amount": None,  # Will use the source amount
+                    "amount": int(amount * 100) if amount else None,  # Convert to centavos or use source amount
                     "source": {
                         "id": source_id,
                         "type": "source"

@@ -833,6 +833,8 @@ def paymongo_webhook(request):
                 if not registration_payment:
                     logger.error(f"Payment not found for source: {source_id}")
                     return JsonResponse({'error': 'Payment not found'}, status=404)
+                else:
+                    logger.info(f"Found registration payment for source: {source_id}, User: {registration_payment.user.email}")
             
             # Create payment via PayMongo
             if payment:
