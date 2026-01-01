@@ -201,7 +201,7 @@ def event_detail(request, pk):
                                 expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None
                             )
                             
-                            messages.success(request, 'Registration created! Redirecting to PayMongo for payment...')
+                            messages.success(request, 'Registration created! Click the "Pay Now" button below to complete your payment.')
                             # Store checkout URL in session to open in new tab
                             request.session['paymongo_checkout_url'] = checkout_url
                             return redirect('events:event_detail', pk=event.pk)

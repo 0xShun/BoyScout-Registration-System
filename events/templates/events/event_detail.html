@@ -131,13 +131,13 @@
                         
                         <!-- Pay Now Button for Pending Payments -->
                         {% if payment.status == 'pending' and payment.paymongo_source_id and payment.paymongo_checkout_url %}
-                          <a href="{{ payment.paymongo_checkout_url }}" target="_blank" class="btn btn-primary btn-sm mt-2 w-100">
+                          <a href="{{ payment.paymongo_checkout_url }}" target="_blank" id="pay-now-btn" class="btn btn-primary btn-lg mt-3 w-100 pulse-animation">
                             <i class="fas fa-credit-card"></i> Pay Now via 
                             {% if payment.payment_method == 'paymongo_gcash' %}GCash
                             {% elif payment.payment_method == 'paymongo_maya' %}Maya{% endif %}
                           </a>
-                          <small class="text-muted d-block mt-1">
-                            <i class="fas fa-info-circle"></i> Click to complete your payment
+                          <small class="text-success d-block mt-2 fw-bold">
+                            <i class="fas fa-arrow-up"></i> Click the button above to complete your payment
                           </small>
                         {% elif payment.status == 'pending' and payment.paymongo_source_id and not payment.paymongo_checkout_url %}
                           <div class="alert alert-info mt-2 mb-0">
@@ -475,7 +475,21 @@
     
     // Open PayMongo checkout in new tab if URL exists
     {% if request.session.paymongo_checkout_url %}
-      window.open('{{ request.session.paymongo_checkout_url }}', '_blank');
+      var payNowBtn = document.getElementById('pay-now-btn');
+      
+      // Try to open in new tab
+      var newWindow = window.open('{{ request.session.paymongo_checkout_url }}', '_blank');
+      
+      // If popup was blocked, scroll to Pay Now button
+      if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {
+        console.log('Popup blocked - scrolling to Pay Now button');
+        if (payNowBtn) {
+          setTimeout(function() {
+            payNowBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            payNowBtn.focus();
+          }, 500);
+        }
+      }
       
       // Clear session variable via AJAX
       fetch('{% url "events:clear_paymongo_session" %}', {
@@ -500,4 +514,21 @@
     user-select: none;
   }
   {% endif %}
+  
+  /* Pulse animation for Pay Now button */
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(13, 110, 253, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(13, 110, 253, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(13, 110, 253, 0);
+    }
+  }
+  
+  .pulse-animation {
+    animation: pulse 2s infinite;
+  }
 </style> 
