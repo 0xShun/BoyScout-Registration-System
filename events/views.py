@@ -798,15 +798,14 @@ def paymongo_webhook(request):
     print("=" * 80)
     
     try:
-        # Get webhook data
-        payload = request.body.decode('utf-8')
+        # Get webhook data (keep as bytes for signature verification)
+        payload_bytes = request.body
         signature = request.META.get('HTTP_PAYMONGO_SIGNATURE', '')
         
         # Log incoming webhook with full details
-        print(f"📥 Webhook Payload: {payload[:500]}...")  # First 500 chars
+        print(f"📥 Webhook Payload (first 500 chars): {payload_bytes.decode('utf-8')[:500]}...")
         print(f"🔐 Signature Present: {bool(signature)}")
         logger.info(f"PayMongo webhook received - Signature present: {bool(signature)}")
-        logger.info(f"Webhook payload: {payload}")
         
         # Verify webhook signature
         paymongo_service = PayMongoService()
@@ -814,9 +813,13 @@ def paymongo_webhook(request):
         # TEMPORARY: Skip signature verification in test mode for debugging
         # TODO: Re-enable signature verification in production
         verify_signature = getattr(settings, 'PAYMONGO_VERIFY_WEBHOOK', True)
-        if verify_signature and not paymongo_service.verify_webhook_signature(payload, signature):
+        if verify_signature and not paymongo_service.verify_webhook_signature(payload_bytes, signature):
             logger.warning("Invalid PayMongo webhook signature")
             return JsonResponse({'error': 'Invalid signature'}, status=401)
+        
+        # Now decode the payload for processing
+        payload = payload_bytes.decode('utf-8')
+        logger.info(f"Webhook payload: {payload}")
         
         # Parse webhook data
         data = json.loads(payload)
