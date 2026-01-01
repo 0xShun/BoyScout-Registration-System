@@ -130,7 +130,7 @@
                         </small>
                         
                         <!-- Pay Now Button for Pending Payments -->
-                        {% if payment.status == 'pending' and payment.paymongo_source_id %}
+                        {% if payment.status == 'pending' and payment.paymongo_source_id and payment.paymongo_checkout_url %}
                           <a href="{{ payment.paymongo_checkout_url }}" target="_blank" class="btn btn-primary btn-sm mt-2 w-100">
                             <i class="fas fa-credit-card"></i> Pay Now via 
                             {% if payment.payment_method == 'paymongo_gcash' %}GCash
@@ -139,6 +139,12 @@
                           <small class="text-muted d-block mt-1">
                             <i class="fas fa-info-circle"></i> Click to complete your payment
                           </small>
+                        {% elif payment.status == 'pending' and payment.paymongo_source_id and not payment.paymongo_checkout_url %}
+                          <div class="alert alert-info mt-2 mb-0">
+                            <small>
+                              <i class="fas fa-info-circle"></i> Payment link expired or unavailable. Please contact admin or re-register for the event.
+                            </small>
+                          </div>
                         {% endif %}
                       </div>
                     {% endif %}
