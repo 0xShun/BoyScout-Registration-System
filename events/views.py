@@ -134,6 +134,15 @@ def event_detail(request, pk):
                 
                 # Handle payment for paid events
                 if event.has_payment_required:
+                    # Save registration first
+                    if not registration:
+                        # New registration
+                        reg.save()
+                        is_update = False
+                    else:
+                        reg.save()
+                        is_update = True
+                    
                     # Calculate amount to pay (total - already paid)
                     total_paid = EventPayment.objects.filter(
                         registration=reg,
@@ -144,20 +153,16 @@ def event_detail(request, pk):
                     
                     # Check if user already has a pending payment
                     existing_pending = EventPayment.objects.filter(
-                        registration__event=event,
-                        registration__user=request.user,
+                        registration=reg,
                         status='pending'
                     ).first()
                     
-                    # Save registration first
-                    if not registration:
-                        # New registration
-                        reg.payment_status = 'pending' if amount_to_pay > 0 else 'paid'
-                        reg.save()
-                        is_update = False
+                    # Update payment status
+                    if amount_to_pay > 0:
+                        reg.payment_status = 'pending'
                     else:
-                        reg.save()
-                        is_update = True
+                        reg.payment_status = 'paid'
+                    reg.save()
                     
                     # Only create new payment if no pending payment exists and amount is due
                     if amount_to_pay > 0 and not existing_pending:
@@ -196,10 +201,6 @@ def event_detail(request, pk):
                                 expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None
                             )
                             
-                            # Update registration payment status
-                            reg.payment_status = 'pending'
-                            reg.save()
-                            
                             messages.success(request, 'Registration created! Redirecting to PayMongo for payment...')
                             # Store checkout URL in session to open in new tab
                             request.session['paymongo_checkout_url'] = checkout_url
@@ -215,9 +216,7 @@ def event_detail(request, pk):
                             messages.success(request, 'Registration created! Use the "Pay Now" button below to complete payment.')
                         return redirect('events:event_detail', pk=event.pk)
                     else:
-                        # Already fully paid
-                        reg.payment_status = 'paid'
-                        reg.save()
+                        # Already fully paid - status already set above
                         if is_update:
                             messages.success(request, 'Registration updated! Payment already complete.')
                         else:
