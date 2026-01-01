@@ -219,7 +219,12 @@ def event_detail(request, pk):
     # Admin: see all registrations
     registrations = None
     if request.user.is_authenticated and request.user.is_admin():
-        registrations = EventRegistration.objects.filter(event=event).select_related('user')
+        registrations = EventRegistration.objects.filter(event=event).select_related('user').prefetch_related('payments')
+    
+    # Get user's payment receipts if registered
+    user_payments = []
+    if registration:
+        user_payments = EventPayment.objects.filter(registration=registration).order_by('-created_at')
 
     return render(request, 'events/event_detail.html', {
         'event': event,
@@ -233,6 +238,7 @@ def event_detail(request, pk):
         'registration_form': registration_form,
         'registrations': registrations,
         'qr_code': qr_code,
+        'user_payments': user_payments,
     })
 
 @admin_required
