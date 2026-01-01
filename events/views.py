@@ -170,37 +170,52 @@ def event_detail(request, pk):
                     receipt_image = registration_form.cleaned_data.get('receipt_image')
                     reference_number = registration_form.cleaned_data.get('reference_number')
                     
-                    # Check for duplicate reference number
-                    if EventPayment.objects.filter(reference_number=reference_number).exists():
+                    # Only check for duplicate reference number if one is provided
+                    if reference_number and EventPayment.objects.filter(reference_number=reference_number).exists():
                         messages.error(request, 'This reference number has already been used. Please check your receipt.')
                         return redirect('events:event_detail', pk=event.pk)
                     
-                    reg.payment_status = 'pending'
-                    reg.verified = False
-                    reg.amount_required = event.payment_amount
+                    # Save registration first (without receipt in the registration model)
+                    if not registration:
+                        # New registration
+                        reg.payment_status = 'pending'
+                        reg.verified = False
+                        reg.amount_required = event.payment_amount
+                    
                     reg.receipt_image = None  # Don't store in registration, use EventPayment instead
                     reg.save()
                     
-                    # Create EventPayment record
-                    EventPayment.objects.create(
-                        registration=reg,
-                        amount=event.payment_amount,
-                        receipt_image=receipt_image,
-                        reference_number=reference_number,
-                        status='pending'
-                    )
-                    
-                    # Send notification to admin
-                    admins = User.objects.filter(rank='admin')
-                    for admin in admins:
-                        send_realtime_notification(
-                            admin.id, 
-                            f"New event payment submitted: {reg.user.get_full_name()} for {event.title} - ₱{event.payment_amount} (Ref: {reference_number})",
-                            type='event'
+                    # Create EventPayment record if receipt was uploaded
+                    if receipt_image:
+                        EventPayment.objects.create(
+                            registration=reg,
+                            amount=event.payment_amount,
+                            receipt_image=receipt_image,
+                            reference_number=reference_number if reference_number else None,
+                            status='pending'
                         )
-                    
-                    messages.success(request, 'Event registration submitted successfully!')
-                    messages.info(request, 'Your payment receipt is pending verification by an administrator.')
+                        
+                        # Send notification to admin (only if user is not admin)
+                        if not request.user.is_admin():
+                            admins = User.objects.filter(rank='admin')
+                            for admin in admins:
+                                send_realtime_notification(
+                                    admin.id, 
+                                    f"New event payment submitted: {reg.user.get_full_name()} for {event.title} - ₱{event.payment_amount}" + (f" (Ref: {reference_number})" if reference_number else ""),
+                                    type='event'
+                                )
+                        
+                        if registration:
+                            messages.success(request, 'Payment receipt uploaded successfully!')
+                        else:
+                            messages.success(request, 'Event registration submitted successfully!')
+                        messages.info(request, 'Your payment receipt is pending verification by an administrator.')
+                    else:
+                        # No receipt uploaded
+                        if registration:
+                            messages.success(request, 'Registration updated successfully!')
+                        else:
+                            messages.warning(request, 'Registration saved, but no payment receipt was uploaded. Please upload your receipt to complete registration.')
                 else:
                     # Free event - auto approve
                     reg.payment_status = 'not_required'

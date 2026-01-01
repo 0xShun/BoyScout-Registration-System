@@ -5,7 +5,7 @@
 <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 11000;">
   {% if messages %}
     {% for message in messages %}
-      <div class="toast align-items-center text-white bg-{{ message.tags }} border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
+      <div class="toast align-items-center text-white border-0 bg-{% if message.tags == 'error' %}danger{% elif message.tags == 'warning' %}warning{% elif message.tags == 'info' %}info{% elif message.tags == 'success' %}success{% else %}primary{% endif %}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
         <div class="d-flex">
           <div class="toast-body">
             <i class="fas {% if message.tags == 'success' %}fa-check-circle{% elif message.tags == 'error' %}fa-exclamation-circle{% elif message.tags == 'warning' %}fa-exclamation-triangle{% else %}fa-info-circle{% endif %} me-2"></i>
