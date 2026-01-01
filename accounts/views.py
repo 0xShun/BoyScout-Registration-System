@@ -300,10 +300,17 @@ def teacher_create_student(request):
             
             try:
                 # Create PayMongo source
-                description = f"Registration Fee - {student.get_full_name()} (created by teacher {request.user.get_full_name()})"
                 source_data = paymongo.create_source(
                     amount=registration_fee,
-                    description=description
+                    type='gcash',
+                    redirect_success=request.build_absolute_uri('/accounts/registration-payment/'),
+                    redirect_failed=request.build_absolute_uri('/accounts/registration-payment/'),
+                    metadata={
+                        'user_email': student.email,
+                        'user_name': student.get_full_name(),
+                        'description': f"Registration Fee - {student.get_full_name()} (created by teacher {request.user.get_full_name()})",
+                        'payment_type': 'registration',
+                    }
                 )
                 
                 if source_data and 'id' in source_data:
@@ -490,10 +497,17 @@ def register(request):
             
             try:
                 # Create PayMongo source with registration details
-                description = f"Registration Fee - {user.get_full_name()}"
                 source_data = paymongo.create_source(
                     amount=registration_fee,
-                    description=description
+                    type='gcash',
+                    redirect_success=request.build_absolute_uri('/accounts/registration-payment/'),
+                    redirect_failed=request.build_absolute_uri('/accounts/registration-payment/'),
+                    metadata={
+                        'user_email': user.email,
+                        'user_name': user.get_full_name(),
+                        'description': f"Registration Fee - {user.get_full_name()}",
+                        'payment_type': 'registration',
+                    }
                 )
                 
                 if source_data and 'id' in source_data:
