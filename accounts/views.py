@@ -476,8 +476,6 @@ def register(request):
             # Create user account
             user = form.save(commit=False)
             user.rank = form.cleaned_data.get('rank', 'scout')
-            # Set role for backward compatibility with old database schema
-            user.role = user.rank
             user.is_active = True
             user.registration_status = 'pending_payment'
             user.save()

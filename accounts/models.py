@@ -90,6 +90,8 @@ class User(AbstractUser):
     ]
 
     rank = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout')
+    # Legacy field for backward compatibility with old database schema
+    role = models.CharField(max_length=30, choices=RANK_CHOICES, default='scout', null=True, blank=True)
     verification_code = models.CharField(max_length=6, null=True, blank=True)
     
     # Teacher-Student Relationship
@@ -205,6 +207,9 @@ class User(AbstractUser):
                 unique_username = f"{base_username}{num}"
                 num += 1
             self.username = unique_username
+        
+        # Sync role with rank for backward compatibility
+        self.role = self.rank
         
         # Admin users are automatically active and don't need payment verification
         # Teachers follow the same registration flow as scouts (pay fee, admin verifies)
