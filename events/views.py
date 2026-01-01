@@ -928,7 +928,7 @@ def payment_status(request, registration_id, status):
     
     # Get latest payment for this registration
     latest_payment = EventPayment.objects.filter(
-        event_registration=registration
+        registration=registration
     ).order_by('-created_at').first()
     
     context = {
