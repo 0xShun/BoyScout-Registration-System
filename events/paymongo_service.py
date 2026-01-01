@@ -29,16 +29,16 @@ class PayMongoService:
             'Content-Type': 'application/json'
         }
     
-    def create_source(self, amount, description, user_info, registration_id, event_id):
+    def create_source(self, amount, type='gcash', redirect_success=None, redirect_failed=None, metadata=None):
         """
         Create a PayMongo Source for QR code payment
         
         Args:
             amount (Decimal): Payment amount in pesos
-            description (str): Payment description
-            user_info (dict): User information (name, email, phone)
-            registration_id (int): Event registration ID
-            event_id (int): Event ID
+            type (str): Payment method type (gcash, paymaya, grab_pay)
+            redirect_success (str): Success redirect URL
+            redirect_failed (str): Failed redirect URL
+            metadata (dict): Additional metadata
         
         Returns:
             dict: PayMongo source response or None if failed
@@ -49,26 +49,21 @@ class PayMongoService:
         # Source expires in 1 hour
         expires_at = int((datetime.now() + timedelta(hours=1)).timestamp())
         
+        # Extract user info from metadata if provided
+        user_email = metadata.get('user_email', '') if metadata else ''
+        registration_id = metadata.get('registration_id', '') if metadata else ''
+        
         payload = {
             "data": {
                 "attributes": {
-                    "type": "gcash",  # Can be gcash, grab_pay, or paymaya
+                    "type": type,  # gcash, grab_pay, or paymaya
                     "amount": amount_centavos,
                     "currency": "PHP",
                     "redirect": {
-                        "success": f"{settings.SITE_URL}/events/payment-status/{registration_id}/success/",
-                        "failed": f"{settings.SITE_URL}/events/payment-status/{registration_id}/failed/"
+                        "success": redirect_success,
+                        "failed": redirect_failed
                     },
-                    "billing": {
-                        "name": user_info.get('name'),
-                        "email": user_info.get('email'),
-                        "phone": user_info.get('phone', '')
-                    },
-                    "metadata": {
-                        "registration_id": str(registration_id),
-                        "event_id": str(event_id),
-                        "user_email": user_info.get('email')
-                    }
+                    "metadata": metadata or {}
                 }
             }
         }
