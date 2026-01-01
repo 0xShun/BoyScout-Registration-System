@@ -188,6 +188,7 @@ def event_detail(request, pk):
                                 registration=reg,
                                 amount=amount_to_pay,
                                 paymongo_source_id=source_id,
+                                paymongo_checkout_url=checkout_url,
                                 payment_method=f'paymongo_{payment_method}',
                                 status='pending',
                                 expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None

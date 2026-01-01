@@ -86,6 +86,7 @@ class EventPayment(models.Model):
     # PayMongo fields
     paymongo_source_id = models.CharField(max_length=100, null=True, blank=True, unique=True, verbose_name="PayMongo Source ID")
     paymongo_payment_id = models.CharField(max_length=100, null=True, blank=True, unique=True, verbose_name="PayMongo Payment ID")
+    paymongo_checkout_url = models.URLField(max_length=500, null=True, blank=True, verbose_name="PayMongo Checkout URL")
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='paymongo_gcash')
     expires_at = models.DateTimeField(null=True, blank=True, verbose_name="Payment Expiration")
     is_expired = models.BooleanField(default=False)
