@@ -304,7 +304,9 @@
                         <td>{{ reg.registered_at|date:"M d, Y" }}</td>
                         <td>
                           {% if reg.payment_status == 'pending' %}
-                            <a href="{% url 'events:verify_event_registration' event.pk reg.pk %}" class="btn btn-sm btn-primary">Verify Payment</a>
+                            <span class="badge bg-warning">
+                              <i class="fas fa-clock"></i> Awaiting Payment
+                            </span>
                           {% endif %}
                         </td>
                       </tr>
