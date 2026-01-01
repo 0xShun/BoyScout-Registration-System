@@ -797,9 +797,16 @@ def paymongo_webhook(request):
         payload = request.body.decode('utf-8')
         signature = request.META.get('HTTP_PAYMONGO_SIGNATURE', '')
         
+        # Log incoming webhook
+        logger.info(f"PayMongo webhook received - Signature present: {bool(signature)}")
+        
         # Verify webhook signature
         paymongo_service = PayMongoService()
-        if not paymongo_service.verify_webhook_signature(payload, signature):
+        
+        # TEMPORARY: Skip signature verification in test mode for debugging
+        # TODO: Re-enable signature verification in production
+        verify_signature = getattr(settings, 'PAYMONGO_VERIFY_WEBHOOK', True)
+        if verify_signature and not paymongo_service.verify_webhook_signature(payload, signature):
             logger.warning("Invalid PayMongo webhook signature")
             return JsonResponse({'error': 'Invalid signature'}, status=401)
         
@@ -808,7 +815,7 @@ def paymongo_webhook(request):
         event_type = data.get('data', {}).get('attributes', {}).get('type')
         event_data = data.get('data', {}).get('attributes', {}).get('data', {})
         
-        logger.info(f"PayMongo webhook received: {event_type}")
+        logger.info(f"PayMongo webhook event type: {event_type}")
         
         if event_type == 'source.chargeable':
             # Source is ready to be charged - create payment
