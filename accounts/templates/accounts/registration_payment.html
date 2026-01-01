@@ -243,11 +243,52 @@
 </style>
 
 <script>
+console.log("🎯 Registration Payment Page Loaded");
+console.log("User ID: {{ user.id }}");
+console.log("Registration Status: {{ user.registration_status }}");
+console.log("Amount Remaining: ₱{{ user.registration_amount_remaining }}");
+
 // Auto-scroll to Pay Now button if it exists
 window.addEventListener('DOMContentLoaded', function() {
   const payNowBtn = document.getElementById('payNowBtn');
   if (payNowBtn) {
+    console.log("✅ Pay Now button found, scrolling to it");
     payNowBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  
+  // Auto-refresh to check payment status every 10 seconds
+  {% if user.registration_amount_remaining > 0 %}
+  console.log("⏰ Starting auto-refresh (every 10 seconds) to check payment status...");
+  let refreshCount = 0;
+  const maxRefreshes = 30; // Stop after 5 minutes (30 * 10 seconds)
+  
+  const refreshInterval = setInterval(function() {
+    refreshCount++;
+    console.log(`🔄 Auto-refresh #${refreshCount} - Checking payment status...`);
+    
+    // Reload the page to check if payment was verified
+    if (refreshCount >= maxRefreshes) {
+      console.log("⏱️ Stopped auto-refresh after 5 minutes");
+      clearInterval(refreshInterval);
+    } else {
+      location.reload();
+    }
+  }, 10000); // 10 seconds
+  
+  // Stop auto-refresh if user leaves the page
+  window.addEventListener('beforeunload', function() {
+    console.log("🛑 Stopping auto-refresh - user leaving page");
+    clearInterval(refreshInterval);
+  });
+  {% else %}
+  console.log("✅ Payment already verified - no auto-refresh needed");
+  {% endif %}
+});
+
+// Log when payment link is clicked
+document.addEventListener('click', function(e) {
+  if (e.target.closest('a[href*="paymongo"]')) {
+    console.log("💳 User clicked Pay Now button - opening PayMongo checkout");
   }
 });
 </script>

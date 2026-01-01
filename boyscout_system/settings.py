@@ -190,6 +190,10 @@ PAYMONGO_PUBLIC_KEY = os.environ.get('PAYMONGO_PUBLIC_KEY', '')
 PAYMONGO_SECRET_KEY = os.environ.get('PAYMONGO_SECRET_KEY', '')
 PAYMONGO_WEBHOOK_SECRET = os.environ.get('PAYMONGO_WEBHOOK_SECRET', '')
 
+# Temporarily disable webhook signature verification for debugging
+# TODO: Re-enable in production once webhook secret is confirmed working
+PAYMONGO_VERIFY_WEBHOOK = False
+
 # Site URL for PayMongo redirects
 SITE_URL = os.environ.get('SITE_URL', 'https://scoutconnect.pythonanywhere.com')
 
