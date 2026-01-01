@@ -130,15 +130,15 @@
 
           <!-- Pay Now Button (if pending payment exists) -->
           {% if user.registration_amount_remaining > 0 %}
-            {% for payment in payments %}
-              {% if payment.status == 'pending' and payment.paymongo_checkout_url %}
+            {% with pending_payment=payments|first %}
+              {% if pending_payment.status == 'pending' and pending_payment.paymongo_checkout_url %}
                 <div class="card border-success mb-4">
                   <div class="card-header bg-success text-white">
                     <h5 class="mb-0"><i class="fas fa-qrcode me-2"></i>Complete Your Payment</h5>
                   </div>
                   <div class="card-body text-center">
-                    <p class="lead">Click the button below to pay ₱{{ payment.amount }} via PayMongo</p>
-                    <a href="{{ payment.paymongo_checkout_url }}" 
+                    <p class="lead">Click the button below to pay ₱{{ pending_payment.amount }} via PayMongo</p>
+                    <a href="{{ pending_payment.paymongo_checkout_url }}" 
                        target="_blank" 
                        class="btn btn-success btn-lg pulse-button" 
                        id="payNowBtn">
@@ -152,10 +152,49 @@
                       <i class="fas fa-shield-alt"></i> Payment is automatically verified within 5-30 seconds. 
                       You can close this page after payment.
                     </p>
+                    
+                    <!-- Link expired? Create new payment -->
+                    <hr>
+                    <p class="text-muted small mb-2">
+                      <i class="fas fa-clock"></i> Payment link expires after 1 hour. If the link doesn't work:
+                    </p>
+                    <form method="post" style="display: inline;">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="create_new_payment">
+                      <button type="submit" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-redo me-1"></i>Create New Payment Link
+                      </button>
+                    </form>
+                  </div>
+                </div>
+              {% else %}
+                <!-- No pending payment or payment expired/failed - show create new payment button -->
+                <div class="card border-warning mb-4">
+                  <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>No Active Payment Link</h5>
+                  </div>
+                  <div class="card-body text-center">
+                    <p class="lead">
+                      {% if pending_payment.status == 'expired' %}
+                        Your previous payment link has expired.
+                      {% elif pending_payment.status == 'failed' %}
+                        Your previous payment failed.
+                      {% else %}
+                        No active payment link found.
+                      {% endif %}
+                    </p>
+                    <p>Create a new payment link to complete your registration.</p>
+                    <form method="post">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="create_new_payment">
+                      <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle me-2"></i>Create New Payment Link
+                      </button>
+                    </form>
                   </div>
                 </div>
               {% endif %}
-            {% endfor %}
+            {% endwith %}
           {% else %}
             <div class="alert alert-success text-center">
               <i class="fas fa-check-circle fa-3x mb-3"></i>

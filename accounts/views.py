@@ -1048,6 +1048,52 @@ def registration_payment(request, user_id):
         messages.info(request, 'Your account is already active!')
         return redirect('home')
     
+    # Handle creating new payment if source expired
+    if request.method == 'POST' and request.POST.get('action') == 'create_new_payment':
+        from payments.models import SystemConfiguration
+        from events.paymongo_service import PayMongoService
+        
+        # Get registration fee
+        system_config = SystemConfiguration.get_config()
+        registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+        
+        # Mark old pending payments as expired
+        user.registration_payments.filter(status='pending').update(status='expired')
+        
+        # Create new PayMongo source
+        paymongo = PayMongoService()
+        redirect_url = request.build_absolute_uri(f'/accounts/registration-payment/{user.id}/')
+        
+        source_data = paymongo.create_source(
+            amount=registration_fee,
+            type='gcash',
+            redirect_success=redirect_url,
+            redirect_failed=redirect_url,
+            metadata={
+                'user_email': user.email,
+                'user_name': user.get_full_name(),
+                'description': f"Registration Fee - {user.get_full_name()}",
+                'payment_type': 'registration',
+            }
+        )
+        
+        if source_data and 'id' in source_data and 'attributes' in source_data:
+            # Create new RegistrationPayment record
+            reg_payment = RegistrationPayment.objects.create(
+                user=user,
+                amount=registration_fee,
+                paymongo_source_id=source_data['id'],
+                paymongo_checkout_url=source_data['attributes']['redirect']['checkout_url'],
+                payment_method='paymongo_gcash',
+                status='pending',
+                notes=f"New payment created (previous expired)"
+            )
+            messages.success(request, 'New payment link created! Click "Pay Now" to complete your payment.')
+        else:
+            messages.error(request, 'Failed to create new payment. Please contact support.')
+        
+        return redirect('accounts:registration_payment', user_id=user.id)
+    
     # Get payment history for this user
     from .models import RegistrationPayment
     payments = user.registration_payments.all().order_by('-created_at')
