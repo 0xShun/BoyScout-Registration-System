@@ -41,9 +41,17 @@ def admin_dashboard(request):
         else:
             return redirect('home')
     # Analytics
+    from .models import RegistrationPayment
+    from events.models import EventPayment
+    
     member_count = User.objects.count()
-    payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
-    payment_pending = Payment.objects.filter(status='pending').count()
+    
+    # Calculate total verified payments (both registration and event payments)
+    registration_payment_total = RegistrationPayment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
+    event_payment_total = EventPayment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
+    general_payment_total = Payment.objects.filter(status='verified').aggregate(total=models.Sum('amount'))['total'] or 0
+    payment_total = registration_payment_total + event_payment_total + general_payment_total
+    
     announcement_count = Announcement.objects.count()
     # Membership growth by month
     member_growth = (
@@ -131,7 +139,6 @@ def admin_dashboard(request):
     return render(request, 'accounts/admin_dashboard.html', {
         'member_count': member_count,
         'payment_total': payment_total,
-        'payment_pending': payment_pending,
         'announcement_count': announcement_count,
         'member_growth': list(member_growth),
         'payment_trends': list(payment_trends),
