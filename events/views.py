@@ -700,10 +700,13 @@ def teacher_register_students_event(request):
     else:
         form = TeacherBulkEventRegistrationForm(teacher=request.user)
     
-    context = {
+    # Get upcoming events with payment info
+    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:5]
+    
+    return render(request, 'events/teacher_bulk_register.html', {
         'form': form,
-    }
-    return render(request, 'events/teacher_register_students_event.html', context)
+        'upcoming_events': upcoming_events,
+    })
 
 @login_required
 def teacher_bulk_event_payment_status(request, event_id):
@@ -792,22 +795,6 @@ def teacher_bulk_event_payment_status(request, event_id):
     # If not verified yet, show waiting message and redirect
     messages.info(request, 'Processing payment... Please wait.')
     return redirect('events:event_detail', pk=event.id)
-                messages.warning(
-                    request, 
-                    f'The following students were already registered: {", ".join(already_registered)}'
-                )
-            
-            return redirect('accounts:teacher_dashboard')
-    else:
-        form = TeacherBulkEventRegistrationForm(teacher=request.user)
-    
-    # Get upcoming events with payment info
-    upcoming_events = Event.objects.filter(date__gte=timezone.now()).order_by('date', 'time')[:5]
-    
-    return render(request, 'events/teacher_bulk_register.html', {
-        'form': form,
-        'upcoming_events': upcoming_events,
-    })
 
 @login_required
 def teacher_mark_attendance(request):
