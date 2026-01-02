@@ -226,6 +226,29 @@
             {% endif %}
           </div>
         </div>
+
+        <!-- Student Attendance Section -->
+        {% if registration and registration.payment_status in 'not_required,paid' %}
+        <div class="card shadow-sm mb-4" id="attendance-card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-check-square"></i> Mark Your Attendance</h5>
+          </div>
+          <div class="card-body text-center">
+            <div id="attendance-status-message">
+              <p class="text-muted"><i class="fas fa-spinner fa-spin"></i> Checking attendance status...</p>
+            </div>
+            <button type="button" id="mark-attendance-btn" class="btn btn-success btn-lg" style="display: none;">
+              <i class="fas fa-user-check"></i> Mark My Attendance
+            </button>
+            <div id="attendance-success-message" style="display: none;">
+              <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> <strong>Attendance Marked!</strong>
+                <p class="mb-0">Your attendance has been recorded successfully.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
       {% endif %}
 
       <!-- Admin Section -->
@@ -248,6 +271,40 @@
                 <a href="{% url 'events:photo_upload' event.pk %}" class="btn btn-secondary mb-2 w-100">
                   <i class="fas fa-camera"></i> Upload Photos
                 </a>
+                <a href="{% url 'events:upload_certificate_template' event.pk %}" class="btn btn-primary mb-2 w-100">
+                  <i class="fas fa-certificate"></i> Certificate Template
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Attendance Session Controls (Admin) -->
+        <div class="card shadow-sm mb-4">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-user-check"></i> Attendance Session Control</h5>
+          </div>
+          <div class="card-body">
+            <div class="row align-items-center">
+              <div class="col-md-6">
+                <h6>Session Status: <span id="admin-session-status" class="badge bg-secondary">Checking...</span></h6>
+                <p class="mb-2">
+                  <strong>Attendance Count:</strong> <span id="admin-attendance-count" class="badge bg-info">0</span>
+                </p>
+                <p class="text-muted small mb-0">
+                  <i class="fas fa-info-circle"></i> Start the session to allow students to mark their attendance.
+                </p>
+              </div>
+              <div class="col-md-6 text-end">
+                <form method="POST" id="attendance-control-form" style="display: inline;">
+                  {% csrf_token %}
+                  <button type="button" id="start-attendance-btn" class="btn btn-success btn-lg" style="display: none;">
+                    <i class="fas fa-play-circle"></i> Start Attendance
+                  </button>
+                  <button type="button" id="stop-attendance-btn" class="btn btn-danger btn-lg" style="display: none;">
+                    <i class="fas fa-stop-circle"></i> Stop Attendance
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -502,6 +559,184 @@
         console.error('Error clearing session:', error);
       });
     {% endif %}
+
+    // ======================================
+    // ATTENDANCE SESSION POLLING
+    // ======================================
+    var attendanceCheckInterval;
+    
+    function checkAttendanceStatus() {
+      fetch('{% url "events:check_attendance_status" event.pk %}')
+        .then(response => response.json())
+        .then(data => {
+          // Update admin UI
+          {% if user.is_admin %}
+            var statusBadge = document.getElementById('admin-session-status');
+            var countBadge = document.getElementById('admin-attendance-count');
+            var startBtn = document.getElementById('start-attendance-btn');
+            var stopBtn = document.getElementById('stop-attendance-btn');
+            
+            if (data.is_active) {
+              statusBadge.textContent = 'Active';
+              statusBadge.className = 'badge bg-success';
+              startBtn.style.display = 'none';
+              stopBtn.style.display = 'inline-block';
+            } else {
+              statusBadge.textContent = 'Inactive';
+              statusBadge.className = 'badge bg-secondary';
+              startBtn.style.display = 'inline-block';
+              stopBtn.style.display = 'none';
+            }
+            
+            countBadge.textContent = data.attendance_count;
+          {% endif %}
+          
+          // Update student UI
+          {% if user.is_authenticated and not user.is_admin %}
+            var statusMessage = document.getElementById('attendance-status-message');
+            var markBtn = document.getElementById('mark-attendance-btn');
+            var successMessage = document.getElementById('attendance-success-message');
+            
+            if (data.has_attended) {
+              // Already marked attendance
+              statusMessage.style.display = 'none';
+              markBtn.style.display = 'none';
+              successMessage.style.display = 'block';
+            } else if (!data.is_eligible) {
+              // Not eligible (not registered or payment pending)
+              statusMessage.innerHTML = '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> You need to be registered and have payment verified to mark attendance.</p>';
+              markBtn.style.display = 'none';
+            } else if (data.is_active) {
+              // Session active, show button
+              statusMessage.innerHTML = '<p class="text-success"><i class="fas fa-check-circle"></i> Attendance session is now open!</p>';
+              markBtn.style.display = 'inline-block';
+            } else {
+              // Session not active
+              statusMessage.innerHTML = '<p class="text-muted"><i class="fas fa-clock"></i> Attendance session is not currently active. Please wait for the admin to start the session.</p>';
+              markBtn.style.display = 'none';
+            }
+          {% endif %}
+        })
+        .catch(error => {
+          console.error('Error checking attendance status:', error);
+        });
+    }
+    
+    // Check status immediately and then every 5 seconds
+    checkAttendanceStatus();
+    attendanceCheckInterval = setInterval(checkAttendanceStatus, 5000);
+    
+    // Admin: Start attendance session
+    {% if user.is_admin %}
+    document.getElementById('start-attendance-btn').addEventListener('click', function() {
+      if (!confirm('Start attendance session for this event? Students will be notified.')) return;
+      
+      fetch('{% url "events:start_attendance_session" event.pk %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        showToast('success', 'Attendance session started! Students have been notified.');
+        checkAttendanceStatus();
+      })
+      .catch(error => {
+        showToast('danger', 'Error starting session: ' + error);
+      });
+    });
+    
+    // Admin: Stop attendance session
+    document.getElementById('stop-attendance-btn').addEventListener('click', function() {
+      if (!confirm('Stop attendance session? Students will no longer be able to mark attendance.')) return;
+      
+      fetch('{% url "events:stop_attendance_session" event.pk %}', {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': '{{ csrf_token }}',
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        showToast('info', 'Attendance session stopped.');
+        checkAttendanceStatus();
+      })
+      .catch(error => {
+        showToast('danger', 'Error stopping session: ' + error);
+      });
+    });
+    {% endif %}
+    
+    // Student: Mark attendance
+    {% if user.is_authenticated and not user.is_admin %}
+    var markAttendanceBtn = document.getElementById('mark-attendance-btn');
+    if (markAttendanceBtn) {
+      markAttendanceBtn.addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Marking...';
+        
+        fetch('{% url "events:mark_my_attendance" event.pk %}', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            showToast('success', data.message + (data.certificate_generated ? ' Certificate generated!' : ''));
+            checkAttendanceStatus();
+          } else {
+            showToast('danger', data.error || 'Failed to mark attendance');
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-user-check"></i> Mark My Attendance';
+          }
+        })
+        .catch(error => {
+          showToast('danger', 'Error: ' + error);
+          this.disabled = false;
+          this.innerHTML = '<i class="fas fa-user-check"></i> Mark My Attendance';
+        });
+      });
+    }
+    {% endif %}
+    
+    // Helper function to show Bootstrap toast
+    function showToast(type, message) {
+      var toastContainer = document.querySelector('.toast-container');
+      var bgClass = type === 'success' ? 'bg-success' : 
+                    type === 'danger' ? 'bg-danger' : 
+                    type === 'info' ? 'bg-info' : 'bg-warning';
+      
+      var icon = type === 'success' ? 'fa-check-circle' : 
+                 type === 'danger' ? 'fa-exclamation-circle' : 
+                 type === 'info' ? 'fa-info-circle' : 'fa-exclamation-triangle';
+      
+      var toastHtml = `
+        <div class="toast align-items-center text-white border-0 ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
+          <div class="d-flex">
+            <div class="toast-body">
+              <i class="fas ${icon} me-2"></i>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+      var newToast = toastContainer.lastElementChild;
+      var toast = new bootstrap.Toast(newToast);
+      toast.show();
+      
+      // Remove from DOM after hidden
+      newToast.addEventListener('hidden.bs.toast', function() {
+        newToast.remove();
+      });
+    }
   });
 </script>
 {% endblock %}

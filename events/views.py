@@ -1,9 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
-from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayment
+from .models import Event, EventPhoto, Attendance, EventRegistration, EventPayment, AttendanceSession, CertificateTemplate, EventCertificate
 from .forms import EventForm, EventPhotoForm, EventRegistrationForm, EventPaymentForm
 from accounts.views import admin_required # Reusing the admin_required decorator
+from .services.certificate_service import CertificateService
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.db import models
@@ -1097,3 +1098,287 @@ def clear_paymongo_session(request):
     if 'paymongo_checkout_url' in request.session:
         del request.session['paymongo_checkout_url']
     return JsonResponse({'status': 'ok'})
+
+
+# ========================================
+# ATTENDANCE SESSION & CERTIFICATE VIEWS
+# ========================================
+
+@login_required
+@admin_required
+def start_attendance_session(request, event_id):
+    """
+    Start attendance session for an event (Admin only).
+    Sends real-time notifications to all registered students.
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Create or get attendance session
+    session, created = AttendanceSession.objects.get_or_create(event=event)
+    
+    if session.is_active:
+        messages.warning(request, "Attendance session is already active!")
+        return redirect('events:event_detail', event_id=event_id)
+    
+    # Start session
+    session.start(request.user)
+    
+    # Send notifications to all registered students
+    registered_users = EventRegistration.objects.filter(
+        event=event,
+        payment_status__in=['not_required', 'paid']
+    ).values_list('user', flat=True)
+    
+    for user_id in registered_users:
+        send_realtime_notification(
+            user_id=user_id,
+            message=f"Attendance is now open for {event.title}. Click to mark your attendance!",
+            type='info'
+        )
+    
+    messages.success(request, f"Attendance session started for {event.title}!")
+    return redirect('events:event_detail', pk=event_id)
+
+
+@login_required
+@admin_required
+def stop_attendance_session(request, event_id):
+    """
+    Stop attendance session for an event (Admin only).
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    try:
+        session = AttendanceSession.objects.get(event=event)
+        
+        if not session.is_active:
+            messages.warning(request, "Attendance session is not active!")
+            return redirect('events:event_detail', event_id=event_id)
+        
+        # Stop session
+        session.stop()
+        
+        messages.success(request, f"Attendance session stopped for {event.title}!")
+    except AttendanceSession.DoesNotExist:
+        messages.error(request, "No attendance session found for this event!")
+    
+    return redirect('events:event_detail', pk=event_id)
+
+
+@login_required
+def check_attendance_status(request, event_id):
+    """
+    AJAX endpoint to check attendance session status and user's attendance.
+    Returns JSON with session status and attendance info.
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if user is registered and eligible
+    try:
+        registration = EventRegistration.objects.get(event=event, user=request.user)
+        is_eligible = registration.payment_status in ['not_required', 'paid']
+    except EventRegistration.DoesNotExist:
+        is_eligible = False
+    
+    # Check session status
+    try:
+        session = AttendanceSession.objects.get(event=event)
+        is_active = session.is_active
+    except AttendanceSession.DoesNotExist:
+        is_active = False
+    
+    # Check if user already marked attendance
+    has_attended = Attendance.objects.filter(event=event, user=request.user).exists()
+    
+    # Get attendance count (for admin)
+    attendance_count = Attendance.objects.filter(event=event).count() if request.user.is_admin() else 0
+    
+    return JsonResponse({
+        'is_active': is_active,
+        'has_attended': has_attended,
+        'is_eligible': is_eligible,
+        'attendance_count': attendance_count,
+    })
+
+
+@login_required
+def mark_my_attendance(request, event_id):
+    """
+    Student marks their own attendance when session is active.
+    Auto-generates certificate if template exists.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Check if session is active
+    try:
+        session = AttendanceSession.objects.get(event=event)
+        if not session.is_active:
+            return JsonResponse({'error': 'Attendance session is not active'}, status=400)
+    except AttendanceSession.DoesNotExist:
+        return JsonResponse({'error': 'No attendance session for this event'}, status=400)
+    
+    # Check if user is registered
+    try:
+        registration = EventRegistration.objects.get(event=event, user=request.user)
+    except EventRegistration.DoesNotExist:
+        return JsonResponse({'error': 'You are not registered for this event'}, status=403)
+    
+    # Check payment status
+    if registration.payment_status not in ['not_required', 'paid']:
+        return JsonResponse({'error': 'Payment required before marking attendance'}, status=403)
+    
+    # Check if already marked
+    if Attendance.objects.filter(event=event, user=request.user).exists():
+        return JsonResponse({'error': 'You have already marked your attendance'}, status=400)
+    
+    # Mark attendance
+    attendance = Attendance.objects.create(
+        event=event,
+        user=request.user,
+        status='present',
+        marked_by=request.user
+    )
+    
+    # Generate certificate if template exists
+    certificate_generated = False
+    try:
+        if hasattr(event, 'certificate_template'):
+            certificate = CertificateService.generate_certificate(
+                user=request.user,
+                event=event,
+                attendance=attendance
+            )
+            certificate_generated = True
+            
+            # Send notification about certificate
+            send_realtime_notification(
+                user_id=request.user.id,
+                message=f"Your certificate for {event.title} has been generated! View it in My Certificates.",
+                type='info'
+            )
+    except Exception as e:
+        print(f"Certificate generation error: {e}")
+        # Don't fail attendance marking if certificate generation fails
+    
+    messages.success(request, "Attendance marked successfully!" + 
+                     (" Certificate generated!" if certificate_generated else ""))
+    
+    return JsonResponse({
+        'success': True,
+        'certificate_generated': certificate_generated,
+        'message': 'Attendance marked successfully!'
+    })
+
+
+@login_required
+@admin_required
+def upload_certificate_template(request, event_id):
+    """
+    Upload certificate template for an event (Admin only).
+    Handles both GET (show form) and POST (save template).
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    if request.method == 'POST':
+        # Get or create template
+        template, created = CertificateTemplate.objects.get_or_create(event=event)
+        
+        # Update template image if provided
+        if 'template_image' in request.FILES:
+            template.template_image = request.FILES['template_image']
+        
+        # Update positioning fields
+        template.name_x = int(request.POST.get('name_x', 500))
+        template.name_y = int(request.POST.get('name_y', 400))
+        template.name_font_size = int(request.POST.get('name_font_size', 60))
+        template.name_color = request.POST.get('name_color', '#000000')
+        
+        template.event_name_x = int(request.POST.get('event_name_x', 500))
+        template.event_name_y = int(request.POST.get('event_name_y', 550))
+        template.event_font_size = int(request.POST.get('event_font_size', 40))
+        template.event_color = request.POST.get('event_color', '#000000')
+        
+        template.date_x = int(request.POST.get('date_x', 500))
+        template.date_y = int(request.POST.get('date_y', 650))
+        template.date_font_size = int(request.POST.get('date_font_size', 30))
+        template.date_color = request.POST.get('date_color', '#000000')
+        
+        template.cert_number_x = int(request.POST.get('cert_number_x', 100))
+        template.cert_number_y = int(request.POST.get('cert_number_y', 100))
+        template.cert_number_font_size = int(request.POST.get('cert_number_font_size', 20))
+        template.cert_number_color = request.POST.get('cert_number_color', '#666666')
+        
+        template.save()
+        
+        messages.success(request, "Certificate template saved successfully!")
+        return redirect('events:event_detail', pk=event_id)
+    
+    # GET request - show form
+    try:
+        template = CertificateTemplate.objects.get(event=event)
+    except CertificateTemplate.DoesNotExist:
+        template = None
+    
+    context = {
+        'event': event,
+        'template': template,
+    }
+    return render(request, 'events/upload_certificate_template.html', context)
+
+
+@login_required
+@admin_required
+def preview_certificate_template(request, event_id):
+    """
+    Preview certificate template with dummy data (Admin only).
+    Returns PNG image.
+    """
+    event = get_object_or_404(Event, id=event_id)
+    
+    try:
+        template = CertificateTemplate.objects.get(event=event)
+    except CertificateTemplate.DoesNotExist:
+        messages.error(request, "No certificate template found!")
+        return redirect('events:event_detail', pk=event_id)
+    
+    # Generate preview
+    preview_name = request.GET.get('name', 'John Doe')
+    preview_event = request.GET.get('event_name', event.title)
+    
+    try:
+        preview_image = CertificateService.preview_certificate(
+            template=template,
+            preview_name=preview_name,
+            preview_event=preview_event
+        )
+        
+        # Return image as response
+        from django.http import HttpResponse
+        from io import BytesIO
+        
+        buffer = BytesIO()
+        preview_image.save(buffer, format='PNG')
+        buffer.seek(0)
+        
+        return HttpResponse(buffer.getvalue(), content_type='image/png')
+    
+    except Exception as e:
+        messages.error(request, f"Error generating preview: {str(e)}")
+        return redirect('events:event_detail', pk=event_id)
+
+
+@login_required
+def my_certificates(request):
+    """
+    Show all certificates earned by the logged-in user.
+    """
+    certificates = EventCertificate.objects.filter(user=request.user).select_related('event')
+    
+    context = {
+        'certificates': certificates,
+    }
+    return render(request, 'events/my_certificates.html', context)
+

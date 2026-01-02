@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Event, EventRegistration, EventPayment, Attendance, EventPhoto
+from .models import Event, EventRegistration, EventPayment, Attendance, EventPhoto, AttendanceSession, CertificateTemplate, EventCertificate
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
@@ -37,3 +37,48 @@ class EventPhotoAdmin(admin.ModelAdmin):
     list_display = ['event', 'caption', 'uploaded_by', 'uploaded_at', 'is_featured']
     list_filter = ['is_featured', 'uploaded_at', 'event']
     search_fields = ['caption', 'event__title']
+
+
+@admin.register(AttendanceSession)
+class AttendanceSessionAdmin(admin.ModelAdmin):
+    list_display = ['event', 'is_active', 'started_at', 'started_by', 'stopped_at', 'auto_stop_minutes']
+    list_filter = ['is_active', 'started_at', 'event']
+    search_fields = ['event__title', 'started_by__first_name', 'started_by__last_name']
+    readonly_fields = ['started_at', 'stopped_at']
+
+
+@admin.register(CertificateTemplate)
+class CertificateTemplateAdmin(admin.ModelAdmin):
+    list_display = ['event', 'created_at', 'updated_at']
+    list_filter = ['created_at', 'updated_at']
+    search_fields = ['event__title']
+    readonly_fields = ['created_at', 'updated_at']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('event', 'template_image')
+        }),
+        ('Name Positioning', {
+            'fields': ('name_x', 'name_y', 'name_font_size', 'name_color')
+        }),
+        ('Event Name Positioning', {
+            'fields': ('event_name_x', 'event_name_y', 'event_font_size', 'event_color')
+        }),
+        ('Date Positioning', {
+            'fields': ('date_x', 'date_y', 'date_font_size', 'date_color')
+        }),
+        ('Certificate Number Positioning', {
+            'fields': ('cert_number_x', 'cert_number_y', 'cert_number_font_size', 'cert_number_color')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(EventCertificate)
+class EventCertificateAdmin(admin.ModelAdmin):
+    list_display = ['certificate_number', 'user', 'event', 'generated_at']
+    list_filter = ['generated_at', 'event']
+    search_fields = ['certificate_number', 'user__first_name', 'user__last_name', 'event__title']
+    readonly_fields = ['certificate_number', 'generated_at']
+

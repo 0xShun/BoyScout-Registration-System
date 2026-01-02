@@ -184,3 +184,96 @@ class EventRegistration(models.Model):
                 self.payment_status = 'not_required'
                 self.amount_required = Decimal('0.00')
         super().save(*args, **kwargs)
+
+
+class AttendanceSession(models.Model):
+    """Controls when students can mark their attendance for an event"""
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='attendance_session')
+    is_active = models.BooleanField(default=False, verbose_name="Session Active")
+    started_at = models.DateTimeField(null=True, blank=True)
+    started_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='started_attendance_sessions')
+    stopped_at = models.DateTimeField(null=True, blank=True)
+    auto_stop_minutes = models.IntegerField(default=0, help_text="Auto-stop after X minutes (0 = manual only)")
+    
+    class Meta:
+        ordering = ['-started_at']
+    
+    def __str__(self):
+        status = "Active" if self.is_active else "Inactive"
+        return f"{self.event.title} - Attendance Session ({status})"
+    
+    def start(self, admin_user):
+        """Start the attendance session"""
+        self.is_active = True
+        self.started_at = timezone.now()
+        self.started_by = admin_user
+        self.stopped_at = None
+        self.save()
+    
+    def stop(self):
+        """Stop the attendance session"""
+        self.is_active = False
+        self.stopped_at = timezone.now()
+        self.save()
+
+
+class CertificateTemplate(models.Model):
+    """Stores certificate template image and text positioning for an event"""
+    event = models.OneToOneField(Event, on_delete=models.CASCADE, related_name='certificate_template')
+    template_image = models.ImageField(upload_to='certificate_templates/', help_text="Upload certificate template image")
+    
+    # Name positioning
+    name_x = models.IntegerField(default=500, help_text="X coordinate for participant name")
+    name_y = models.IntegerField(default=400, help_text="Y coordinate for participant name")
+    name_font_size = models.IntegerField(default=60, help_text="Font size for participant name")
+    name_color = models.CharField(max_length=7, default="#000000", help_text="Hex color for name (e.g., #000000)")
+    
+    # Event name positioning
+    event_name_x = models.IntegerField(default=500, help_text="X coordinate for event name")
+    event_name_y = models.IntegerField(default=550, help_text="Y coordinate for event name")
+    event_font_size = models.IntegerField(default=40, help_text="Font size for event name")
+    event_color = models.CharField(max_length=7, default="#000000", help_text="Hex color for event name")
+    
+    # Date positioning
+    date_x = models.IntegerField(default=500, help_text="X coordinate for date")
+    date_y = models.IntegerField(default=650, help_text="Y coordinate for date")
+    date_font_size = models.IntegerField(default=30, help_text="Font size for date")
+    date_color = models.CharField(max_length=7, default="#000000", help_text="Hex color for date")
+    
+    # Certificate number positioning
+    cert_number_x = models.IntegerField(default=100, help_text="X coordinate for certificate number")
+    cert_number_y = models.IntegerField(default=100, help_text="Y coordinate for certificate number")
+    cert_number_font_size = models.IntegerField(default=20, help_text="Font size for certificate number")
+    cert_number_color = models.CharField(max_length=7, default="#666666", help_text="Hex color for cert number")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Certificate Template - {self.event.title}"
+
+
+class EventCertificate(models.Model):
+    """Generated certificates for event participants"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='event_certificates')
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='certificates')
+    attendance = models.OneToOneField(Attendance, on_delete=models.CASCADE, related_name='certificate', null=True, blank=True)
+    certificate_number = models.CharField(max_length=50, unique=True, help_text="Unique certificate identifier")
+    certificate_file = models.ImageField(upload_to='event_certificates/', help_text="Generated certificate PNG")
+    generated_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-generated_at']
+        unique_together = ('user', 'event')
+    
+    def __str__(self):
+        return f"Certificate #{self.certificate_number} - {self.user.get_full_name()} - {self.event.title}"
+    
+    @staticmethod
+    def generate_certificate_number(event_id, user_id):
+        """Generate unique certificate number"""
+        timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
+        return f"CERT-{event_id}-{user_id}-{timestamp}"

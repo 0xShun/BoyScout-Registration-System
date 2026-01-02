@@ -23,4 +23,13 @@ urlpatterns = [
     path('webhooks/paymongo/', views.paymongo_webhook, name='paymongo_webhook'),
     path('payment-status/<int:registration_id>/<str:status>/', views.payment_status, name='payment_status'),
     path('clear-paymongo-session/', views.clear_paymongo_session, name='clear_paymongo_session'),
+    
+    # Attendance Session & Certificate URLs
+    path('<int:event_id>/start-attendance/', views.start_attendance_session, name='start_attendance_session'),
+    path('<int:event_id>/stop-attendance/', views.stop_attendance_session, name='stop_attendance_session'),
+    path('<int:event_id>/attendance-status/', views.check_attendance_status, name='check_attendance_status'),
+    path('<int:event_id>/mark-attendance/', views.mark_my_attendance, name='mark_my_attendance'),
+    path('<int:event_id>/upload-certificate/', views.upload_certificate_template, name='upload_certificate_template'),
+    path('<int:event_id>/preview-certificate/', views.preview_certificate_template, name='preview_certificate_template'),
+    path('my-certificates/', views.my_certificates, name='my_certificates'),
 ] 

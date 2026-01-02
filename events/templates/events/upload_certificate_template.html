@@ -1,0 +1,202 @@
+{% extends 'base_sidebar.html' %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-certificate text-primary"></i> Certificate Template</h2>
+        <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-secondary">
+          <i class="fas fa-arrow-left"></i> Back to Event
+        </a>
+      </div>
+
+      <div class="alert alert-info">
+        <h5><i class="fas fa-info-circle"></i> How to Configure Certificate Template</h5>
+        <ol class="mb-0">
+          <li>Upload a certificate template image (recommended size: 1920x1080 or A4 landscape)</li>
+          <li>Set the X/Y coordinates for where text should appear on the certificate</li>
+          <li>Adjust font sizes and colors as needed</li>
+          <li>Use the preview button to test with dummy data</li>
+          <li>Certificates will be automatically generated when students mark attendance</li>
+        </ol>
+      </div>
+
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">Upload & Configure Template</h5>
+        </div>
+        <div class="card-body">
+          <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Template Image Upload -->
+            <div class="mb-4">
+              <label class="form-label"><strong>Certificate Template Image</strong></label>
+              {% if template and template.template_image %}
+                <div class="mb-2">
+                  <img src="{{ template.template_image.url }}" 
+                       alt="Current Template" 
+                       class="img-thumbnail"
+                       style="max-width: 100%; max-height: 300px;">
+                  <p class="text-muted small mt-2">Current template uploaded on {{ template.created_at|date:"M d, Y" }}</p>
+                </div>
+              {% endif %}
+              <input type="file" 
+                     class="form-control" 
+                     name="template_image" 
+                     accept="image/*"
+                     {% if not template %}required{% endif %}>
+              <div class="form-text">Upload a certificate background image. Accepted formats: PNG, JPG, JPEG</div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Participant Name Positioning -->
+            <h5 class="mb-3"><i class="fas fa-user"></i> Participant Name</h5>
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">X Position</label>
+                <input type="number" class="form-control" name="name_x" 
+                       value="{% if template %}{{ template.name_x }}{% else %}500{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Y Position</label>
+                <input type="number" class="form-control" name="name_y" 
+                       value="{% if template %}{{ template.name_y }}{% else %}400{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" name="name_font_size" 
+                       value="{% if template %}{{ template.name_font_size }}{% else %}60{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color" name="name_color" 
+                       value="{% if template %}{{ template.name_color }}{% else %}#000000{% endif %}" required>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Event Name Positioning -->
+            <h5 class="mb-3"><i class="fas fa-calendar-alt"></i> Event Name</h5>
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">X Position</label>
+                <input type="number" class="form-control" name="event_name_x" 
+                       value="{% if template %}{{ template.event_name_x }}{% else %}500{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Y Position</label>
+                <input type="number" class="form-control" name="event_name_y" 
+                       value="{% if template %}{{ template.event_name_y }}{% else %}550{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" name="event_font_size" 
+                       value="{% if template %}{{ template.event_font_size }}{% else %}40{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color" name="event_color" 
+                       value="{% if template %}{{ template.event_color }}{% else %}#000000{% endif %}" required>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Date Positioning -->
+            <h5 class="mb-3"><i class="fas fa-calendar"></i> Event Date</h5>
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">X Position</label>
+                <input type="number" class="form-control" name="date_x" 
+                       value="{% if template %}{{ template.date_x }}{% else %}500{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Y Position</label>
+                <input type="number" class="form-control" name="date_y" 
+                       value="{% if template %}{{ template.date_y }}{% else %}650{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" name="date_font_size" 
+                       value="{% if template %}{{ template.date_font_size }}{% else %}30{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color" name="date_color" 
+                       value="{% if template %}{{ template.date_color }}{% else %}#000000{% endif %}" required>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Certificate Number Positioning -->
+            <h5 class="mb-3"><i class="fas fa-hashtag"></i> Certificate Number</h5>
+            <div class="row mb-3">
+              <div class="col-md-3">
+                <label class="form-label">X Position</label>
+                <input type="number" class="form-control" name="cert_number_x" 
+                       value="{% if template %}{{ template.cert_number_x }}{% else %}100{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Y Position</label>
+                <input type="number" class="form-control" name="cert_number_y" 
+                       value="{% if template %}{{ template.cert_number_y }}{% else %}100{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Font Size</label>
+                <input type="number" class="form-control" name="cert_number_font_size" 
+                       value="{% if template %}{{ template.cert_number_font_size }}{% else %}20{% endif %}" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label">Color</label>
+                <input type="color" class="form-control form-control-color" name="cert_number_color" 
+                       value="{% if template %}{{ template.cert_number_color }}{% else %}#666666{% endif %}" required>
+              </div>
+            </div>
+
+            <hr class="my-4">
+
+            <!-- Action Buttons -->
+            <div class="d-flex gap-2">
+              <button type="submit" class="btn btn-primary btn-lg">
+                <i class="fas fa-save"></i> Save Template
+              </button>
+              {% if template %}
+                <a href="{% url 'events:preview_certificate_template' event.pk %}?name=John Doe&event_name={{ event.title }}" 
+                   target="_blank" 
+                   class="btn btn-info btn-lg">
+                  <i class="fas fa-eye"></i> Preview Certificate
+                </a>
+              {% endif %}
+              <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-secondary btn-lg">
+                <i class="fas fa-times"></i> Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Tips Card -->
+      <div class="card shadow-sm">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Tips for Best Results</h5>
+        </div>
+        <div class="card-body">
+          <ul class="mb-0">
+            <li><strong>Coordinates:</strong> X and Y are pixel positions from the top-left corner of the image</li>
+            <li><strong>Centering:</strong> X position around 960 (for 1920px width) will center text horizontally</li>
+            <li><strong>Font Sizes:</strong> Larger numbers = bigger text. Start with 60 for names, 40 for event, 30 for dates</li>
+            <li><strong>Colors:</strong> Use hex colors (e.g., #000000 for black, #FFFFFF for white)</li>
+            <li><strong>Preview:</strong> Always preview after making changes to ensure text positioning is correct</li>
+            <li><strong>Image Quality:</strong> Use high-resolution images (at least 1920x1080) for professional results</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

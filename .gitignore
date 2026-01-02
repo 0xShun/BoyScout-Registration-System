@@ -54,6 +54,18 @@ pip-delete-this-directory.txt
 *.sqlite3
 *.db
 
+# Media files (user uploads)
+media/certificate_templates/
+media/event_certificates/
+media/event_receipts/
+media/payment_receipts/
+media/registration_payment_receipts/
+media/event_payment_receipts/
+media/payment_qr_codes/
+media/event_qr_codes/
+media/event_banners/
+media/event_photos/
+
 # Documentation
 *.docx
 *.pdf
