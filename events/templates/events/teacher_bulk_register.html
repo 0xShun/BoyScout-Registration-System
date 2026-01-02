@@ -14,6 +14,13 @@
                     </h4>
                 </div>
                 <div class="card-body p-4">
+                    <!-- DEBUG INFO -->
+                    {% if request.method == 'POST' %}
+                        <div class="alert alert-warning">
+                            <strong>DEBUG:</strong> Form was submitted via POST
+                        </div>
+                    {% endif %}
+                    
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle-fill me-2"></i>
                         <strong>Bulk Registration:</strong> Select an event and the students you want to register. 
@@ -230,15 +237,20 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('bulkRegisterForm');
     if (form && submitBtn) {
         form.addEventListener('submit', function(e) {
+            console.log('Form submit event triggered');
             const selectedCount = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
+            console.log('Selected students count:', selectedCount);
+            
             if (selectedCount === 0) {
                 e.preventDefault();
                 alert('Please select at least one student to register.');
                 return false;
             }
             
+            console.log('Form validation passed, submitting...');
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
+            // Let form submit naturally
         });
     }
 });
