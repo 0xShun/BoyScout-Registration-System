@@ -261,7 +261,7 @@ def event_detail(request, pk):
             # Get registrations for students that belong to this teacher
             registrations = EventRegistration.objects.filter(
                 event=event,
-                user__teacher=request.user
+                user__managed_by=request.user
             ).select_related('user').prefetch_related('payments')
     
     # Get user's payment receipts if registered
