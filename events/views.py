@@ -558,144 +558,240 @@ def verify_event_registration(request, event_pk, reg_pk):
 
 @login_required
 def teacher_register_students_event(request):
-    """Teacher registers multiple students for an event"""
+    """Teacher registers multiple students for an event with PayMongo payment"""
     if not request.user.is_teacher():
         messages.error(request, 'Only teachers can access this page.')
         return redirect('home')
     
     from .forms import TeacherBulkEventRegistrationForm
+    from .paymongo_service import PayMongoService
     
     if request.method == 'POST':
-        form = TeacherBulkEventRegistrationForm(request.POST, request.FILES, teacher=request.user)
+        form = TeacherBulkEventRegistrationForm(request.POST, teacher=request.user)
         if form.is_valid():
             event = form.cleaned_data['event']
             students = form.cleaned_data['students']
-            rsvp = form.cleaned_data['rsvp']
-            receipt_image = form.cleaned_data.get('receipt_image')
-            reference_number = form.cleaned_data.get('reference_number', '').strip()
             
-            # Validate reference number for paid events
-            if event.has_payment_required and receipt_image:
-                if not reference_number:
-                    messages.error(request, 'Reference number is required when uploading a payment receipt.')
-                    return redirect('events:teacher_register_students_event')
-                
-                # Check for duplicate reference number
-                if EventPayment.objects.filter(reference_number=reference_number).exists():
-                    messages.error(request, 'This reference number has already been used. Please check your receipt.')
-                    return redirect('events:teacher_register_students_event')
-            
-            registered_count = 0
+            # Check for already registered students
             already_registered = []
-            
-            # Calculate total amount
-            total_amount = 0
-            if event.has_payment_required:
-                total_amount = event.payment_amount * students.count()
+            students_to_register = []
             
             for student in students:
-                # Check if already registered
-                existing_reg = EventRegistration.objects.filter(event=event, user=student).first()
-                if existing_reg:
+                if EventRegistration.objects.filter(event=event, user=student).exists():
                     already_registered.append(student.get_full_name())
-                    continue
+                else:
+                    students_to_register.append(student)
+            
+            if not students_to_register:
+                messages.warning(request, 'All selected students are already registered for this event.')
+                return redirect('events:teacher_register_students_event')
+            
+            # Calculate total amount
+            total_amount = Decimal('0.00')
+            if event.has_payment_required:
+                total_amount = event.payment_amount * len(students_to_register)
+            
+            # If free event, register immediately
+            if not event.has_payment_required or total_amount == 0:
+                registered_count = 0
+                for student in students_to_register:
+                    registration = EventRegistration.objects.create(
+                        event=event,
+                        user=student,
+                        rsvp='yes',
+                        amount_required=Decimal('0.00'),
+                        payment_status='not_required',
+                        verified=True,
+                        verification_date=timezone.now()
+                    )
+                    registered_count += 1
+                    
+                    # Send notification to student
+                    send_realtime_notification(
+                        student.id,
+                        f"Your teacher has registered you for {event.title}",
+                        type='event'
+                    )
                 
-                # Create registration
+                if already_registered:
+                    messages.warning(request, f'Already registered: {", ".join(already_registered)}')
+                
+                messages.success(request, f'Successfully registered {registered_count} student(s) for {event.title}.')
+                return redirect('events:event_detail', pk=event.id)
+            
+            # Create event registrations (pending payment)
+            registrations_created = []
+            for student in students_to_register:
                 registration = EventRegistration.objects.create(
                     event=event,
                     user=student,
-                    rsvp=rsvp,
-                    receipt_image=None,  # Don't store in registration, use EventPayment
-                    amount_required=event.payment_amount if event.has_payment_required else Decimal('0.00')
+                    rsvp='yes',
+                    amount_required=event.payment_amount,
+                    payment_status='pending',
+                    verified=False,
+                    total_paid=Decimal('0.00')
+                )
+                registrations_created.append(registration)
+            
+            # Create PayMongo source for bulk payment
+            paymongo = PayMongoService()
+            
+            try:
+                # Build redirect URL
+                redirect_url = request.build_absolute_uri(
+                    f'/events/teacher-bulk-event-payment-status/{event.id}/'
                 )
                 
-                # Handle payment
-                if event.has_payment_required and receipt_image:
-                    # Create individual EventPayment record for this student using the same receipt
-                    # Generate unique reference number for each student payment
-                    student_ref_number = f"{reference_number}-S{student.id}"
-                    
+                # Get student names for description
+                student_names = ', '.join([s.get_full_name() for s in students_to_register[:3]])
+                if len(students_to_register) > 3:
+                    student_names += f' and {len(students_to_register) - 3} more'
+                
+                source_data = paymongo.create_source(
+                    amount=total_amount,
+                    type='gcash',
+                    redirect_success=redirect_url,
+                    redirect_failed=redirect_url,
+                    metadata={
+                        'teacher_email': request.user.email,
+                        'teacher_name': request.user.get_full_name(),
+                        'event_id': event.id,
+                        'event_title': event.title,
+                        'student_count': len(students_to_register),
+                        'description': f"Event Registration for {len(students_to_register)} students: {student_names} - {event.title}",
+                        'payment_type': 'bulk_event_registration',
+                    }
+                )
+                
+                if not source_data or 'id' not in source_data:
+                    # Rollback registrations
+                    for reg in registrations_created:
+                        reg.delete()
+                    messages.error(request, 'Failed to create PayMongo payment. Please try again.')
+                    return redirect('events:teacher_register_students_event')
+                
+                source_id = source_data['id']
+                checkout_url = source_data['attributes']['redirect']['checkout_url']
+                
+                # Create EventPayment records for each registration
+                for registration in registrations_created:
                     EventPayment.objects.create(
                         registration=registration,
                         amount=event.payment_amount,
-                        receipt_image=receipt_image,
-                        reference_number=student_ref_number,
-                        status='pending',  # Pending admin verification
-                        notes=f"Submitted by teacher {request.user.get_full_name()} for bulk registration"
+                        paymongo_source_id=source_id,
+                        paymongo_checkout_url=checkout_url,
+                        status='pending',
+                        notes=f"Bulk registration by teacher {request.user.get_full_name()}"
                     )
-                    
-                    registration.payment_status = 'pending'
-                    registration.verified = False
-                elif not event.has_payment_required:
-                    registration.payment_status = 'not_required'
-                    registration.verified = True
-                else:
-                    registration.payment_status = 'pending'
-                    registration.verified = False
                 
-                registration.save()
-                registered_count += 1
+                # Store registration IDs in session for verification later
+                request.session['bulk_event_registration_ids'] = [r.id for r in registrations_created]
                 
-                # Send notification to student
-                send_realtime_notification(
-                    student.id,
-                    f"Your teacher, {request.user.get_full_name()}, has registered you for {event.title}",
-                    type='event'
+                # Redirect to PayMongo checkout
+                return redirect(checkout_url)
+                
+            except Exception as e:
+                logger.error(f"Exception creating bulk event PayMongo payment: {str(e)}", exc_info=True)
+                # Rollback registrations
+                for reg in registrations_created:
+                    reg.delete()
+                messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
+                return redirect('events:teacher_register_students_event')
+    else:
+        form = TeacherBulkEventRegistrationForm(teacher=request.user)
+    
+    context = {
+        'form': form,
+    }
+    return render(request, 'events/teacher_register_students_event.html', context)
+
+@login_required
+def teacher_bulk_event_payment_status(request, event_id):
+    """Handle PayMongo redirect after bulk event registration payment"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access this page.')
+        return redirect('home')
+    
+    event = get_object_or_404(Event, id=event_id)
+    
+    # Get registration IDs from session
+    registration_ids = request.session.get('bulk_event_registration_ids', [])
+    
+    if not registration_ids:
+        messages.warning(request, 'No pending registration payment session found.')
+        return redirect('events:event_detail', pk=event.id)
+    
+    from .paymongo_service import PayMongoService
+    
+    # Get all registrations
+    registrations = EventRegistration.objects.filter(id__in=registration_ids)
+    
+    if not registrations.exists():
+        messages.error(request, 'Registration records not found.')
+        return redirect('events:event_detail', pk=event.id)
+    
+    # Get the first payment to check PayMongo source status
+    first_payment = EventPayment.objects.filter(registration__in=registrations).first()
+    
+    if first_payment and first_payment.paymongo_source_id:
+        paymongo = PayMongoService()
+        source_data = paymongo.get_source(first_payment.paymongo_source_id)
+        
+        if source_data and 'data' in source_data:
+            source_status = source_data['data']['attributes']['status']
+            
+            # If source is chargeable, create payment
+            if source_status == 'chargeable':
+                total_amount = sum(r.amount_required for r in registrations)
+                description = f"Bulk Event Registration - {len(registrations)} students for {event.title}"
+                
+                payment_response = paymongo.create_payment(
+                    source_id=first_payment.paymongo_source_id,
+                    amount=total_amount,
+                    description=description
                 )
                 
-                # Send email to student
-                try:
-                    from django.core.mail import send_mail
-                    subject = f'Event Registration: {event.title}'
-                    message = f"""
-Hello {student.get_full_name()},
-
-Your teacher, {request.user.get_full_name()}, has registered you for the following event:
-
-Event: {event.title}
-Date: {event.date.strftime('%B %d, %Y')}
-Time: {event.time.strftime('%I:%M %p')}
-Location: {event.location}
-
-{event.description}
-
-Please log in to view more details.
-
-Best regards,
-Boy Scout System
-"""
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [student.email],
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    pass  # Silently fail email
-            
-            # Notify admins if payment was submitted
-            if event.has_payment_required and receipt_image:
-                admins = User.objects.filter(rank='admin')
-                for admin in admins:
-                    send_realtime_notification(
-                        admin.id,
-                        f"Teacher {request.user.get_full_name()} submitted bulk event payment for {registered_count} students for {event.title} - Total: ₱{total_amount} (Ref: {reference_number})",
-                        type='event'
-                    )
-            
-            # Success message
-            if registered_count > 0:
-                if event.has_payment_required and receipt_image:
-                    messages.success(
-                        request, 
-                        f'Successfully registered {registered_count} student(s) for {event.title}. '
-                        f'Total amount: ₱{total_amount}. Payment auto-approved.'
-                    )
-                else:
-                    messages.success(request, f'Successfully registered {registered_count} student(s) for {event.title}.')
-            
-            if already_registered:
+                if payment_response and payment_response.get('data'):
+                    payment_id = payment_response['data']['id']
+                    payment_status = payment_response['data']['attributes']['status']
+                    
+                    # If paid, verify all registrations and payments
+                    if payment_status == 'paid':
+                        for registration in registrations:
+                            # Update EventPayment
+                            event_payment = EventPayment.objects.filter(registration=registration).first()
+                            if event_payment:
+                                event_payment.paymongo_payment_id = payment_id
+                                event_payment.status = 'verified'
+                                event_payment.verification_date = timezone.now()
+                                event_payment.save()
+                            
+                            # Update registration
+                            registration.total_paid = registration.amount_required
+                            registration.payment_status = 'paid'
+                            registration.verified = True
+                            registration.verification_date = timezone.now()
+                            registration.save()
+                            
+                            # Send notification to student
+                            send_realtime_notification(
+                                user_id=registration.user.id,
+                                message=f"Your event registration for {event.title} has been confirmed! Payment verified.",
+                                type='event'
+                            )
+                        
+                        # Clear session
+                        del request.session['bulk_event_registration_ids']
+                        
+                        messages.success(
+                            request,
+                            f'Payment verified! {len(registrations)} student(s) successfully registered for {event.title}.'
+                        )
+                        return redirect('events:event_detail', pk=event.id)
+    
+    # If not verified yet, show waiting message and redirect
+    messages.info(request, 'Processing payment... Please wait.')
+    return redirect('events:event_detail', pk=event.id)
                 messages.warning(
                     request, 
                     f'The following students were already registered: {", ".join(already_registered)}'

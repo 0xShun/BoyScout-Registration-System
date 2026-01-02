@@ -17,10 +17,10 @@
                     <div class="alert alert-info">
                         <i class="bi bi-info-circle-fill me-2"></i>
                         <strong>Bulk Registration:</strong> Select an event and the students you want to register. 
-                        If the event requires payment, upload one receipt for all students and the payment will be auto-approved.
+                        Payment will be processed via PayMongo (GCash/Maya). For free events, students will be registered immediately.
                     </div>
 
-                    <form method="post" enctype="multipart/form-data" id="bulkRegisterForm">
+                    <form method="post" id="bulkRegisterForm">
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}
@@ -82,49 +82,6 @@
                                     <div class="text-danger small mt-1">{{ form.students.errors }}</div>
                                 {% endif %}
                                 <small class="text-muted">Selected: <span id="selectedCount">0</span> student(s)</small>
-                            </div>
-
-                            <!-- RSVP Status -->
-                            <div class="col-12 mb-4 mt-3">
-                                <h5 class="text-success border-bottom pb-2">
-                                    <i class="bi bi-ui-checks me-2"></i>Step 3: RSVP Status
-                                </h5>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <label class="form-label">RSVP Status</label>
-                                <div class="d-flex gap-3">
-                                    {% for radio in form.rsvp %}
-                                        <div class="form-check">
-                                            {{ radio.tag }}
-                                            <label class="form-check-label" for="{{ radio.id_for_label }}">
-                                                {{ radio.choice_label }}
-                                            </label>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                                {% if form.rsvp.errors %}
-                                    <div class="text-danger small mt-1">{{ form.rsvp.errors }}</div>
-                                {% endif %}
-                            </div>
-
-                            <!-- Payment Receipt -->
-                            <div class="col-12 mb-4 mt-3">
-                                <h5 class="text-success border-bottom pb-2">
-                                    <i class="bi bi-receipt me-2"></i>Step 4: Payment (if required)
-                                </h5>
-                            </div>
-
-                            <div class="col-12 mb-3">
-                                <label for="{{ form.receipt_image.id_for_label }}" class="form-label">
-                                    Payment Receipt
-                                </label>
-                                {% render_field form.receipt_image class="form-control" %}
-                                <small class="text-muted">{{ form.receipt_image.help_text }}</small>
-                                <div id="paymentInfo" class="mt-2"></div>
-                                {% if form.receipt_image.errors %}
-                                    <div class="text-danger small mt-1">{{ form.receipt_image.errors }}</div>
-                                {% endif %}
                             </div>
                         </div>
 
@@ -235,12 +192,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     function updatePaymentInfo(studentCount) {
-        // This is a placeholder - you'd need to pass event payment amounts via AJAX or data attributes
         if (studentCount > 0) {
             paymentInfo.innerHTML = `
-                <div class="alert alert-warning">
-                    <strong>Note:</strong> If this event requires payment, the total for ${studentCount} student(s) will be calculated automatically.
-                    Upload ONE receipt for all students and the payment will be auto-approved.
+                <div class="alert alert-info">
+                    <strong>Note:</strong> Registering ${studentCount} student(s). If this event requires payment, you'll be redirected to PayMongo to pay for all students at once.
                 </div>
             `;
         }

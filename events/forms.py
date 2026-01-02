@@ -127,25 +127,6 @@ class TeacherBulkEventRegistrationForm(forms.Form):
         widget=forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
         label='Select Students to Register'
     )
-    rsvp = forms.ChoiceField(
-        choices=EventRegistration.RSVP_CHOICES,
-        initial='yes',
-        widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-        label='RSVP Status'
-    )
-    receipt_image = forms.ImageField(
-        required=False,
-        widget=forms.ClearableFileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png,application/pdf'}),
-        label='Payment Receipt (if applicable)',
-        help_text='Upload one receipt for all selected students if event requires payment (JPG, PNG, or PDF, max 10MB)'
-    )
-    reference_number = forms.CharField(
-        max_length=50,
-        required=False,
-        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter payment reference number'}),
-        label='Reference Number',
-        help_text='Enter the payment reference number if uploading receipt'
-    )
     
     def __init__(self, *args, **kwargs):
         teacher = kwargs.pop('teacher', None)
@@ -157,29 +138,6 @@ class TeacherBulkEventRegistrationForm(forms.Form):
                 managed_by=teacher,
                 registration_status__in=['active', 'payment_verified']
             ).order_by('first_name', 'last_name')
-    
-    def clean_receipt_image(self):
-        file = self.cleaned_data.get('receipt_image')
-        if file:
-            if file.size > 10 * 1024 * 1024:
-                raise forms.ValidationError('File too large. Maximum is 10MB.')
-            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
-            if hasattr(file, 'content_type') and file.content_type not in allowed_types:
-                raise forms.ValidationError('Unsupported file type. Use JPG, PNG, or PDF.')
-        return file
-    
-    def clean(self):
-        cleaned_data = super().clean()
-        event = cleaned_data.get('event')
-        students = cleaned_data.get('students')
-        receipt_image = cleaned_data.get('receipt_image')
-        
-        if event and event.has_payment_required and students and not receipt_image:
-            raise forms.ValidationError(
-                f'This event requires payment (₱{event.payment_amount} per student). Please upload a payment receipt.'
-            )
-        
-        return cleaned_data
 
 
 from django.utils import timezone
