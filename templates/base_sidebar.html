@@ -211,6 +211,7 @@
             </a>
             {% if user.is_registration_complete %}
               <a href="{% url 'events:event_list' %}" class="nav-link {% if request.resolver_match.url_name == 'event_list' %}active{% endif %}"><i class="fas fa-calendar-alt"></i> Events & Activities</a>
+              <a href="{% url 'events:my_certificates' %}" class="nav-link {% if request.resolver_match.url_name == 'my_certificates' %}active{% endif %}"><i class="fas fa-certificate"></i> My Certificates</a>
             {% else %}
               <span class="nav-link disabled" title="Locked until registration payment is verified"><i class="fas fa-lock"></i> Events (Locked)</span>
             {% endif %}
@@ -225,6 +226,7 @@
               {% endif %}
             </a>
             <a href="{% url 'events:event_list' %}" class="nav-link {% if request.resolver_match.url_name == 'event_list' %}active{% endif %}"><i class="fas fa-calendar-alt"></i> Events & Activities</a>
+            <a href="{% url 'events:my_certificates' %}" class="nav-link {% if request.resolver_match.url_name == 'my_certificates' %}active{% endif %}"><i class="fas fa-certificate"></i> My Certificates</a>
           {% endif %}
         {% endif %}
       </div>
