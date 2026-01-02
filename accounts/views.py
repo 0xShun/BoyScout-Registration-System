@@ -1099,6 +1099,54 @@ def registration_payment(request, user_id):
     # Get payment history for this user
     payments = user.registration_payments.all().order_by('-created_at')
     
+    # Check if there's a pending payment and verify its status with PayMongo
+    # This allows immediate status update when user returns from PayMongo checkout
+    pending_payment = payments.filter(status='pending').first()
+    if pending_payment and pending_payment.paymongo_source_id:
+        paymongo = PayMongoService()
+        source_data = paymongo.get_source(pending_payment.paymongo_source_id)
+        
+        if source_data and 'data' in source_data:
+            source_status = source_data['data']['attributes']['status']
+            
+            # If source is chargeable, create payment immediately
+            if source_status == 'chargeable':
+                print(f"🔍 Source is chargeable for user {user.email}, creating payment...")
+                
+                # Create payment via PayMongo
+                description = f"Registration Fee - {user.get_full_name()}"
+                payment_response = paymongo.create_payment(
+                    source_id=pending_payment.paymongo_source_id,
+                    amount=pending_payment.amount,
+                    description=description
+                )
+                
+                if payment_response and payment_response.get('data'):
+                    payment_id = payment_response['data']['id']
+                    payment_status = payment_response['data']['attributes']['status']
+                    
+                    # Update RegistrationPayment with payment ID
+                    pending_payment.paymongo_payment_id = payment_id
+                    pending_payment.status = 'processing'
+                    pending_payment.save()
+                    
+                    # If payment is already paid, mark as verified immediately
+                    if payment_status == 'paid':
+                        print(f"✅ Payment already paid, marking as verified...")
+                        pending_payment.status = 'verified'
+                        pending_payment.verification_date = timezone.now()
+                        pending_payment.save()
+                        
+                        # Update user registration status
+                        user.registration_status = 'payment_verified'
+                        user.update_registration_status()  # This will set to 'active'
+                        user.save()
+                        
+                        messages.success(request, 'Payment verified! Your account is now active. Please login to continue.')
+                        
+                        # Refresh payments to show updated status
+                        payments = user.registration_payments.all().order_by('-created_at')
+    
     return render(request, 'accounts/registration_payment.html', {
         'user': user,
         'payments': payments,
