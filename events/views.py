@@ -951,7 +951,9 @@ def paymongo_webhook(request):
                 payment.verification_date = timezone.now()
                 payment.save()
                 
-                # Update registration payment status
+                # Update registration total paid and payment status
+                registration = payment.registration
+                registration.total_paid += payment.amount
                 registration.payment_status = 'paid'
                 registration.verified = True
                 registration.verification_date = timezone.now()
@@ -1130,7 +1132,8 @@ def payment_status(request, registration_id, status):
                         latest_payment.verification_date = timezone.now()
                         latest_payment.save()
                         
-                        # Update registration payment status
+                        # Update registration total paid and payment status
+                        registration.total_paid += latest_payment.amount
                         registration.payment_status = 'paid'
                         registration.verified = True
                         registration.verification_date = timezone.now()
