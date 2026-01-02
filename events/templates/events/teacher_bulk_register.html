@@ -166,14 +166,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedCountSpan = document.getElementById('selectedCount');
     const submitBtn = document.getElementById('submitBtn');
     
-    // Event data from Django (would need to pass this via JSON)
-    const events = {{ upcoming_events|safe|default:"[]" }};
-    
     // Select All functionality
-    selectAllCheckbox.addEventListener('change', function() {
-        studentCheckboxes.forEach(cb => cb.checked = this.checked);
-        updateSelectedCount();
-    });
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            studentCheckboxes.forEach(cb => cb.checked = this.checked);
+            updateSelectedCount();
+        });
+    }
     
     // Update selected count
     studentCheckboxes.forEach(cb => {
