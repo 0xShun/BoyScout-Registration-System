@@ -313,8 +313,8 @@
         </div>
 
         <!-- Registrations List -->
-        {% if registrations %}
-          <div class="card shadow-sm">
+        {% if user.is_authenticated and user.is_admin or user.is_teacher %}
+          <div class="card shadow-sm mt-4">
             <div class="card-header">
               <h5 class="mb-0">
                 {% if user.is_admin %}
