@@ -85,6 +85,8 @@
                                 <td>
                                     {% if student.registration_status == 'active' or student.registration_status == 'payment_verified' %}
                                         <span class="badge bg-success">Active</span>
+                                    {% elif student.registration_status == 'pending_payment' or student.registration_status == 'pending' %}
+                                        <span class="badge bg-warning">Payment Pending</span>
                                     {% elif student.registration_status == 'inactive' %}
                                         <span class="badge bg-warning">Inactive</span>
                                     {% elif student.registration_status == 'graduated' %}
@@ -106,6 +108,12 @@
                                            class="btn btn-sm btn-outline-primary" title="Edit">
                                             <i class="bi bi-pencil"></i> Edit
                                         </a>
+                                        {% if student.registration_status == 'pending_payment' or student.registration_status == 'pending' %}
+                                        <a href="{% url 'accounts:teacher_student_payment' student.id %}" 
+                                           class="btn btn-sm btn-outline-success" title="Pay Registration Fee">
+                                            <i class="bi bi-credit-card"></i> Pay
+                                        </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>

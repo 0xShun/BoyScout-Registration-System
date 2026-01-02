@@ -302,7 +302,7 @@ class TeacherEditStudentForm(forms.ModelForm):
             'first_name', 'last_name', 'email', 'username',
             'date_of_birth', 'phone_number', 'address', 
             'emergency_contact', 'emergency_phone',
-            'medical_conditions', 'allergies', 'registration_status'
+            'medical_conditions', 'allergies'
         ]
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
@@ -318,15 +318,6 @@ class TeacherEditStudentForm(forms.ModelForm):
         
         for field_name, field in self.fields.items():
             field.widget.attrs.update({'class': 'form-control'})
-        
-        # Limit status choices for teachers
-        self.fields['registration_status'].choices = [
-            ('active', 'Active Member'),
-            ('inactive', 'Inactive'),
-            ('graduated', 'Graduated'),
-            ('suspended', 'Suspended'),
-        ]
-        self.fields['registration_status'].widget.attrs.update({'class': 'form-select'})
 
     def clean_email(self):
         email = self.cleaned_data.get('email')

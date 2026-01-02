@@ -486,6 +486,35 @@ def teacher_student_detail(request, student_id):
         'payments': payments,
     })
 
+@login_required
+def teacher_student_payment(request, student_id):
+    """View and pay registration fee for a student created by this teacher"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access student payments.')
+        return redirect('home')
+    
+    student = get_object_or_404(User, id=student_id, managed_by=request.user)
+    
+    # Get pending registration payment for this student
+    from .models import RegistrationPayment
+    registration_payment = RegistrationPayment.objects.filter(
+        user=student,
+        status='pending'
+    ).order_by('-created_at').first()
+    
+    if not registration_payment:
+        messages.info(request, f'No pending payment found for {student.get_full_name()}.')
+        return redirect('accounts:teacher_student_list')
+    
+    # If payment has PayMongo checkout URL, show it
+    context = {
+        'student': student,
+        'payment': registration_payment,
+        'registration_fee': registration_payment.amount,
+    }
+    
+    return render(request, 'accounts/teacher/student_payment.html', context)
+
 def register(request):
     from django.db import models
     from payments.models import Payment, SystemConfiguration
