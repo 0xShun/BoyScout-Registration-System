@@ -724,16 +724,18 @@ def teacher_register_students_event(request):
                 logger.error(f"PayMongo source created: {source_id}")
                 logger.error(f"Checkout URL: {checkout_url}")
                 
-                # Create EventPayment records for each registration
-                for registration in registrations_created:
-                    EventPayment.objects.create(
-                        registration=registration,
-                        amount=event.payment_amount,
-                        paymongo_source_id=source_id,
-                        paymongo_checkout_url=checkout_url,
-                        status='pending',
-                        notes=f"Bulk registration by teacher {request.user.get_full_name()}"
-                    )
+                # Create ONE EventPayment record for the bulk payment (linked to first registration)
+                # The other registrations will be updated when payment is verified
+                bulk_payment = EventPayment.objects.create(
+                    registration=registrations_created[0],  # Link to first registration
+                    amount=total_amount,  # Total amount for all students
+                    paymongo_source_id=source_id,
+                    paymongo_checkout_url=checkout_url,
+                    status='pending',
+                    notes=f"Bulk payment for {len(registrations_created)} students by teacher {request.user.get_full_name()}"
+                )
+                
+                logger.error(f"Created bulk EventPayment: {bulk_payment.id}")
                 
                 # Store registration IDs in session for verification later
                 request.session['bulk_event_registration_ids'] = [r.id for r in registrations_created]
@@ -820,16 +822,29 @@ def teacher_bulk_event_payment_status(request, event_id):
                     payment_id = payment_response['data']['id']
                     payment_status = payment_response['data']['attributes']['status']
                     
-                    # If paid, verify all registrations and payments
+                    # If paid, verify all registrations
                     if payment_status == 'paid':
+                        # Update the bulk EventPayment record
+                        first_payment.paymongo_payment_id = payment_id
+                        first_payment.status = 'verified'
+                        first_payment.verification_date = timezone.now()
+                        first_payment.save()
+                        
+                        # Create individual EventPayment records for other registrations
+                        # and update all registrations
                         for registration in registrations:
-                            # Update EventPayment
-                            event_payment = EventPayment.objects.filter(registration=registration).first()
-                            if event_payment:
-                                event_payment.paymongo_payment_id = payment_id
-                                event_payment.status = 'verified'
-                                event_payment.verification_date = timezone.now()
-                                event_payment.save()
+                            # Create EventPayment if it doesn't exist (for registrations after the first)
+                            if registration.id != registrations[0].id:
+                                EventPayment.objects.create(
+                                    registration=registration,
+                                    amount=registration.amount_required,
+                                    paymongo_source_id=first_payment.paymongo_source_id,
+                                    paymongo_payment_id=payment_id,
+                                    paymongo_checkout_url=first_payment.paymongo_checkout_url,
+                                    status='verified',
+                                    verification_date=timezone.now(),
+                                    notes=f"Part of bulk payment - teacher {request.user.get_full_name()}"
+                                )
                             
                             # Update registration
                             registration.total_paid = registration.amount_required
