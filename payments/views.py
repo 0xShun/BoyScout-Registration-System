@@ -56,10 +56,19 @@ def payment_list(request):
             payments = payments.filter(status=status_filter)
         payments_list = list(payments)
     else:
+        # For scouts, show their general payments only (registration handled separately)
         payments = Payment.objects.filter(user=request.user).order_by('-date')
-        total_registration_paid = payments.filter(payment_type='registration', status='verified').aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Get registration payment info from RegistrationPayment model
+        from accounts.models import RegistrationPayment
+        total_registration_paid = RegistrationPayment.objects.filter(
+            user=request.user, 
+            status='verified'
+        ).aggregate(Sum('amount'))['amount__sum'] or 0
+        
         membership_years = int(total_registration_paid // registration_fee)
         membership_expiry = request.user.membership_expiry
+        
         registration_payment = {
             'id': 'registration',
             'amount': request.user.registration_payment_amount,
