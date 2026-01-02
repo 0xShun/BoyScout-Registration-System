@@ -252,9 +252,17 @@ def event_detail(request, pk):
             registration_form = EventRegistrationForm(instance=registration, event=event)
 
     # Admin: see all registrations
+    # Teacher: see their own students' registrations
     registrations = None
-    if request.user.is_authenticated and request.user.is_admin():
-        registrations = EventRegistration.objects.filter(event=event).select_related('user').prefetch_related('payments')
+    if request.user.is_authenticated:
+        if request.user.is_admin():
+            registrations = EventRegistration.objects.filter(event=event).select_related('user').prefetch_related('payments')
+        elif request.user.is_teacher():
+            # Get registrations for students that belong to this teacher
+            registrations = EventRegistration.objects.filter(
+                event=event,
+                user__teacher=request.user
+            ).select_related('user').prefetch_related('payments')
     
     # Get user's payment receipts if registered
     user_payments = []

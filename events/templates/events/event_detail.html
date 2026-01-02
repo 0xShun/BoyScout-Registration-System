@@ -316,19 +316,26 @@
         {% if registrations %}
           <div class="card shadow-sm">
             <div class="card-header">
-              <h5 class="mb-0">All Registrations</h5>
+              <h5 class="mb-0">
+                {% if user.is_admin %}
+                  All Registrations
+                {% elif user.is_teacher %}
+                  My Students' Registrations
+                {% endif %}
+              </h5>
             </div>
             <div class="card-body">
+              {% if registrations %}
               <div class="table-responsive">
                 <table class="table table-striped">
                   <thead>
                     <tr>
-                      <th>User</th>
+                      <th>Student</th>
                       <th>RSVP</th>
                       <th>Payment Status</th>
-                      <th>Receipts</th>
+                      <th>Amount</th>
                       <th>Registered</th>
-                      <th>Actions</th>
+                      <th>Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -337,34 +344,30 @@
                         <td>{{ reg.user.get_full_name }}</td>
                         <td>{{ reg.get_rsvp_display }}</td>
                         <td>
-                          <span class="badge {% if reg.payment_status == 'paid' %}bg-success{% elif reg.payment_status == 'pending' %}bg-warning{% elif reg.payment_status == 'rejected' %}bg-danger{% else %}bg-secondary{% endif %}">
+                          <span class="badge {% if reg.payment_status == 'paid' %}bg-success{% elif reg.payment_status == 'pending' %}bg-warning{% elif reg.payment_status == 'rejected' %}bg-danger{% elif reg.payment_status == 'not_required' %}bg-info{% else %}bg-secondary{% endif %}">
                             {{ reg.get_payment_status_display }}
                           </span>
                         </td>
                         <td>
-                          {% if reg.payments.exists %}
-                            <div class="d-flex gap-1">
-                              {% for payment in reg.payments.all %}
-                                {% if payment.receipt_image %}
-                                  <img src="{{ payment.receipt_image.url }}" 
-                                       alt="Receipt" 
-                                       style="width: 40px; height: 40px; object-fit: cover; cursor: pointer; border-radius: 4px;"
-                                       class="border"
-                                       data-bs-toggle="modal" 
-                                       data-bs-target="#adminReceiptModal{{ payment.id }}"
-                                       title="Click to view - {{ payment.get_status_display }}">
-                                {% endif %}
-                              {% endfor %}
-                            </div>
+                          {% if event.has_payment_required %}
+                            ₱{{ reg.amount_required }}
                           {% else %}
-                            <span class="text-muted">No receipts</span>
+                            <span class="text-muted">Free</span>
                           {% endif %}
                         </td>
-                        <td>{{ reg.registered_at|date:"M d, Y" }}</td>
+                        <td>{{ reg.registered_at|date:"M d, Y g:i A" }}</td>
                         <td>
-                          {% if reg.payment_status == 'pending' %}
+                          {% if reg.verified %}
+                            <span class="badge bg-success">
+                              <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                          {% elif reg.payment_status == 'pending' %}
                             <span class="badge bg-warning">
                               <i class="fas fa-clock"></i> Awaiting Payment
+                            </span>
+                          {% else %}
+                            <span class="badge bg-secondary">
+                              <i class="fas fa-hourglass-half"></i> Pending
                             </span>
                           {% endif %}
                         </td>
@@ -373,6 +376,15 @@
                   </tbody>
                 </table>
               </div>
+              {% else %}
+                <p class="text-muted mb-0">
+                  {% if user.is_teacher %}
+                    None of your students have registered for this event yet.
+                  {% else %}
+                    No registrations yet.
+                  {% endif %}
+                </p>
+              {% endif %}
             </div>
           </div>
         {% endif %}
