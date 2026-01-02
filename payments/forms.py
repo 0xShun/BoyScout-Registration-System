@@ -59,14 +59,23 @@ class TeacherPaymentForm(forms.ModelForm):
     student = forms.ModelChoiceField(
         queryset=User.objects.none(),
         widget=forms.Select(attrs={'class': 'form-select'}),
-        label="Select Student"
+        label="Select Student",
+        required=False
+    )
+    
+    students = forms.ModelMultipleChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.CheckboxSelectMultiple(),
+        label="Select Students (Bulk Payment)",
+        required=False,
+        help_text="Select multiple students to submit the same payment amount for each"
     )
     
     class Meta:
         model = Payment
-        fields = ['student', 'amount', 'receipt_image', 'reference_number', 'notes']
+        fields = ['student', 'students', 'amount', 'receipt_image', 'reference_number', 'notes']
         widgets = {
-            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0', 'readonly': 'readonly'}),
+            'amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
             'receipt_image': forms.FileInput(attrs={'class': 'form-control', 'accept': 'image/jpeg,image/png,application/pdf'}),
             'reference_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter payment reference number'}),
             'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -75,12 +84,16 @@ class TeacherPaymentForm(forms.ModelForm):
     def __init__(self, teacher, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Only show active students managed by this teacher
-        self.fields['student'].queryset = User.objects.filter(
+        student_queryset = User.objects.filter(
             managed_by=teacher,
             registration_status='active'
         ).order_by('first_name', 'last_name')
         
+        self.fields['student'].queryset = student_queryset
+        self.fields['students'].queryset = student_queryset
+        
         self.fields['amount'].label = "Payment Amount (₱)"
+        self.fields['amount'].help_text = "This amount will be applied to each selected student"
         self.fields['receipt_image'].label = "Payment Receipt"
         self.fields['receipt_image'].help_text = "Upload payment receipt (JPG, PNG, or PDF, max 10MB)"
         self.fields['reference_number'].label = "Reference Number"
@@ -88,6 +101,21 @@ class TeacherPaymentForm(forms.ModelForm):
         self.fields['notes'].label = "Notes (Optional)"
         self.fields['notes'].help_text = "Add any additional information about this payment"
         self.fields['notes'].required = False
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        student = cleaned_data.get('student')
+        students = cleaned_data.get('students')
+        
+        # Ensure at least one selection method is used
+        if not student and not students:
+            raise forms.ValidationError('Please select at least one student (either from dropdown or checkboxes).')
+        
+        # Prevent using both methods
+        if student and students:
+            raise forms.ValidationError('Please use either single student dropdown OR multiple checkboxes, not both.')
+        
+        return cleaned_data
 
     def clean_receipt_image(self):
         file = self.cleaned_data.get('receipt_image')

@@ -354,7 +354,7 @@ def system_config_manage(request):
 
 @login_required
 def teacher_submit_payment(request):
-    """Allow teachers to submit payments on behalf of their students"""
+    """Allow teachers to submit payments on behalf of their students (single or bulk)"""
     if not request.user.is_teacher():
         messages.error(request, "Only teachers can access this page.")
         return redirect('accounts:dashboard')
@@ -372,35 +372,74 @@ def teacher_submit_payment(request):
     if request.method == 'POST':
         form = TeacherPaymentForm(request.user, request.POST, request.FILES)
         if form.is_valid():
-            payment = form.save(commit=False)
-            student = form.cleaned_data['student']
-            payment.user = student
-            payment.payee_name = f"{student.first_name} {student.last_name}"
-            payment.payee_email = student.email
-            payment.payment_type = 'other'
+            # Get selected students (either single or multiple)
+            single_student = form.cleaned_data.get('student')
+            multiple_students = form.cleaned_data.get('students')
             
-            # Auto-approve payments submitted by teachers
-            payment.status = 'verified'
-            payment.verified_by = request.user
-            payment.verification_date = timezone.now()
-            payment.expiry_date = timezone.now() + timedelta(days=365)  # No real expiry for verified payments
-            payment.save()
+            # Determine which students to process
+            students_to_process = []
+            if single_student:
+                students_to_process = [single_student]
+            elif multiple_students:
+                students_to_process = list(multiple_students)
             
-            # Notify the student about the payment
-            NotificationService.send_email(
-                subject="Payment Submitted by Your Teacher",
-                message=f"Your teacher has submitted a payment of ₱{payment.amount} on your behalf. This payment has been automatically approved.",
-                recipient_list=[student.email],
-            )
+            # Get common payment data
+            amount = form.cleaned_data['amount']
+            receipt_image = form.cleaned_data.get('receipt_image')
+            reference_number = form.cleaned_data.get('reference_number')
+            notes = form.cleaned_data.get('notes', '')
             
-            # Send real-time notification
-            send_realtime_notification(
-                student,
-                f"Your teacher submitted a payment of ₱{payment.amount} on your behalf.",
-                'payment'
-            )
+            # Create payment for each student
+            created_payments = []
+            for student in students_to_process:
+                payment = Payment.objects.create(
+                    user=student,
+                    payee_name=f"{student.first_name} {student.last_name}",
+                    payee_email=student.email,
+                    amount=amount,
+                    receipt_image=receipt_image,
+                    reference_number=reference_number,
+                    notes=notes,
+                    payment_type='other',
+                    status='verified',
+                    verified_by=request.user,
+                    verification_date=timezone.now(),
+                    expiry_date=timezone.now() + timedelta(days=365)
+                )
+                created_payments.append(payment)
+                
+                # Notify the student about the payment
+                try:
+                    NotificationService.send_email(
+                        subject="Payment Submitted by Your Teacher",
+                        message=f"Your teacher has submitted a payment of ₱{payment.amount} on your behalf. This payment has been automatically approved.",
+                        recipient_list=[student.email],
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send email notification: {e}")
+                
+                # Send real-time notification
+                try:
+                    send_realtime_notification(
+                        student.id,
+                        f"Your teacher submitted a payment of ₱{payment.amount} on your behalf.",
+                        'payment'
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send real-time notification: {e}")
             
-            messages.success(request, f'Payment of ₱{payment.amount} submitted and approved for {student.get_full_name()}.')
+            # Success message
+            if len(created_payments) == 1:
+                messages.success(
+                    request, 
+                    f'Payment of ₱{amount} submitted and approved for {students_to_process[0].get_full_name()}.'
+                )
+            else:
+                messages.success(
+                    request,
+                    f'Bulk payment submitted! ₱{amount} approved for {len(created_payments)} student(s). Total: ₱{amount * len(created_payments)}'
+                )
+            
             return redirect('payments:teacher_payment_history')
     else:
         form = TeacherPaymentForm(request.user)

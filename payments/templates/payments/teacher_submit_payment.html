@@ -147,20 +147,50 @@
                             
                             {% if form.non_field_errors %}
                             <div class="alert alert-danger">
+                            {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
                                 {{ form.non_field_errors }}
                             </div>
                             {% endif %}
 
+                            <!-- Payment Mode Selection -->
+                            <div class="alert alert-warning mb-4">
+                                <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i>Payment Mode</h6>
+                                <p class="mb-0"><strong>Single Student:</strong> Use dropdown below<br>
+                                <strong>Bulk Payment:</strong> Use checkboxes for multiple students<br>
+                                <small class="text-muted">(Don't use both - choose one method)</small></p>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
                                     {{ form.student.label }}
-                                    <span class="text-danger">*</span>
                                 </label>
                                 {% render_field form.student class="form-select" %}
                                 {% if form.student.errors %}
                                 <div class="text-danger mt-1">{{ form.student.errors }}</div>
                                 {% endif %}
-                                <small class="text-muted">Select the student for whom you're submitting this payment</small>
+                                <small class="text-muted">Select one student for individual payment</small>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold d-block">
+                                    {{ form.students.label }}
+                                </label>
+                                <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                    {% for checkbox in form.students %}
+                                    <div class="form-check">
+                                        {{ checkbox.tag }}
+                                        <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                            {{ checkbox.choice_label }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if form.students.errors %}
+                                <div class="text-danger mt-1">{{ form.students.errors }}</div>
+                                {% else %}
+                                <small class="text-muted">{{ form.students.help_text }}</small>
+                                {% endif %}
                             </div>
 
                             <div class="mb-3">
@@ -174,19 +204,32 @@
                                 </div>
                                 {% if form.amount.errors %}
                                 <div class="text-danger mt-1">{{ form.amount.errors }}</div>
+                                {% else %}
+                                <small class="text-muted">{{ form.amount.help_text }}</small>
                                 {% endif %}
                             </div>
 
                             <div class="mb-3">
                                 <label class="form-label fw-bold">
-                                    {{ form.gcash_receipt_image.label }}
-                                    <span class="text-danger">*</span>
+                                    {{ form.receipt_image.label }}
                                 </label>
-                                {% render_field form.gcash_receipt_image class="form-control" %}
-                                {% if form.gcash_receipt_image.errors %}
-                                <div class="text-danger mt-1">{{ form.gcash_receipt_image.errors }}</div>
+                                {% render_field form.receipt_image class="form-control" %}
+                                {% if form.receipt_image.errors %}
+                                <div class="text-danger mt-1">{{ form.receipt_image.errors }}</div>
                                 {% else %}
-                                <small class="text-muted">{{ form.gcash_receipt_image.help_text }}</small>
+                                <small class="text-muted">{{ form.receipt_image.help_text }}</small>
+                                {% endif %}
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">
+                                    {{ form.reference_number.label }}
+                                </label>
+                                {% render_field form.reference_number class="form-control" %}
+                                {% if form.reference_number.errors %}
+                                <div class="text-danger mt-1">{{ form.reference_number.errors }}</div>
+                                {% else %}
+                                <small class="text-muted">{{ form.reference_number.help_text }}</small>
                                 {% endif %}
                             </div>
 
