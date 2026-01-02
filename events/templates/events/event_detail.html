@@ -311,9 +311,10 @@
             </div>
           </div>
         </div>
+      {% endif %}
 
-        <!-- Registrations List -->
-        {% if user.is_authenticated %}
+      <!-- Registrations List -->
+      {% if user.is_authenticated %}
           {% if user.is_admin or user.is_teacher %}
           <div class="card shadow-sm mt-4">
             <div class="card-header bg-primary text-white">
