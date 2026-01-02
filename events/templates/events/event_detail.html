@@ -576,19 +576,21 @@
             var startBtn = document.getElementById('start-attendance-btn');
             var stopBtn = document.getElementById('stop-attendance-btn');
             
-            if (data.is_active) {
-              statusBadge.textContent = 'Active';
-              statusBadge.className = 'badge bg-success';
-              startBtn.style.display = 'none';
-              stopBtn.style.display = 'inline-block';
-            } else {
-              statusBadge.textContent = 'Inactive';
-              statusBadge.className = 'badge bg-secondary';
-              startBtn.style.display = 'inline-block';
-              stopBtn.style.display = 'none';
+            if (statusBadge && countBadge && startBtn && stopBtn) {
+              if (data.is_active) {
+                statusBadge.textContent = 'Active';
+                statusBadge.className = 'badge bg-success';
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'inline-block';
+              } else {
+                statusBadge.textContent = 'Inactive';
+                statusBadge.className = 'badge bg-secondary';
+                startBtn.style.display = 'inline-block';
+                stopBtn.style.display = 'none';
+              }
+              
+              countBadge.textContent = data.attendance_count;
             }
-            
-            countBadge.textContent = data.attendance_count;
           {% endif %}
           
           // Update student UI
@@ -597,23 +599,25 @@
             var markBtn = document.getElementById('mark-attendance-btn');
             var successMessage = document.getElementById('attendance-success-message');
             
-            if (data.has_attended) {
-              // Already marked attendance
-              statusMessage.style.display = 'none';
-              markBtn.style.display = 'none';
-              successMessage.style.display = 'block';
-            } else if (!data.is_eligible) {
-              // Not eligible (not registered or payment pending)
-              statusMessage.innerHTML = '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> You need to be registered and have payment verified to mark attendance.</p>';
-              markBtn.style.display = 'none';
-            } else if (data.is_active) {
-              // Session active, show button
-              statusMessage.innerHTML = '<p class="text-success"><i class="fas fa-check-circle"></i> Attendance session is now open!</p>';
-              markBtn.style.display = 'inline-block';
-            } else {
-              // Session not active
-              statusMessage.innerHTML = '<p class="text-muted"><i class="fas fa-clock"></i> Attendance session is not currently active. Please wait for the admin to start the session.</p>';
-              markBtn.style.display = 'none';
+            if (statusMessage && markBtn && successMessage) {
+              if (data.has_attended) {
+                // Already marked attendance
+                statusMessage.style.display = 'none';
+                markBtn.style.display = 'none';
+                successMessage.style.display = 'block';
+              } else if (!data.is_eligible) {
+                // Not eligible (not registered or payment pending)
+                statusMessage.innerHTML = '<p class="text-warning"><i class="fas fa-exclamation-triangle"></i> You need to be registered and have payment verified to mark attendance.</p>';
+                markBtn.style.display = 'none';
+              } else if (data.is_active) {
+                // Session active, show button
+                statusMessage.innerHTML = '<p class="text-success"><i class="fas fa-check-circle"></i> Attendance session is now open!</p>';
+                markBtn.style.display = 'inline-block';
+              } else {
+                // Session not active
+                statusMessage.innerHTML = '<p class="text-muted"><i class="fas fa-clock"></i> Attendance session is not currently active. Please wait for the admin to start the session.</p>';
+                markBtn.style.display = 'none';
+              }
             }
           {% endif %}
         })

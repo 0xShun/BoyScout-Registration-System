@@ -174,11 +174,15 @@ def event_detail(request, pk):
                         # Get selected payment method from form
                         payment_method = request.POST.get('payment_method', 'gcash')
                         
+                        # Build absolute URLs for redirects
+                        success_url = request.build_absolute_uri(f'/events/payment-status/{reg.id}/success/')
+                        failed_url = request.build_absolute_uri(f'/events/payment-status/{reg.id}/failed/')
+                        
                         source_response = paymongo_service.create_source(
                             amount=amount_to_pay,
                             type=payment_method,  # gcash, grab_pay, or paymaya
-                            redirect_success=f"{settings.SITE_URL}/events/payment-status/{reg.id}/success/",
-                            redirect_failed=f"{settings.SITE_URL}/events/payment-status/{reg.id}/failed/",
+                            redirect_success=success_url,
+                            redirect_failed=failed_url,
                             metadata={
                                 'registration_id': str(reg.id),
                                 'event_id': str(event.id),
@@ -186,10 +190,11 @@ def event_detail(request, pk):
                             }
                         )
                         
-                        if source_response and source_response.get('data'):
-                            source_id = source_response['data']['id']
-                            checkout_url = source_response['data']['attributes']['redirect']['checkout_url']
-                            expires_at = source_response['data']['attributes']['redirect'].get('return_url_expires_at')
+                        if source_response and 'id' in source_response and 'attributes' in source_response:
+                            source_id = source_response['id']
+                            checkout_url = source_response['attributes']['redirect']['checkout_url']
+                            return_url_data = source_response['attributes'].get('redirect', {})
+                            expires_at_str = return_url_data.get('return_url_expires_at')
                             
                             # Create EventPayment record
                             payment = EventPayment.objects.create(
@@ -199,7 +204,7 @@ def event_detail(request, pk):
                                 paymongo_checkout_url=checkout_url,
                                 payment_method=f'paymongo_{payment_method}',
                                 status='pending',
-                                expires_at=timezone.datetime.fromisoformat(expires_at.replace('Z', '+00:00')) if expires_at else None
+                                expires_at=timezone.datetime.fromisoformat(expires_at_str.replace('Z', '+00:00')) if expires_at_str else None
                             )
                             
                             messages.success(request, 'Registration created! Click the "Pay Now" button below to complete your payment.')
@@ -207,6 +212,8 @@ def event_detail(request, pk):
                             request.session['paymongo_checkout_url'] = checkout_url
                             return redirect('events:event_detail', pk=event.pk)
                         else:
+                            # Log the error for debugging
+                            print(f"PayMongo source creation failed. Response: {source_response}")
                             messages.error(request, 'Failed to create payment link. Please try again.')
                             return redirect('events:event_detail', pk=event.pk)
                     elif amount_to_pay > 0 and existing_pending:
