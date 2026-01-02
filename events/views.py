@@ -1170,14 +1170,16 @@ def start_attendance_session(request, event_id):
     Start attendance session for an event (Admin only).
     Sends real-time notifications to all registered students.
     """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
     event = get_object_or_404(Event, id=event_id)
     
     # Create or get attendance session
     session, created = AttendanceSession.objects.get_or_create(event=event)
     
     if session.is_active:
-        messages.warning(request, "Attendance session is already active!")
-        return redirect('events:event_detail', event_id=event_id)
+        return JsonResponse({'error': 'Attendance session is already active!'}, status=400)
     
     # Start session
     session.start(request.user)
@@ -1195,8 +1197,10 @@ def start_attendance_session(request, event_id):
             type='info'
         )
     
-    messages.success(request, f"Attendance session started for {event.title}!")
-    return redirect('events:event_detail', pk=event_id)
+    return JsonResponse({
+        'success': True,
+        'message': f'Attendance session started for {event.title}!'
+    })
 
 
 @login_required
@@ -1205,23 +1209,26 @@ def stop_attendance_session(request, event_id):
     """
     Stop attendance session for an event (Admin only).
     """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    
     event = get_object_or_404(Event, id=event_id)
     
     try:
         session = AttendanceSession.objects.get(event=event)
         
         if not session.is_active:
-            messages.warning(request, "Attendance session is not active!")
-            return redirect('events:event_detail', event_id=event_id)
+            return JsonResponse({'error': 'Attendance session is not active!'}, status=400)
         
         # Stop session
         session.stop()
         
-        messages.success(request, f"Attendance session stopped for {event.title}!")
+        return JsonResponse({
+            'success': True,
+            'message': f'Attendance session stopped for {event.title}!'
+        })
     except AttendanceSession.DoesNotExist:
-        messages.error(request, "No attendance session found for this event!")
-    
-    return redirect('events:event_detail', pk=event_id)
+        return JsonResponse({'error': 'No attendance session found for this event!'}, status=404)
 
 
 @login_required
