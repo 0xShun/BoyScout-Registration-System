@@ -20,7 +20,20 @@
                         Payment will be processed via PayMongo (GCash/Maya). For free events, students will be registered immediately.
                     </div>
 
-                    <form method="post" id="bulkRegisterForm">
+                    {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <h5><i class="bi bi-exclamation-triangle-fill me-2"></i>Form Errors:</h5>
+                            <ul class="mb-0">
+                                {% for field, errors in form.errors.items %}
+                                    {% for error in errors %}
+                                        <li><strong>{{ field }}:</strong> {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    <form method="post" id="bulkRegisterForm">`
                         {% csrf_token %}
                         
                         {% if form.non_field_errors %}

@@ -567,10 +567,24 @@ def teacher_register_students_event(request):
     from .paymongo_service import PayMongoService
     
     if request.method == 'POST':
+        print("=" * 80)
+        print("DEBUG: Teacher Bulk Event Registration - POST request received")
+        print(f"POST data: {request.POST}")
+        
         form = TeacherBulkEventRegistrationForm(request.POST, teacher=request.user)
+        print(f"Form created. Is valid: {form.is_valid()}")
+        
+        if not form.is_valid():
+            print(f"FORM ERRORS: {form.errors}")
+            print(f"Form non-field errors: {form.non_field_errors()}")
+            print("=" * 80)
+        
         if form.is_valid():
             event = form.cleaned_data['event']
             students = form.cleaned_data['students']
+            print(f"Event: {event.title}")
+            print(f"Students count: {len(students)}")
+            print(f"Students: {[s.get_full_name() for s in students]}")
             
             # Check for already registered students
             already_registered = []
@@ -582,7 +596,12 @@ def teacher_register_students_event(request):
                 else:
                     students_to_register.append(student)
             
+            print(f"Already registered: {already_registered}")
+            print(f"Students to register: {[s.get_full_name() for s in students_to_register]}")
+            
             if not students_to_register:
+                print("No students to register - all already registered")
+                print("=" * 80)
                 messages.warning(request, 'All selected students are already registered for this event.')
                 return redirect('events:teacher_register_students_event')
             
@@ -591,8 +610,13 @@ def teacher_register_students_event(request):
             if event.has_payment_required:
                 total_amount = event.payment_amount * len(students_to_register)
             
+            print(f"Event has payment required: {event.has_payment_required}")
+            print(f"Event payment amount: {event.payment_amount}")
+            print(f"Total amount: {total_amount}")
+            
             # If free event, register immediately
             if not event.has_payment_required or total_amount == 0:
+                print("FREE EVENT - Registering immediately")
                 registered_count = 0
                 for student in students_to_register:
                     registration = EventRegistration.objects.create(
@@ -616,10 +640,13 @@ def teacher_register_students_event(request):
                 if already_registered:
                     messages.warning(request, f'Already registered: {", ".join(already_registered)}')
                 
+                print(f"Successfully registered {registered_count} students for free event")
+                print("=" * 80)
                 messages.success(request, f'Successfully registered {registered_count} student(s) for {event.title}.')
                 return redirect('events:event_detail', pk=event.id)
             
             # Create event registrations (pending payment)
+            print("PAID EVENT - Creating PayMongo payment")
             registrations_created = []
             for student in students_to_register:
                 registration = EventRegistration.objects.create(
@@ -633,6 +660,8 @@ def teacher_register_students_event(request):
                 )
                 registrations_created.append(registration)
             
+            print(f"Created {len(registrations_created)} pending registrations")
+            
             # Create PayMongo source for bulk payment
             paymongo = PayMongoService()
             
@@ -642,10 +671,15 @@ def teacher_register_students_event(request):
                     f'/events/teacher-bulk-event-payment-status/{event.id}/'
                 )
                 
+                print(f"Redirect URL: {redirect_url}")
+                
                 # Get student names for description
                 student_names = ', '.join([s.get_full_name() for s in students_to_register[:3]])
                 if len(students_to_register) > 3:
                     student_names += f' and {len(students_to_register) - 3} more'
+                
+                print(f"Creating PayMongo source for ₱{total_amount}")
+                print(f"Description: Event Registration for {len(students_to_register)} students: {student_names}")
                 
                 source_data = paymongo.create_source(
                     amount=total_amount,
@@ -663,15 +697,23 @@ def teacher_register_students_event(request):
                     }
                 )
                 
+                print(f"PayMongo response: {source_data}")
+                
                 if not source_data or 'id' not in source_data:
+                    print("ERROR: Failed to create PayMongo source")
+                    print(f"Source data: {source_data}")
                     # Rollback registrations
                     for reg in registrations_created:
                         reg.delete()
+                    print("=" * 80)
                     messages.error(request, 'Failed to create PayMongo payment. Please try again.')
                     return redirect('events:teacher_register_students_event')
                 
                 source_id = source_data['id']
                 checkout_url = source_data['attributes']['redirect']['checkout_url']
+                
+                print(f"PayMongo source created: {source_id}")
+                print(f"Checkout URL: {checkout_url}")
                 
                 # Create EventPayment records for each registration
                 for registration in registrations_created:
@@ -687,17 +729,28 @@ def teacher_register_students_event(request):
                 # Store registration IDs in session for verification later
                 request.session['bulk_event_registration_ids'] = [r.id for r in registrations_created]
                 
+                print(f"Stored {len(registrations_created)} registration IDs in session")
+                print(f"REDIRECTING TO PAYMONGO: {checkout_url}")
+                print("=" * 80)
+                
                 # Redirect to PayMongo checkout
                 return redirect(checkout_url)
                 
             except Exception as e:
+                print(f"EXCEPTION occurred: {str(e)}")
+                print(f"Exception type: {type(e)}")
+                import traceback
+                traceback.print_exc()
                 logger.error(f"Exception creating bulk event PayMongo payment: {str(e)}", exc_info=True)
                 # Rollback registrations
                 for reg in registrations_created:
                     reg.delete()
+                print("Rolled back registrations due to exception")
+                print("=" * 80)
                 messages.error(request, f'Error creating payment: {str(e)}. Please try again.')
                 return redirect('events:teacher_register_students_event')
     else:
+        print("GET request - displaying form")
         form = TeacherBulkEventRegistrationForm(teacher=request.user)
     
     # Get upcoming events with payment info
