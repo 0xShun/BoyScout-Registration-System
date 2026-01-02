@@ -313,14 +313,15 @@
         </div>
 
         <!-- Registrations List -->
-        {% if user.is_authenticated and user.is_admin or user.is_teacher %}
+        {% if user.is_authenticated %}
+          {% if user.is_admin or user.is_teacher %}
           <div class="card shadow-sm mt-4">
-            <div class="card-header">
+            <div class="card-header bg-primary text-white">
               <h5 class="mb-0">
                 {% if user.is_admin %}
-                  All Registrations
+                  📋 All Registrations
                 {% elif user.is_teacher %}
-                  My Students' Registrations
+                  👥 My Students' Registrations
                 {% endif %}
               </h5>
             </div>
@@ -387,8 +388,8 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
         {% endif %}
-      {% endif %}
     </div>
 
     <!-- Sidebar -->
