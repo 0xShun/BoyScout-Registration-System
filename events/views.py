@@ -1140,6 +1140,13 @@ def payment_status(request, registration_id, status):
                         registration.save()
                         
                         messages.success(request, 'Payment verified! Your event registration is confirmed.')
+                        # Redirect to event detail page instead of showing waiting page
+                        return redirect('events:event_detail', pk=registration.event.id)
+    
+    # If payment is verified, redirect to event page
+    if latest_payment and latest_payment.status == 'verified':
+        messages.success(request, 'Payment already verified! Your event registration is confirmed.')
+        return redirect('events:event_detail', pk=registration.event.id)
     
     context = {
         'registration': registration,
