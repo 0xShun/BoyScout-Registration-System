@@ -1084,7 +1084,7 @@ def paymongo_webhook(request):
 def payment_status(request, registration_id, status):
     """
     Payment status page - shows payment result after PayMongo redirect
-    Auto-refreshes to check payment status from webhooks
+    Immediately checks PayMongo source status and creates/verifies payment
     """
     registration = get_object_or_404(EventRegistration, id=registration_id, user=request.user)
     
@@ -1092,6 +1092,51 @@ def payment_status(request, registration_id, status):
     latest_payment = EventPayment.objects.filter(
         registration=registration
     ).order_by('-created_at').first()
+    
+    # If payment is pending, check PayMongo source status immediately
+    if latest_payment and latest_payment.status == 'pending' and latest_payment.paymongo_source_id:
+        from .paymongo_service import PayMongoService
+        paymongo = PayMongoService()
+        source_data = paymongo.get_source(latest_payment.paymongo_source_id)
+        
+        if source_data and 'data' in source_data:
+            source_status = source_data['data']['attributes']['status']
+            
+            # If source is chargeable, create payment immediately
+            if source_status == 'chargeable':
+                print(f"🔍 Source is chargeable for registration {registration.id}, creating payment...")
+                
+                # Create payment via PayMongo
+                description = f"Event Payment - {registration.event.title}"
+                payment_response = paymongo.create_payment(
+                    source_id=latest_payment.paymongo_source_id,
+                    amount=latest_payment.amount,
+                    description=description
+                )
+                
+                if payment_response and payment_response.get('data'):
+                    payment_id = payment_response['data']['id']
+                    payment_status_value = payment_response['data']['attributes']['status']
+                    
+                    # Update EventPayment with payment ID
+                    latest_payment.paymongo_payment_id = payment_id
+                    latest_payment.status = 'processing'
+                    latest_payment.save()
+                    
+                    # If payment is already paid, mark as verified immediately
+                    if payment_status_value == 'paid':
+                        print(f"✅ Payment already paid, marking as verified...")
+                        latest_payment.status = 'verified'
+                        latest_payment.verification_date = timezone.now()
+                        latest_payment.save()
+                        
+                        # Update registration payment status
+                        registration.payment_status = 'paid'
+                        registration.verified = True
+                        registration.verification_date = timezone.now()
+                        registration.save()
+                        
+                        messages.success(request, 'Payment verified! Your event registration is confirmed.')
     
     context = {
         'registration': registration,
