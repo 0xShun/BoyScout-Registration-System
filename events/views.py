@@ -1308,10 +1308,12 @@ def mark_my_attendance(request, event_id):
         marked_by=request.user
     )
     
-    # Generate certificate if template exists
+    # Auto-generate certificate for attendance
     certificate_generated = False
     try:
-        if hasattr(event, 'certificate_template'):
+        # Check if certificate doesn't already exist
+        from events.models import EventCertificate
+        if not EventCertificate.objects.filter(user=request.user, event=event).exists():
             certificate = CertificateService.generate_certificate(
                 user=request.user,
                 event=event,
