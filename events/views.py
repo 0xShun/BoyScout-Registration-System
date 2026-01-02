@@ -696,12 +696,12 @@ def teacher_register_students_event(request):
                     redirect_success=redirect_url,
                     redirect_failed=redirect_url,
                     metadata={
-                        'teacher_email': request.user.email,
-                        'teacher_name': request.user.get_full_name(),
-                        'event_id': event.id,
-                        'event_title': event.title,
-                        'student_count': len(students_to_register),
-                        'description': f"Event Registration for {len(students_to_register)} students: {student_names} - {event.title}",
+                        'teacher_email': str(request.user.email),
+                        'teacher_name': str(request.user.get_full_name()),
+                        'event_id': str(event.id),
+                        'event_title': str(event.title),
+                        'student_count': str(len(students_to_register)),
+                        'student_names': student_names,
                         'payment_type': 'bulk_event_registration',
                     }
                 )
