@@ -972,11 +972,15 @@ def paymongo_webhook(request):
                 # Update user registration status
                 user = registration_payment.user
                 print(f"👤 Updating user {user.email} registration status...")
+                
+                # Update total paid amount
+                user.registration_total_paid += registration_payment.amount
                 user.registration_status = 'payment_verified'
                 user.update_registration_status()  # This will set to 'active' and set membership expiry
                 user.save()
                 print(f"   User status updated to: {user.registration_status}")
                 print(f"   User is_active: {user.is_active}")
+                print(f"   Total paid: ₱{user.registration_total_paid}")
                 
                 # Send notification to user
                 NotificationService.send_notification(

@@ -1099,6 +1099,19 @@ def registration_payment(request, user_id):
     # Get payment history for this user
     payments = user.registration_payments.all().order_by('-created_at')
     
+    # Check if there are verified payments but user status not updated
+    verified_payments = payments.filter(status='verified')
+    if verified_payments.exists() and user.registration_status == 'pending_payment':
+        # Calculate total verified payments
+        total_verified = sum(p.amount for p in verified_payments)
+        
+        # Update user's registration_total_paid if needed
+        if user.registration_total_paid < total_verified:
+            user.registration_total_paid = total_verified
+            user.update_registration_status()
+            user.save()
+            print(f"✅ Updated user {user.email} status from verified payments: ₱{total_verified}")
+    
     # Check if there's a pending payment and verify its status with PayMongo
     # This allows immediate status update when user returns from PayMongo checkout
     pending_payment = payments.filter(status='pending').first()
@@ -1137,7 +1150,8 @@ def registration_payment(request, user_id):
                         pending_payment.verification_date = timezone.now()
                         pending_payment.save()
                         
-                        # Update user registration status
+                        # Update user registration total paid
+                        user.registration_total_paid += pending_payment.amount
                         user.registration_status = 'payment_verified'
                         user.update_registration_status()  # This will set to 'active'
                         user.save()
