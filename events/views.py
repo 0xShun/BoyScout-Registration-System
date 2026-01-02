@@ -832,18 +832,17 @@ def teacher_bulk_event_payment_status(request, event_id):
                         
                         # Create individual EventPayment records for other registrations
                         # and update all registrations
-                        for registration in registrations:
+                        for i, registration in enumerate(registrations):
                             # Create EventPayment if it doesn't exist (for registrations after the first)
-                            if registration.id != registrations[0].id:
+                            if i > 0:  # Skip the first registration (already has payment record)
                                 EventPayment.objects.create(
                                     registration=registration,
                                     amount=registration.amount_required,
-                                    paymongo_source_id=first_payment.paymongo_source_id,
-                                    paymongo_payment_id=payment_id,
+                                    paymongo_payment_id=payment_id,  # Share payment ID, but NO source_id (to avoid duplicate)
                                     paymongo_checkout_url=first_payment.paymongo_checkout_url,
                                     status='verified',
                                     verification_date=timezone.now(),
-                                    notes=f"Part of bulk payment - teacher {request.user.get_full_name()}"
+                                    notes=f"Part of bulk payment {first_payment.id} - teacher {request.user.get_full_name()}"
                                 )
                             
                             # Update registration
