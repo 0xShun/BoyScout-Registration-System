@@ -61,6 +61,7 @@
                                 <div id="eventDetails" class="mt-3 p-3 bg-light rounded d-none">
                                     <h6 class="fw-bold">Event Details:</h6>
                                     <div id="eventInfo"></div>
+                                    <div id="paymentInfo" class="mt-2"></div>
                                 </div>
                             </div>
 
@@ -181,30 +182,42 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function updateSelectedCount() {
         const count = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
-        selectedCountSpan.textContent = count;
+        if (selectedCountSpan) {
+            selectedCountSpan.textContent = count;
+        }
         
         // Update payment info if event selected
-        if (eventSelect.value) {
+        if (eventSelect && eventSelect.value) {
             updatePaymentInfo(count);
         }
     }
     
     // Event selection handler
-    eventSelect.addEventListener('change', function() {
-        const selectedOption = this.options[this.selectedIndex];
-        if (this.value) {
-            const eventText = selectedOption.text;
-            eventDetails.classList.remove('d-none');
-            eventInfo.innerHTML = '<p class="mb-0">' + eventText + '</p>';
-            updatePaymentInfo(Array.from(studentCheckboxes).filter(cb => cb.checked).length);
-        } else {
-            eventDetails.classList.add('d-none');
-            paymentInfo.innerHTML = '';
-        }
-    });
+    if (eventSelect) {
+        eventSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (this.value) {
+                const eventText = selectedOption.text;
+                if (eventDetails) {
+                    eventDetails.classList.remove('d-none');
+                }
+                if (eventInfo) {
+                    eventInfo.innerHTML = '<p class="mb-0">' + eventText + '</p>';
+                }
+                updatePaymentInfo(Array.from(studentCheckboxes).filter(cb => cb.checked).length);
+            } else {
+                if (eventDetails) {
+                    eventDetails.classList.add('d-none');
+                }
+                if (paymentInfo) {
+                    paymentInfo.innerHTML = '';
+                }
+            }
+        });
+    }
     
     function updatePaymentInfo(studentCount) {
-        if (studentCount > 0) {
+        if (paymentInfo && studentCount > 0) {
             paymentInfo.innerHTML = `
                 <div class="alert alert-info">
                     <strong>Note:</strong> Registering ${studentCount} student(s). If this event requires payment, you'll be redirected to PayMongo to pay for all students at once.
@@ -215,17 +228,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Form submission
     const form = document.getElementById('bulkRegisterForm');
-    form.addEventListener('submit', function(e) {
-        const selectedCount = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
-        if (selectedCount === 0) {
-            e.preventDefault();
-            alert('Please select at least one student to register.');
-            return false;
-        }
-        
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
-    });
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            const selectedCount = Array.from(studentCheckboxes).filter(cb => cb.checked).length;
+            if (selectedCount === 0) {
+                e.preventDefault();
+                alert('Please select at least one student to register.');
+                return false;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registering...';
+        });
+    }
 });
 </script>
 
