@@ -1,0 +1,94 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="mb-4">
+                <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Students
+                </a>
+            </div>
+
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="bi bi-credit-card-fill me-2"></i>
+                        Bulk Registration Payment
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Pay for <strong>{{ student_count }}</strong> student{{ student_count|pluralize }} with one transaction
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <h5 class="mb-3">Students with Pending Payments:</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Student Name</th>
+                                            <th>Email</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in pending_payments %}
+                                        <tr>
+                                            <td>{{ item.student.get_full_name }}</td>
+                                            <td>{{ item.student.email }}</td>
+                                            <td class="text-end">₱{{ item.payment.amount }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <th colspan="2" class="text-end">Total Amount:</th>
+                                            <th class="text-end text-success fs-5">₱{{ total_amount }}</th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning">
+                        <h6><i class="bi bi-exclamation-triangle me-2"></i>Payment Instructions:</h6>
+                        <ol class="mb-0">
+                            <li>Click "Proceed to Payment" below</li>
+                            <li>You'll be redirected to PayMongo's secure payment page</li>
+                            <li>Select GCash or Maya as payment method</li>
+                            <li>Complete the payment authorization for <strong>₱{{ total_amount }}</strong></li>
+                            <li>You'll be redirected back automatically</li>
+                            <li><strong>All {{ student_count }} students</strong> will be activated once payment is verified</li>
+                        </ol>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-credit-card-fill me-2"></i>
+                                Proceed to Payment (₱{{ total_amount }})
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-4 text-center">
+                        <p class="text-muted">
+                            <small>
+                                <i class="bi bi-shield-check me-1"></i>
+                                Secure payment powered by PayMongo
+                            </small>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

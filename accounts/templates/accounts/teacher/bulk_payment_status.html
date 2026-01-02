@@ -1,0 +1,53 @@
+{% extends 'base_sidebar.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="bi bi-hourglass-split me-2"></i>
+                        Processing Bulk Payment
+                    </h4>
+                </div>
+                <div class="card-body text-center py-5">
+                    <div class="spinner-border text-primary mb-4" role="status" style="width: 4rem; height: 4rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    
+                    <h5 class="mb-3">Verifying Payment...</h5>
+                    <p class="text-muted">
+                        We're checking the payment status for <strong>{{ student_count }}</strong> student{{ student_count|pluralize }}.
+                    </p>
+                    <p class="text-muted">
+                        Total Amount: <strong class="text-success">₱{{ total_amount }}</strong>
+                    </p>
+
+                    <div class="mt-4">
+                        <button class="btn btn-primary" onclick="location.reload()">
+                            <i class="bi bi-arrow-clockwise me-2"></i>Refresh Status
+                        </button>
+                        <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-2"></i>Back to Students
+                        </a>
+                    </div>
+
+                    <div class="alert alert-info mt-4">
+                        <i class="bi bi-info-circle me-2"></i>
+                        If payment was successful, the page will auto-redirect. If not, please refresh this page in a few seconds.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-refresh every 5 seconds
+setTimeout(function() {
+    location.reload();
+}, 5000);
+</script>
+{% endblock %}
