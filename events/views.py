@@ -28,50 +28,19 @@ def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
 
 def send_event_notifications(event, action='created'):
-    """Send notifications to all active users about new/updated events"""
+    """Send in-app notifications to all active users about new/updated events"""
     from accounts.models import User
     
     active_users = User.objects.filter(is_active=True)
     
     if action == 'created':
-        subject = f"New Event: {event.title}"
-        message = f"""
-        A new event has been scheduled!
-        
-        Event: {event.title}
-        Date: {event.date}
-        Time: {event.time}
-        Location: {event.location}
-        
-        {event.description}
-        
-        Please log in to your dashboard to register.
-        """
-        sms_message = f"New event: {event.title} on {event.date}"
+        notification_message = f"New event scheduled: {event.title} on {event.date.strftime('%B %d, %Y')}"
     else:  # updated
-        subject = f"Event Updated: {event.title}"
-        message = f"""
-        An event has been updated!
-        
-        Event: {event.title}
-        Date: {event.date}
-        Time: {event.time}
-        Location: {event.location}
-        
-        {event.description}
-        
-        Please check your dashboard for updated details.
-        """
-        sms_message = f"Event updated: {event.title} on {event.date}"
+        notification_message = f"Event updated: {event.title} on {event.date.strftime('%B %d, %Y')}"
     
-    # Send email to all active users
+    # Send in-app notification to all active users
     for user in active_users:
-        if user.email:
-            NotificationService.send_email(subject, message, [user.email])
-        
-        # Send SMS if phone number exists
-        if user.phone_number:
-            NotificationService.send_sms(user.phone_number, sms_message)
+        send_realtime_notification(user.id, notification_message, type='event')
 
 @login_required
 def event_list(request):

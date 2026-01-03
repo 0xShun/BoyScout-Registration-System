@@ -35,21 +35,25 @@ def announcement_create(request):
             announcement = form.save(commit=False)
             announcement.save()
             form.save_m2m()
-            # Determine recipients
-            selected_groups = form.cleaned_data.get('groups')
-            if selected_groups and selected_groups.exists():
-                recipients = User.objects.filter(groups_membership__in=selected_groups).distinct()
-            else:
-                recipients = announcement.recipients.all()
-                if not recipients:
-                    recipients = User.objects.all()
+            
+            # Send to all active users
+            recipients = User.objects.filter(is_active=True)
             announcement.recipients.set(recipients)
-            # Send notifications
+            
+            # Prepare email content
+            email_subject = f"New Announcement: {announcement.title}"
+            email_message = f"{announcement.title}\n\n{announcement.message}"
+            
+            # Send notifications to all active users
             for user in recipients:
-                if hasattr(user, 'phone_number') and user.phone_number:
-                    NotificationService.send_sms(user.phone_number, f"[Announcement] {announcement.title}: {announcement.message}")
+                # Send email notification
+                if user.email:
+                    NotificationService.send_email(email_subject, email_message, [user.email])
+                
+                # Send in-app notification
                 send_realtime_notification(user.id, f"New announcement: {announcement.title}", type='announcement')
-            messages.success(request, 'Announcement created and sent to selected recipients.')
+            
+            messages.success(request, 'Announcement created and sent to all active users.')
             return redirect('announcements:announcement_list')
     else:
         form = AnnouncementForm()
