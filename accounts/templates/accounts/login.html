@@ -50,10 +50,10 @@
       </div>
       
       <!-- Right Section: Image and Marketing Message -->
-      <div class="col-md-6 d-none d-md-flex flex-column justify-content-end align-items-center p-5 rounded-end" style="background: linear-gradient(to bottom right, #2a2a2a, #000000); color: white;">
-        <img src="{% static 'img/logo2.png' %}" alt="Manage your Money Anywhere" class="img-fluid mb-4" style="max-height: 70%; object-fit: contain;">
-        <h3 class="fw-bold text-center mb-2">Manage your Money Anywhere</h3>
-        <p class="text-center mb-5" style="color: white;">you can Manage your Money on the go with Quicken on the web</p>
+      <div class="col-md-6 d-none d-md-flex flex-column justify-content-end align-items-center p-5 rounded-end glassmorphic-panel">
+        <img src="{% static 'img/logo2.png' %}" alt="Laging Handa" class="img-fluid mb-4" style="max-height: 70%; object-fit: contain;">
+        <h3 class="fw-bold text-center mb-2 glass-text">Laging Handa</h3>
+        <p class="text-center mb-5 glass-text">Connecting Scouts, Building Leaders</p>
         <div class="d-flex justify-content-center mb-3">
           <span class="dot active me-2"></span>
           <span class="dot me-2"></span>
@@ -83,16 +83,48 @@
       box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
 
+    /* Glassmorphic Panel */
+    .glassmorphic-panel {
+      background: rgba(255, 255, 255, 0.15) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glassmorphic-panel::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 100%);
+      pointer-events: none;
+    }
+
+    /* Glass Text Styling */
+    .glass-text {
+      color: #1a1a1a !important;
+      text-shadow: 0 2px 4px rgba(255, 255, 255, 0.3);
+      position: relative;
+      z-index: 1;
+    }
+
     .dot {
       height: 10px;
       width: 10px;
-      background-color: rgba(255, 255, 255, 0.5);
+      background-color: rgba(0, 0, 0, 0.3);
       border-radius: 50%;
       display: inline-block;
+      position: relative;
+      z-index: 1;
     }
 
     .dot.active {
-      background-color: white;
+      background-color: rgba(0, 0, 0, 0.7);
     }
 
     .alert {
