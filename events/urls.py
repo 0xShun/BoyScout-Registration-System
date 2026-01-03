@@ -33,4 +33,5 @@ urlpatterns = [
     path('<int:event_id>/upload-certificate/', views.upload_certificate_template, name='upload_certificate_template'),
     path('<int:event_id>/preview-certificate/', views.preview_certificate_template, name='preview_certificate_template'),
     path('my-certificates/', views.my_certificates, name='my_certificates'),
+    path('bulk-download-certificates/', views.bulk_download_certificates, name='bulk_download_certificates'),
 ] 

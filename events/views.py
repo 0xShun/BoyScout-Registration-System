@@ -1604,11 +1604,101 @@ def preview_certificate_template(request, event_id):
 def my_certificates(request):
     """
     Show all certificates earned by the logged-in user.
+    For teachers, also show certificates of their students.
     """
-    certificates = EventCertificate.objects.filter(user=request.user).select_related('event')
+    # User's own certificates
+    user_certificates = EventCertificate.objects.filter(user=request.user).select_related('event')
+    
+    # If teacher, also get students' certificates
+    student_certificates = None
+    if request.user.is_teacher:
+        from accounts.models import User
+        students = User.objects.filter(managed_by=request.user)
+        student_certificates = EventCertificate.objects.filter(
+            user__in=students
+        ).select_related('event', 'user').order_by('-generated_at')
     
     context = {
-        'certificates': certificates,
+        'certificates': user_certificates,
+        'student_certificates': student_certificates,
     }
     return render(request, 'events/my_certificates.html', context)
+
+
+@login_required
+def bulk_download_certificates(request):
+    """
+    Download multiple certificates as a ZIP file.
+    For teachers, can download their students' certificates.
+    """
+    import zipfile
+    import io
+    from django.http import HttpResponse
+    
+    certificate_ids = request.GET.getlist('certificate_ids[]')
+    
+    if not certificate_ids:
+        messages.error(request, "No certificates selected for download.")
+        return redirect('events:my_certificates')
+    
+    # Get certificates - check permissions
+    if request.user.is_teacher:
+        # Teachers can download their own or their students' certificates
+        from accounts.models import User
+        students = User.objects.filter(managed_by=request.user)
+        certificates = EventCertificate.objects.filter(
+            id__in=certificate_ids
+        ).filter(
+            Q(user=request.user) | Q(user__in=students)
+        ).select_related('event', 'user')
+    else:
+        # Regular users can only download their own certificates
+        certificates = EventCertificate.objects.filter(
+            id__in=certificate_ids,
+            user=request.user
+        ).select_related('event', 'user')
+    
+    if not certificates.exists():
+        messages.error(request, "No valid certificates found.")
+        return redirect('events:my_certificates')
+    
+    # Create ZIP file in memory
+    zip_buffer = io.BytesIO()
+    
+    with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for cert in certificates:
+            if cert.certificate_file:
+                try:
+                    # Read certificate file
+                    cert.certificate_file.open('rb')
+                    file_data = cert.certificate_file.read()
+                    
+                    # Create filename: Event_StudentName_CertNumber.png
+                    if request.user.is_teacher and cert.user != request.user:
+                        filename = f"{cert.event.title}_{cert.user.get_full_name()}_{cert.certificate_number}.png"
+                    else:
+                        filename = f"{cert.event.title}_{cert.certificate_number}.png"
+                    
+                    # Clean filename (remove invalid characters)
+                    filename = "".join(c for c in filename if c.isalnum() or c in (' ', '_', '-', '.')).rstrip()
+                    
+                    # Add to ZIP
+                    zip_file.writestr(filename, file_data)
+                    cert.certificate_file.close()
+                except Exception as e:
+                    logger.error(f"Error adding certificate {cert.id} to ZIP: {e}")
+                    continue
+    
+    # Prepare response
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+    
+    if request.user.is_teacher:
+        filename = 'certificates_bulk_download.zip'
+    else:
+        filename = f'my_certificates.zip'
+    
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    return response
 
