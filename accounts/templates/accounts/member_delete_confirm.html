@@ -14,7 +14,27 @@
           
           <p class="lead">Are you sure you want to delete <strong>{{ member.get_full_name }}</strong> ({{ member.email }})?</p>
           
-          {% if dependencies %}
+          {% if blocking_dependencies %}
+            <div class="alert alert-danger mt-3">
+              <h5><i class="fas fa-ban"></i> Cannot Delete This User</h5>
+              <p class="mb-2">This user has created the following content that prevents deletion:</p>
+              <ul class="mb-2">
+                {% if 'Events Created' in dependencies %}
+                  <li><strong>Events Created:</strong> {{ dependencies.Events Created }}</li>
+                {% endif %}
+                {% if 'Event Photos Uploaded' in dependencies %}
+                  <li><strong>Event Photos Uploaded:</strong> {{ dependencies.Event Photos Uploaded }}</li>
+                {% endif %}
+              </ul>
+              <hr>
+              <p class="mb-0">
+                <i class="fas fa-lightbulb"></i> 
+                <strong>What to do:</strong> Please reassign or delete those events/photos first, then try deleting this user again.
+              </p>
+            </div>
+          {% endif %}
+          
+          {% if dependencies and not blocking_dependencies %}
             <div class="alert alert-info mt-3">
               <h5><i class="fas fa-info-circle"></i> Associated Records</h5>
               <p class="mb-2">This user has the following associated records that will be affected:</p>
@@ -26,11 +46,7 @@
               <hr>
               <p class="mb-0 small">
                 <i class="fas fa-lightbulb"></i> 
-                {% if 'Events Created' in dependencies %}
-                  <strong class="text-danger">Cannot delete:</strong> This user has created events. Please reassign or delete those events first.
-                {% else %}
-                  Most associated records will be deleted. Students managed by this teacher will be unassigned.
-                {% endif %}
+                Most associated records will be deleted. Students managed by this teacher will be unassigned.
               </p>
             </div>
           {% endif %}
@@ -41,7 +57,7 @@
               <a href="{% url 'accounts:member_list' %}" class="btn btn-secondary">
                 <i class="fas fa-times"></i> Cancel
               </a>
-              <button type="submit" class="btn btn-danger" {% if 'Events Created' in dependencies %}disabled{% endif %}>
+              <button type="submit" class="btn btn-danger" {% if blocking_dependencies %}disabled{% endif %}>
                 <i class="fas fa-trash-alt"></i> Yes, Delete Member
               </button>
             </div>

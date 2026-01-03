@@ -977,42 +977,62 @@ def member_delete(request, pk):
     
     # Check for dependencies
     dependencies = {}
+    blocking_dependencies = []
     
-    # Check events created by this user
+    # Check events created by this user (BLOCKING - cannot delete)
     events_count = Event.objects.filter(created_by=user).count()
     if events_count > 0:
         dependencies['Events Created'] = events_count
+        blocking_dependencies.append(f'{events_count} event(s)')
     
-    # Check event registrations
+    # Check event photos uploaded by this user (BLOCKING - cannot delete)
+    from events.models import EventPhoto
+    photos_count = EventPhoto.objects.filter(uploaded_by=user).count()
+    if photos_count > 0:
+        dependencies['Event Photos Uploaded'] = photos_count
+        blocking_dependencies.append(f'{photos_count} event photo(s)')
+    
+    # Check event registrations (will be deleted)
     registrations_count = user.event_registrations.count()
     if registrations_count > 0:
         dependencies['Event Registrations'] = registrations_count
     
-    # Check registration payments
+    # Check registration payments (will be deleted)
     reg_payments_count = user.registration_payments.count()
     if reg_payments_count > 0:
         dependencies['Registration Payments'] = reg_payments_count
     
-    # Check if managing students
+    # Check if managing students (will be unassigned)
     managed_students_count = user.managed_students.count()
     if managed_students_count > 0:
         dependencies['Students Managed'] = managed_students_count
     
-    # Check notifications
+    # Check notifications (will be deleted)
     notifications_count = user.notifications.count()
     if notifications_count > 0:
         dependencies['Notifications'] = notifications_count
     
-    # Check certificates
+    # Check certificates (will be deleted)
     certificates_count = user.event_certificates.count()
     if certificates_count > 0:
         dependencies['Event Certificates'] = certificates_count
     
+    # Check attendances (will be deleted)
+    attendances_count = user.attendances.count()
+    if attendances_count > 0:
+        dependencies['Event Attendances'] = attendances_count
+    
+    # Check user badges (will be deleted)
+    badges_count = user.user_badges.count()
+    if badges_count > 0:
+        dependencies['Badges'] = badges_count
+    
     if request.method == 'POST':
         try:
-            # If user created events, we cannot delete them (FOREIGN KEY constraint)
-            if events_count > 0:
-                messages.error(request, f'Cannot delete user. They have created {events_count} event(s). Please reassign or delete those events first.')
+            # If user has blocking dependencies, prevent deletion
+            if blocking_dependencies:
+                blocking_msg = ', '.join(blocking_dependencies)
+                messages.error(request, f'Cannot delete user. They have created {blocking_msg}. Please reassign or delete those first.')
                 return redirect('accounts:member_list')
             
             # Before deleting, handle managed students
@@ -1032,6 +1052,7 @@ def member_delete(request, pk):
     return render(request, 'accounts/member_delete_confirm.html', {
         'member': user,
         'dependencies': dependencies,
+        'blocking_dependencies': blocking_dependencies,
     })
 
 @login_required
