@@ -19,12 +19,11 @@
               <h5><i class="fas fa-ban"></i> Cannot Delete This User</h5>
               <p class="mb-2">This user has created the following content that prevents deletion:</p>
               <ul class="mb-2">
-                {% if 'Events Created' in dependencies %}
-                  <li><strong>Events Created:</strong> {{ dependencies.Events Created }}</li>
-                {% endif %}
-                {% if 'Event Photos Uploaded' in dependencies %}
-                  <li><strong>Event Photos Uploaded:</strong> {{ dependencies.Event Photos Uploaded }}</li>
-                {% endif %}
+                {% for dep_type, count in dependencies.items %}
+                  {% if dep_type == 'Events Created' or dep_type == 'Event Photos Uploaded' %}
+                    <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
+                  {% endif %}
+                {% endfor %}
               </ul>
               <hr>
               <p class="mb-0">
