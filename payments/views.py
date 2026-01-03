@@ -208,8 +208,6 @@ def payment_verify(request, payment_id):
                 message=f"Your payment of ₱{payment.amount} has been verified. Thank you!",
                 recipient_list=[payment.user.email],
             )
-            if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
-                NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been verified. Thank you!")
             # Real-time notification
             send_realtime_notification(payment.user.id, f"Your payment of ₱{payment.amount} has been verified.", type='payment')
             messages.success(request, 'Payment verified successfully.')
@@ -227,10 +225,8 @@ def payment_verify(request, payment_id):
                 message=f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}",
                 recipient_list=[payment.user.email],
             )
-            if hasattr(payment.user, 'phone_number') and payment.user.phone_number:
-                NotificationService.send_sms(payment.user.phone_number, f"Your payment of ₱{payment.amount} has been rejected.")
             # Real-time notification
-            send_realtime_notification(payment.user.id, f"Your payment of ₱{payment.amount} has been rejected.", type='payment')
+            send_realtime_notification(payment.user.id, f"Your payment of ₱{payment.amount} has been rejected. Reason: {notes}", type='payment')
             messages.warning(request, 'Payment rejected.')
         
         return redirect('payments:payment_list')
