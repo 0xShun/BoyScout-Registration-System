@@ -975,22 +975,36 @@ def member_edit(request, pk):
 def member_delete(request, pk):
     user = User.objects.get(pk=pk)
     
+    # Import models that might have FK relationships
+    from events.models import EventPhoto
+    from payments.models import PaymentQRCode, Payment
+    
     # Check for dependencies
     dependencies = {}
     blocking_dependencies = []
     
-    # Check events created by this user (BLOCKING - cannot delete)
+    # Check events created by this user (BLOCKING - has default=1, cannot be null)
     events_count = Event.objects.filter(created_by=user).count()
     if events_count > 0:
         dependencies['Events Created'] = events_count
         blocking_dependencies.append(f'{events_count} event(s)')
     
-    # Check event photos uploaded by this user (BLOCKING - cannot delete)
-    from events.models import EventPhoto
+    # Check event photos uploaded by this user (BLOCKING - CASCADE without null)
     photos_count = EventPhoto.objects.filter(uploaded_by=user).count()
     if photos_count > 0:
         dependencies['Event Photos Uploaded'] = photos_count
         blocking_dependencies.append(f'{photos_count} event photo(s)')
+    
+    # Check payment QR codes created by this user (BLOCKING - CASCADE without null)
+    qr_codes_count = PaymentQRCode.objects.filter(created_by=user).count()
+    if qr_codes_count > 0:
+        dependencies['Payment QR Codes Created'] = qr_codes_count
+        blocking_dependencies.append(f'{qr_codes_count} payment QR code(s)')
+    
+    # Check payments by this user (will be deleted via CASCADE)
+    payments_count = Payment.objects.filter(user=user).count()
+    if payments_count > 0:
+        dependencies['Payments'] = payments_count
     
     # Check event registrations (will be deleted)
     registrations_count = user.event_registrations.count()
@@ -1032,7 +1046,7 @@ def member_delete(request, pk):
             # If user has blocking dependencies, prevent deletion
             if blocking_dependencies:
                 blocking_msg = ', '.join(blocking_dependencies)
-                messages.error(request, f'Cannot delete user. They have created {blocking_msg}. Please reassign or delete those first.')
+                messages.error(request, f'Cannot delete user. They have created {blocking_msg}. Please delete or reassign those first.')
                 return redirect('accounts:member_list')
             
             # Before deleting, handle managed students
@@ -1043,10 +1057,13 @@ def member_delete(request, pk):
             # Delete the user (CASCADE will handle related records)
             user_name = user.get_full_name()
             user.delete()
-            messages.success(request, f'Member "{user_name}" deleted successfully.')
+            messages.success(request, f'Member "{user_name}" and all associated records deleted successfully.')
             return redirect('accounts:member_list')
         except Exception as e:
-            messages.error(request, f'Error deleting member: {str(e)}')
+            import traceback
+            error_detail = traceback.format_exc()
+            logger.error(f"Error deleting user {user.id}: {error_detail}")
+            messages.error(request, f'Error deleting member: {str(e)}. Please contact administrator.')
             return redirect('accounts:member_list')
     
     return render(request, 'accounts/member_delete_confirm.html', {

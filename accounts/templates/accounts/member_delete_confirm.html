@@ -20,7 +20,7 @@
               <p class="mb-2">This user has created the following content that prevents deletion:</p>
               <ul class="mb-2">
                 {% for dep_type, count in dependencies.items %}
-                  {% if dep_type == 'Events Created' or dep_type == 'Event Photos Uploaded' %}
+                  {% if dep_type == 'Events Created' or dep_type == 'Event Photos Uploaded' or dep_type == 'Payment QR Codes Created' %}
                     <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
                   {% endif %}
                 {% endfor %}
@@ -28,7 +28,7 @@
               <hr>
               <p class="mb-0">
                 <i class="fas fa-lightbulb"></i> 
-                <strong>What to do:</strong> Please reassign or delete those events/photos first, then try deleting this user again.
+                <strong>What to do:</strong> Please delete or reassign those items first, then try deleting this user again.
               </p>
             </div>
           {% endif %}
