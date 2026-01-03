@@ -974,11 +974,65 @@ def member_edit(request, pk):
 @admin_required
 def member_delete(request, pk):
     user = User.objects.get(pk=pk)
+    
+    # Check for dependencies
+    dependencies = {}
+    
+    # Check events created by this user
+    events_count = Event.objects.filter(created_by=user).count()
+    if events_count > 0:
+        dependencies['Events Created'] = events_count
+    
+    # Check event registrations
+    registrations_count = user.event_registrations.count()
+    if registrations_count > 0:
+        dependencies['Event Registrations'] = registrations_count
+    
+    # Check registration payments
+    reg_payments_count = user.registration_payments.count()
+    if reg_payments_count > 0:
+        dependencies['Registration Payments'] = reg_payments_count
+    
+    # Check if managing students
+    managed_students_count = user.managed_students.count()
+    if managed_students_count > 0:
+        dependencies['Students Managed'] = managed_students_count
+    
+    # Check notifications
+    notifications_count = user.notifications.count()
+    if notifications_count > 0:
+        dependencies['Notifications'] = notifications_count
+    
+    # Check certificates
+    certificates_count = user.event_certificates.count()
+    if certificates_count > 0:
+        dependencies['Event Certificates'] = certificates_count
+    
     if request.method == 'POST':
-        user.delete()
-        messages.success(request, 'Member deleted successfully.')
-        return redirect('accounts:member_list')
-    return render(request, 'accounts/member_delete_confirm.html', {'member': user})
+        try:
+            # If user created events, we cannot delete them (FOREIGN KEY constraint)
+            if events_count > 0:
+                messages.error(request, f'Cannot delete user. They have created {events_count} event(s). Please reassign or delete those events first.')
+                return redirect('accounts:member_list')
+            
+            # Before deleting, handle managed students
+            if managed_students_count > 0:
+                # Set managed_by to None for all students
+                user.managed_students.update(managed_by=None)
+            
+            # Delete the user (CASCADE will handle related records)
+            user_name = user.get_full_name()
+            user.delete()
+            messages.success(request, f'Member "{user_name}" deleted successfully.')
+            return redirect('accounts:member_list')
+        except Exception as e:
+            messages.error(request, f'Error deleting member: {str(e)}')
+            return redirect('accounts:member_list')
+    
+    return render(request, 'accounts/member_delete_confirm.html', {
+        'member': user,
+        'dependencies': dependencies,
+    })
 
 @login_required
 def profile_edit(request):
