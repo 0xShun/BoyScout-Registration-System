@@ -237,6 +237,16 @@ def event_detail(request, pk):
     user_payments = []
     if registration:
         user_payments = EventPayment.objects.filter(registration=registration).order_by('-created_at')
+    
+    # Get certificates for teacher's students who attended events
+    teacher_student_certificates = []
+    if request.user.is_authenticated and request.user.is_teacher():
+        # Get all students managed by this teacher
+        managed_students = request.user.managed_students.all()
+        # Get certificates for these students
+        teacher_student_certificates = EventCertificate.objects.filter(
+            user__in=managed_students
+        ).select_related('user', 'event').order_by('-generated_at')
 
     return render(request, 'events/event_detail.html', {
         'event': event,
@@ -250,6 +260,7 @@ def event_detail(request, pk):
         'registration_form': registration_form,
         'registrations': registrations,
         'user_payments': user_payments,
+        'teacher_student_certificates': teacher_student_certificates,
     })
 
 @admin_required
@@ -1671,3 +1682,86 @@ def bulk_download_certificates(request):
     
     return response
 
+
+@login_required
+def teacher_bulk_download_certificates(request):
+    """
+    Teacher-specific view to download multiple student certificates as a ZIP file.
+    Uses POST method for better security and handling of multiple certificate IDs.
+    """
+    import zipfile
+    import io
+    from django.http import HttpResponse
+    
+    # Verify user is a teacher
+    if not request.user.is_teacher():
+        messages.error(request, "Only teachers can access this feature.")
+        return redirect('events:event_list')
+    
+    if request.method != 'POST':
+        messages.error(request, "Invalid request method.")
+        return redirect('events:event_list')
+    
+    certificate_ids = request.POST.getlist('certificate_ids')
+    
+    if not certificate_ids:
+        messages.error(request, "No certificates selected for download.")
+        return redirect(request.META.get('HTTP_REFERER', 'events:event_list'))
+    
+    # Get certificates for students managed by this teacher
+    certificates = EventCertificate.objects.filter(
+        id__in=certificate_ids,
+        user__managed_by=request.user
+    ).select_related('event', 'user')
+    
+    if not certificates.exists():
+        messages.error(request, "No valid certificates found for your students.")
+        return redirect(request.META.get('HTTP_REFERER', 'events:event_list'))
+    
+    # Create ZIP file in memory
+    zip_buffer = io.BytesIO()
+    
+    try:
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            for cert in certificates:
+                if cert.certificate_file:
+                    try:
+                        # Read certificate file
+                        cert.certificate_file.open('rb')
+                        file_data = cert.certificate_file.read()
+                        
+                        # Create filename: Event_StudentName_CertNumber.png
+                        event_title = "".join(c for c in cert.event.title if c.isalnum() or c in (' ', '_', '-')).strip()
+                        student_name = "".join(c for c in cert.user.get_full_name() if c.isalnum() or c in (' ', '_', '-')).strip()
+                        filename = f"{event_title}_{student_name}_{cert.certificate_number}.png"
+                        
+                        # Clean filename (remove any remaining invalid characters)
+                        filename = filename.replace(' ', '_')
+                        
+                        # Add to ZIP
+                        zip_file.writestr(filename, file_data)
+                        cert.certificate_file.close()
+                        
+                        logger.info(f"Added certificate {cert.id} to ZIP: {filename}")
+                    except Exception as e:
+                        logger.error(f"Error adding certificate {cert.id} to ZIP: {e}")
+                        continue
+        
+        # Prepare response
+        zip_buffer.seek(0)
+        response = HttpResponse(zip_buffer.getvalue(), content_type='application/zip')
+        
+        # Generate filename with timestamp
+        from django.utils import timezone
+        timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'student_certificates_{timestamp}.zip'
+        
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        logger.info(f"Teacher {request.user.username} downloaded {certificates.count()} certificates")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error creating ZIP file: {e}")
+        messages.error(request, "An error occurred while creating the download. Please try again.")
+        return redirect(request.META.get('HTTP_REFERER', 'events:event_list'))

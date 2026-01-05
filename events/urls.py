@@ -19,6 +19,7 @@ urlpatterns = [
     path('teacher/register-students/', views.teacher_register_students_event, name='teacher_register_students_event'),
     path('teacher/mark-attendance/', views.teacher_mark_attendance, name='teacher_mark_attendance'),
     path('teacher-bulk-event-payment-status/<int:event_id>/', views.teacher_bulk_event_payment_status, name='teacher_bulk_event_payment_status'),
+    path('teacher/bulk-download-certificates/', views.teacher_bulk_download_certificates, name='teacher_bulk_download_certificates'),
     
     # PayMongo Webhook & Payment Status
     path('webhooks/paymongo/', views.paymongo_webhook, name='paymongo_webhook'),

@@ -58,19 +58,26 @@
           </div>
 
           <!-- Payment Information -->
-          {% if event.has_payment_required %}
-            <div class="alert alert-info">
-              <h5><i class="fas fa-credit-card"></i> Payment Required</h5>
-              <p class="mb-0"><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
-              <p class="mt-2 mb-0">
-                <i class="fas fa-mobile-alt"></i> 
-                <small>Payment will be processed via PayMongo (GCash or Maya). You'll be redirected to complete payment after registration.</small>
-              </p>
-            </div>
+          {% if not user.is_staff %}
+            {% if event.has_payment_required %}
+              <div class="alert alert-info">
+                <h5><i class="fas fa-credit-card"></i> Payment Required</h5>
+                <p class="mb-0"><strong>Event Fee:</strong> ₱{{ event.payment_amount }}</p>
+                <p class="mt-2 mb-0">
+                  <i class="fas fa-mobile-alt"></i> 
+                  <small>Payment will be processed via PayMongo (GCash or Maya). You'll be redirected to complete payment after registration.</small>
+                </p>
+              </div>
+            {% else %}
+              <div class="alert alert-success">
+                <h5><i class="fas fa-check-circle"></i> Free Event</h5>
+                <p class="mb-0">No payment required for this event.</p>
+              </div>
+            {% endif %}
           {% else %}
             <div class="alert alert-success">
-              <h5><i class="fas fa-check-circle"></i> Free Event</h5>
-              <p class="mb-0">No payment required for this event.</p>
+              <h5><i class="fas fa-info-circle"></i> Staff Access</h5>
+              <p class="mb-0">As an admin/staff member, you have free access to all events.</p>
             </div>
           {% endif %}
         </div>
@@ -106,7 +113,7 @@
               </div>
               
               <!-- Payment Status (PayMongo) -->
-              {% if event.has_payment_required and user_payments %}
+              {% if not user.is_staff and event.has_payment_required and user_payments %}
                 <div class="mb-3">
                   <h6><i class="fas fa-receipt"></i> Payment Status</h6>
                   {% for payment in user_payments %}
@@ -163,7 +170,7 @@
                       {{ registration_form.rsvp }}
                     </div>
                   </div>
-                  {% if event.has_payment_required %}
+                  {% if event.has_payment_required and not user.is_staff %}
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label class="form-label">Payment Method</label>
@@ -199,7 +206,7 @@
                       {{ registration_form.rsvp }}
                     </div>
                   </div>
-                  {% if event.has_payment_required %}
+                  {% if event.has_payment_required and not user.is_staff %}
                   <div class="col-md-6">
                     <div class="mb-3">
                       <label class="form-label">Payment Method</label>
@@ -390,6 +397,90 @@
             </div>
           </div>
           {% endif %}
+        {% endif %}
+
+        <!-- Teacher Student Certificates Section -->
+        {% if user.is_authenticated and user.is_teacher and teacher_student_certificates %}
+        <div class="card shadow-sm mt-4">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-certificate"></i> My Students' Certificates
+            </h5>
+          </div>
+          <div class="card-body">
+            <p class="text-muted mb-3">
+              <i class="fas fa-info-circle"></i> Certificates for students you created who have attended events.
+            </p>
+            
+            <!-- Bulk Download Controls -->
+            <div class="mb-3 p-3 bg-light rounded">
+              <div class="d-flex justify-content-between align-items-center">
+                <div>
+                  <button type="button" id="select-all-certs" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-check-square"></i> Select All
+                  </button>
+                  <button type="button" id="deselect-all-certs" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-square"></i> Deselect All
+                  </button>
+                  <span class="ms-3 text-muted">
+                    <span id="selected-count">0</span> certificate(s) selected
+                  </span>
+                </div>
+                <button type="button" id="bulk-download-btn" class="btn btn-success" disabled>
+                  <i class="fas fa-download"></i> Download Selected as ZIP
+                </button>
+              </div>
+            </div>
+
+            <!-- Certificates Grid -->
+            <div class="row g-3" id="certificates-grid">
+              {% for cert in teacher_student_certificates %}
+              <div class="col-md-4 col-sm-6">
+                <div class="card h-100 shadow-sm certificate-card">
+                  <div class="card-body p-2">
+                    <!-- Checkbox -->
+                    <div class="form-check position-absolute top-0 start-0 m-2" style="z-index: 10;">
+                      <input class="form-check-input cert-checkbox" type="checkbox" value="{{ cert.id }}" id="cert-{{ cert.id }}">
+                      <label class="form-check-label visually-hidden" for="cert-{{ cert.id }}">
+                        Select certificate
+                      </label>
+                    </div>
+                    
+                    <!-- Certificate Preview -->
+                    <div class="certificate-preview position-relative">
+                      <img src="{{ cert.certificate_file.url }}" alt="Certificate for {{ cert.user.get_full_name }}" class="img-fluid rounded border">
+                      <div class="certificate-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                        <a href="{{ cert.certificate_file.url }}" target="_blank" class="btn btn-primary btn-sm">
+                          <i class="fas fa-eye"></i> View
+                        </a>
+                      </div>
+                    </div>
+                    
+                    <!-- Certificate Info -->
+                    <div class="mt-2">
+                      <h6 class="mb-1 text-truncate" title="{{ cert.user.get_full_name }}">
+                        <i class="fas fa-user"></i> {{ cert.user.get_full_name }}
+                      </h6>
+                      <p class="mb-1 small text-muted text-truncate" title="{{ cert.event.title }}">
+                        <i class="fas fa-calendar-alt"></i> {{ cert.event.title }}
+                      </p>
+                      <p class="mb-0 small text-muted">
+                        <i class="fas fa-clock"></i> {{ cert.generated_at|date:"M d, Y" }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+
+            {% if teacher_student_certificates|length == 0 %}
+            <div class="alert alert-info mb-0">
+              <i class="fas fa-info-circle"></i> No certificates available yet. Certificates are generated when your students mark attendance at events.
+            </div>
+            {% endif %}
+          </div>
+        </div>
         {% endif %}
     </div>
 
@@ -758,6 +849,93 @@
       });
     }
   });
+  
+  // Certificate grid functionality for teachers
+  {% if user.is_authenticated and user.is_teacher %}
+  document.addEventListener('DOMContentLoaded', function() {
+    const certCheckboxes = document.querySelectorAll('.cert-checkbox');
+    const selectAllBtn = document.getElementById('select-all-certs');
+    const deselectAllBtn = document.getElementById('deselect-all-certs');
+    const bulkDownloadBtn = document.getElementById('bulk-download-btn');
+    const selectedCountSpan = document.getElementById('selected-count');
+    
+    // Update selected count and button state
+    function updateSelection() {
+      const selectedCerts = document.querySelectorAll('.cert-checkbox:checked');
+      const count = selectedCerts.length;
+      selectedCountSpan.textContent = count;
+      bulkDownloadBtn.disabled = count === 0;
+    }
+    
+    // Checkbox change event
+    certCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', updateSelection);
+    });
+    
+    // Select all
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener('click', function() {
+        certCheckboxes.forEach(checkbox => checkbox.checked = true);
+        updateSelection();
+      });
+    }
+    
+    // Deselect all
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener('click', function() {
+        certCheckboxes.forEach(checkbox => checkbox.checked = false);
+        updateSelection();
+      });
+    }
+    
+    // Bulk download
+    if (bulkDownloadBtn) {
+      bulkDownloadBtn.addEventListener('click', function() {
+        const selectedCerts = Array.from(document.querySelectorAll('.cert-checkbox:checked'))
+          .map(checkbox => checkbox.value);
+        
+        if (selectedCerts.length === 0) {
+          showToast('warning', 'Please select at least one certificate to download.');
+          return;
+        }
+        
+        // Show loading state
+        const originalText = this.innerHTML;
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing download...';
+        
+        // Create form and submit
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "events:teacher_bulk_download_certificates" %}';
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        form.appendChild(csrfInput);
+        
+        selectedCerts.forEach(certId => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'certificate_ids';
+          input.value = certId;
+          form.appendChild(input);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+        
+        // Reset button after a delay
+        setTimeout(() => {
+          this.disabled = false;
+          this.innerHTML = originalText;
+          showToast('success', 'Download started! Check your downloads folder.');
+        }, 2000);
+      });
+    }
+  });
+  {% endif %}
 </script>
 {% endblock %}
 
@@ -785,5 +963,37 @@
   
   .pulse-animation {
     animation: pulse 2s infinite;
+  }
+  
+  /* Certificate grid styles */
+  .certificate-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  
+  .certificate-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .certificate-preview {
+    position: relative;
+    overflow: hidden;
+    border-radius: 0.25rem;
+  }
+  
+  .certificate-overlay {
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  
+  .certificate-card:hover .certificate-overlay {
+    opacity: 1;
+  }
+  
+  .cert-checkbox {
+    cursor: pointer;
+    width: 1.2rem;
+    height: 1.2rem;
   }
 </style> 
