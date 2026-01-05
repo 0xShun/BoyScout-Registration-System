@@ -238,14 +238,15 @@ def event_detail(request, pk):
     if registration:
         user_payments = EventPayment.objects.filter(registration=registration).order_by('-created_at')
     
-    # Get certificates for teacher's students who attended events
+    # Get certificates for teacher's students who attended THIS event
     teacher_student_certificates = []
     if request.user.is_authenticated and request.user.is_teacher():
         # Get all students managed by this teacher
         managed_students = request.user.managed_students.all()
-        # Get certificates for these students
+        # Get certificates for these students for THIS specific event only
         teacher_student_certificates = EventCertificate.objects.filter(
-            user__in=managed_students
+            user__in=managed_students,
+            event=event  # Only certificates for the current event
         ).select_related('user', 'event').order_by('-generated_at')
 
     return render(request, 'events/event_detail.html', {
@@ -891,6 +892,8 @@ def teacher_mark_attendance(request):
             selected_event = get_object_or_404(Event, pk=event_id)
             
             marked_count = 0
+            certificates_generated = 0
+            
             for key, value in request.POST.items():
                 if key.startswith('attendance_'):
                     student_id = key.split('_')[1]
@@ -906,8 +909,33 @@ def teacher_mark_attendance(request):
                         }
                     )
                     marked_count += 1
+                    
+                    # Auto-generate certificate if attendance is 'present' and certificate doesn't exist
+                    if value == 'present':
+                        try:
+                            if not EventCertificate.objects.filter(user=student, event=selected_event).exists():
+                                certificate = CertificateService.generate_certificate(
+                                    user=student,
+                                    event=selected_event,
+                                    attendance=attendance
+                                )
+                                certificates_generated += 1
+                                
+                                # Send notification to student
+                                send_realtime_notification(
+                                    user_id=student.id,
+                                    message=f"Your certificate for {selected_event.title} has been generated! View it in My Certificates.",
+                                    type='info'
+                                )
+                        except Exception as e:
+                            logger.error(f"Certificate generation error for student {student.id}: {e}")
+                            # Don't fail attendance marking if certificate generation fails
             
-            messages.success(request, f'Attendance marked for {marked_count} student(s).')
+            # Success message with certificate info
+            success_msg = f'Attendance marked for {marked_count} student(s).'
+            if certificates_generated > 0:
+                success_msg += f' {certificates_generated} certificate(s) generated.'
+            messages.success(request, success_msg)
             return redirect('accounts:teacher_dashboard')
     
     return render(request, 'events/teacher_mark_attendance.html', {

@@ -415,16 +415,17 @@
         {% endif %}
 
         <!-- Teacher Student Certificates Section -->
-        {% if user.is_authenticated and user.is_teacher and teacher_student_certificates %}
+        {% if user.is_authenticated and user.is_teacher %}
         <div class="card shadow-sm mt-4">
           <div class="card-header bg-info text-white">
             <h5 class="mb-0">
-              <i class="fas fa-certificate"></i> My Students' Certificates
+              <i class="fas fa-certificate"></i> Student Certificates for This Event
             </h5>
           </div>
           <div class="card-body">
+            {% if teacher_student_certificates %}
             <p class="text-muted mb-3">
-              <i class="fas fa-info-circle"></i> Certificates for students you created who have attended events.
+              <i class="fas fa-info-circle"></i> Certificates for your students who attended this event.
             </p>
             
             <!-- Bulk Download Controls -->
@@ -490,8 +491,8 @@
             </div>
 
             {% if teacher_student_certificates|length == 0 %}
-            <div class="alert alert-info mb-0">
-              <i class="fas fa-info-circle"></i> No certificates available yet. Certificates are generated when your students mark attendance at events.
+            <div class="alert alert-info mb-0 mt-3">
+              <i class="fas fa-info-circle"></i> No certificates available for this event yet. Certificates are automatically generated when you mark your students as "Present" for this event.
             </div>
             {% endif %}
           </div>
