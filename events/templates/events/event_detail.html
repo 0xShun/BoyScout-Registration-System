@@ -490,7 +490,7 @@
               {% endfor %}
             </div>
 
-            {% if teacher_student_certificates|length == 0 %}
+            {% else %}
             <div class="alert alert-info mb-0 mt-3">
               <i class="fas fa-info-circle"></i> No certificates available for this event yet. Certificates are automatically generated when you mark your students as "Present" for this event.
             </div>
