@@ -714,16 +714,40 @@ def register(request):
     if request.method == 'POST':
         form = UserRegisterForm(request.POST, request.FILES)
         if form.is_valid():
+            # Get registration fee from system config first
+            system_config = SystemConfiguration.get_config()
+            registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            
             # Create user account
             user = form.save(commit=False)
             user.rank = form.cleaned_data.get('rank', 'scout')
             user.is_active = True
             user.registration_status = 'pending_payment'
+            user.registration_amount_required = registration_fee  # Set the correct registration fee
             user.save()
-
-            # Get registration fee from system config
-            system_config = SystemConfiguration.get_config()
-            registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            
+            # Send welcome email
+            try:
+                from django.core.mail import send_mail
+                from django.template.loader import render_to_string
+                from django.conf import settings
+                
+                subject = 'Welcome to ScoutConnect'
+                html_message = render_to_string('accounts/emails/registration_welcome.html', {
+                    'user': user,
+                })
+                
+                send_mail(
+                    subject=subject,
+                    message='',  # Plain text version (empty, we're using HTML)
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    html_message=html_message,
+                    fail_silently=True,  # Don't break registration if email fails
+                )
+                logger.info(f"Welcome email sent to {user.email}")
+            except Exception as e:
+                logger.error(f"Failed to send welcome email to {user.email}: {str(e)}")
             
             # Create PayMongo payment
             from .models import RegistrationPayment
