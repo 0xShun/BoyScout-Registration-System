@@ -28,19 +28,65 @@ def admin_required(view_func):
     return user_passes_test(lambda u: u.is_authenticated and u.is_admin())(view_func)
 
 def send_event_notifications(event, action='created'):
-    """Send in-app notifications to all active users about new/updated events"""
+    """Send in-app and email notifications to all active users about new/updated events"""
     from accounts.models import User
     
     active_users = User.objects.filter(is_active=True)
     
     if action == 'created':
         notification_message = f"New event scheduled: {event.title} on {event.date.strftime('%B %d, %Y')}"
+        email_subject = f"New Event: {event.title}"
     else:  # updated
         notification_message = f"Event updated: {event.title} on {event.date.strftime('%B %d, %Y')}"
+        email_subject = f"Event Updated: {event.title}"
     
-    # Send in-app notification to all active users
+    # Prepare email content
+    email_message = f"""
+Hello!
+
+{notification_message}
+
+Event Details:
+--------------
+Title: {event.title}
+Date: {event.date.strftime('%B %d, %Y')}
+Time: {event.time.strftime('%I:%M %p') if event.time else 'TBA'}
+Location: {event.location}
+
+Description:
+{event.description}
+
+{'Payment Required: ₱' + str(event.payment_amount) if event.has_payment_required else 'Free Event - No payment required'}
+
+View full event details and register at:
+{settings.SITE_URL}/events/{event.id}/
+
+---
+This is an automated notification from ScoutConnect.
+    """.strip()
+    
+    # Send notifications to all active users
+    recipient_emails = []
     for user in active_users:
+        # Send in-app notification
         send_realtime_notification(user.id, notification_message, type='event')
+        
+        # Collect email addresses for bulk email
+        if user.email:
+            recipient_emails.append(user.email)
+    
+    # Send bulk email to all users
+    if recipient_emails:
+        try:
+            NotificationService.send_email(
+                subject=email_subject,
+                message=email_message,
+                recipient_list=recipient_emails
+            )
+            logger.info(f"Event notification emails sent to {len(recipient_emails)} users for event: {event.title}")
+        except Exception as e:
+            logger.error(f"Failed to send event notification emails: {e}")
+            # Don't fail if email sending fails - in-app notifications still work
 
 @login_required
 def event_list(request):
