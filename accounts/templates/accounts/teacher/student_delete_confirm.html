@@ -12,11 +12,6 @@
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="alert alert-warning">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                        <strong>Warning!</strong> This action cannot be undone.
-                    </div>
-                    
                     <p class="lead mb-4">
                         Are you sure you want to delete the student account for 
                         <strong>{{ student.get_full_name }}</strong> ({{ student.email }})?
@@ -58,28 +53,22 @@
                     </div>
                     
                     {% if dependencies %}
-                    <div class="alert alert-danger">
-                        <h6 class="mb-3">
-                            <i class="bi bi-database me-2"></i>Impact Analysis
-                        </h6>
-                        <p class="mb-2">
-                            Deleting this student will also <strong>permanently delete</strong> the following associated records:
-                        </p>
-                        <ul class="mb-3">
-                            {% for dep_type, count in dependencies.items %}
-                                <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
-                            {% endfor %}
-                        </ul>
-                        <hr>
-                        <p class="mb-0 small">
-                            <i class="bi bi-info-circle me-1"></i>
-                            All data including event registrations, attendance records, payments, and certificates will be permanently removed.
-                        </p>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        This student has no associated records in the system.
+                    <div class="card border-danger mb-4">
+                        <div class="card-header bg-danger text-white">
+                            <h6 class="mb-0">
+                                <i class="bi bi-database me-2"></i>Impact: Associated Records Will Be Deleted
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <p class="mb-2">
+                                Deleting this student will also <strong>permanently delete</strong> the following associated records:
+                            </p>
+                            <ul class="mb-0">
+                                {% for dep_type, count in dependencies.items %}
+                                    <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                     </div>
                     {% endif %}
 
@@ -112,26 +101,6 @@
     // Enable delete button only when checkbox is checked
     document.getElementById('confirmDelete').addEventListener('change', function() {
         document.getElementById('deleteButton').disabled = !this.checked;
-    });
-    
-    // Additional confirmation on form submit
-    document.getElementById('deleteForm').addEventListener('submit', function(e) {
-        // Check if checkbox is checked
-        if (!document.getElementById('confirmDelete').checked) {
-            e.preventDefault();
-            alert('Please check the confirmation checkbox before proceeding.');
-            return false;
-        }
-        
-        // Final confirmation
-        if (!confirm('Are you absolutely sure you want to delete {{ student.get_full_name }}? This action cannot be undone!')) {
-            e.preventDefault();
-            return false;
-        }
-        
-        // If we get here, allow the form to submit
-        console.log('Form is being submitted...');
-        return true;
     });
 </script>
 {% endblock %}

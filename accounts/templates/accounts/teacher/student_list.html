@@ -121,8 +121,7 @@
                                         {% endif %}
                                         <a href="{% url 'accounts:teacher_delete_student' student.id %}" 
                                            class="btn btn-sm btn-outline-danger" 
-                                           title="Delete Student"
-                                           onclick="return confirm('Are you sure you want to delete {{ student.get_full_name }}? This action cannot be undone.');">
+                                           title="Delete Student">
                                             <i class="bi bi-trash"></i> Delete
                                         </a>
                                     </div>

@@ -754,8 +754,7 @@ def teacher_bulk_payment_status(request):
                             # Update student status
                             student = payment.user
                             student.registration_total_paid += payment.amount
-                            student.registration_status = 'active'
-                            student.save()
+                            student.update_registration_status()  # Use proper status update
                             
                             # Send notification
                             send_realtime_notification(
@@ -1577,9 +1576,9 @@ def registration_payment(request, user_id):
                         
                         # Update user registration total paid
                         user.registration_total_paid += pending_payment.amount
-                        user.registration_status = 'payment_verified'
-                        user.update_registration_status()  # This will set to 'active'
-                        user.save()
+                        user.update_registration_status()  # This will calculate and set correct status
+                        
+                        print(f"✅ User {user.email} - Total Paid: ₱{user.registration_total_paid}, Required: ₱{user.registration_amount_required}, Status: {user.registration_status}")
                         
                         # Check if a teacher paid for their student
                         if request.user.is_authenticated and request.user.is_teacher() and user.managed_by == request.user:
@@ -1640,8 +1639,7 @@ def verify_registration_payment(request, user_id):
                 
                 # Update user total paid
                 user.registration_total_paid += payment.amount
-                user.update_registration_status()
-                user.save()
+                user.update_registration_status()  # This already calls save()
                 
                 # Send notification to user
                 send_realtime_notification(
