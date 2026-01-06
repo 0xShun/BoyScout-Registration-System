@@ -46,7 +46,6 @@ def announcement_create(request):
         if form.is_valid():
             announcement = form.save(commit=False)
             announcement.save()
-            form.save_m2m()
             
             # Send to all active users
             recipients = User.objects.filter(is_active=True)

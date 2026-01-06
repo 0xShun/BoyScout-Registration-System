@@ -10,15 +10,8 @@
                 {{ form.title }}
                 {{ form.message.label_tag }}
                 {{ form.message }}
-                <div class="mb-3">
-                    {{ form.groups.label_tag }}
-                    {{ form.groups }}
-                    <div class="form-text">Hold Ctrl (Windows) or Cmd (Mac) to select multiple groups. Leave blank to send to all users.</div>
-                </div>
-                <div class="mb-3">
-                    {{ form.recipients.label_tag }}
-                    {{ form.recipients }}
-                    <div class="form-text">(Optional) Select specific users. If groups are selected, this is ignored.</div>
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle"></i> This announcement will be sent to all active users.
                 </div>
                 <button type="submit" class="btn btn-success">Create Announcement</button>
                 <a href="{% url 'announcements:announcement_list' %}" class="btn btn-secondary ms-2">Cancel</a>
