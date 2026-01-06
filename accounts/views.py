@@ -515,6 +515,82 @@ def teacher_student_payment(request, student_id):
     return render(request, 'accounts/teacher/student_payment.html', context)
 
 @login_required
+def teacher_delete_student(request, student_id):
+    """Teacher deletes a student account they manage with confirmation"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can delete student accounts.')
+        return redirect('home')
+    
+    student = get_object_or_404(User, id=student_id, managed_by=request.user)
+    
+    # Gather information about student's dependencies
+    from events.models import EventRegistration, Attendance, EventCertificate
+    from payments.models import Payment
+    from .models import RegistrationPayment
+    
+    dependencies = {}
+    
+    # Event registrations
+    registrations_count = EventRegistration.objects.filter(user=student).count()
+    if registrations_count > 0:
+        dependencies['Event Registrations'] = registrations_count
+    
+    # Attendance records
+    attendances_count = Attendance.objects.filter(user=student).count()
+    if attendances_count > 0:
+        dependencies['Attendance Records'] = attendances_count
+    
+    # Payments
+    payments_count = Payment.objects.filter(user=student).count()
+    if payments_count > 0:
+        dependencies['Payments'] = payments_count
+    
+    # Registration payments
+    reg_payments_count = RegistrationPayment.objects.filter(user=student).count()
+    if reg_payments_count > 0:
+        dependencies['Registration Payments'] = reg_payments_count
+    
+    # Certificates
+    certificates_count = EventCertificate.objects.filter(user=student).count()
+    if certificates_count > 0:
+        dependencies['Event Certificates'] = certificates_count
+    
+    if request.method == 'POST':
+        try:
+            # Create audit log before deletion
+            from analytics.models import AuditLog
+            AuditLog.objects.create(
+                user=request.user,
+                action='delete',
+                model_name='User',
+                object_id=student.id,
+                changes=f'Teacher {request.user.get_full_name()} deleted student {student.get_full_name()}'
+            )
+            
+            # Delete the student (CASCADE will handle related records)
+            student_name = student.get_full_name()
+            student_email = student.email
+            student.delete()
+            
+            messages.success(
+                request,
+                f'Student "{student_name}" ({student_email}) and all associated records have been deleted successfully.'
+            )
+            return redirect('accounts:teacher_student_list')
+            
+        except Exception as e:
+            import traceback
+            error_detail = traceback.format_exc()
+            logger.error(f"Error deleting student {student.id}: {error_detail}")
+            messages.error(request, f'Error deleting student: {str(e)}. Please try again or contact administrator.')
+            return redirect('accounts:teacher_student_detail', student_id=student.id)
+    
+    return render(request, 'accounts/teacher/student_delete_confirm.html', {
+        'student': student,
+        'dependencies': dependencies,
+    })
+
+@login_required
 def teacher_bulk_payment(request):
     """Create bulk registration payment for all pending students"""
     if not request.user.is_teacher():

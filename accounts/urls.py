@@ -23,6 +23,7 @@ urlpatterns = [
     path('teacher/students/create/', views.teacher_create_student, name='teacher_create_student'),
     path('teacher/students/<int:student_id>/', views.teacher_student_detail, name='teacher_student_detail'),
     path('teacher/students/<int:student_id>/edit/', views.teacher_edit_student, name='teacher_edit_student'),
+    path('teacher/students/<int:student_id>/delete/', views.teacher_delete_student, name='teacher_delete_student'),
     path('teacher/students/<int:student_id>/payment/', views.teacher_student_payment, name='teacher_student_payment'),
     path('teacher/bulk-payment/', views.teacher_bulk_payment, name='teacher_bulk_payment'),
     path('teacher/bulk-payment-status/', views.teacher_bulk_payment_status, name='teacher_bulk_payment_status'),
