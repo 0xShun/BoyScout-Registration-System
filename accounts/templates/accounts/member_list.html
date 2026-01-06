@@ -80,14 +80,14 @@
                       {% endif %}
                     </div>
                   {% else %}
-                    <span class="text-muted">₱500</span>
+                    <span class="text-muted">₱{{ registration_fee|default:"500.00" }}</span>
                   {% endif %}
                 </td>
                 <td>
                   {% if member.balance_info %}
                     <span class="fw-bold {% if member.balance_info.balance >= 0 %}text-success{% else %}text-danger{% endif %}">₱{{ member.balance_info.balance }}</span>
                   {% else %}
-                    <span class="text-danger">₱-500</span>
+                    <span class="text-danger">₱-{{ registration_fee|default:"500.00" }}</span>
                   {% endif %}
                 </td>
                 <td>

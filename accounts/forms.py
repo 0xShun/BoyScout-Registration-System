@@ -153,11 +153,16 @@ class AdminCreateTeacherForm(UserCreationForm):
         return username
 
     def save(self, commit=True):
+        from payments.models import SystemConfiguration
+        
         user = super().save(commit=False)
         user.rank = 'teacher'
         user.is_active = True
         user.registration_status = 'pending_payment'  # Teachers need to pay registration fee
-        user.registration_amount_required = 500  # Standard registration fee
+        
+        # Get current registration fee from system config
+        system_config = SystemConfiguration.get_config()
+        user.registration_amount_required = system_config.registration_fee
         
         if commit:
             user.save()

@@ -45,7 +45,6 @@ def admin_required(view_func):
 
 @login_required
 def payment_list(request):
-    registration_fee = 500
     membership_years = 0
     membership_expiry = None
     if request.user.is_admin():

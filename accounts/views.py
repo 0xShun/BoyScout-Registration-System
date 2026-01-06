@@ -929,8 +929,6 @@ def member_list(request):
     if filter_rank:
         members = members.filter(rank=filter_rank)
     
-    registration_fee = 500  # Registration fee instead of monthly dues
-    
     # Import EventRegistration for event payments
     from events.models import EventRegistration
     
@@ -989,11 +987,16 @@ def member_list(request):
     paginator = Paginator(members, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
+    # Get system configuration for registration fee
+    system_config = SystemConfiguration.get_config()
+    
     return render(request, 'accounts/member_list.html', {
         'members': members,
         'query': query,
         'filter_rank': filter_rank,
         'rank_choices': User.RANK_CHOICES,
+        'registration_fee': system_config.registration_fee,
     })
 
 @login_required
@@ -1001,8 +1004,6 @@ def member_detail(request, pk):
     user = User.objects.get(pk=pk)
     if not (request.user.is_admin() or request.user.pk == user.pk):
         return HttpResponseForbidden()
-    
-    registration_fee = 500  # Registration fee instead of monthly dues
     
     # Get verified general payments
     payments = user.payments.filter(status='verified')
@@ -1790,11 +1791,20 @@ def pending_registrations(request):
 def admin_create_teacher(request):
     """Admin creates a new teacher account directly"""
     from .forms import AdminCreateTeacherForm
+    from payments.models import SystemConfiguration
     
     if request.method == 'POST':
         form = AdminCreateTeacherForm(request.POST)
         if form.is_valid():
             teacher = form.save()
+            
+            # Get registration fee from system config
+            system_config = SystemConfiguration.get_config()
+            registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            
+            # Set teacher's registration amount to match system config
+            teacher.registration_amount_required = registration_fee
+            teacher.save()
             
             # Send welcome email to teacher with login credentials and payment instructions
             from django.core.mail import send_mail
@@ -1812,7 +1822,7 @@ Email: {teacher.email}
 Username: {teacher.username}
 Password: (The password set by the administrator)
 
-IMPORTANT: To activate your account, you need to complete your registration payment of ₱500.00.
+IMPORTANT: To activate your account, you need to complete your registration payment of ₱{registration_fee}.
 
 Please follow these steps:
 1. Log in at: {request.build_absolute_uri('/accounts/login/')}
@@ -1843,12 +1853,18 @@ Boy Scout System Team
             except Exception as e:
                 messages.warning(request, f'Teacher created but email notification failed: {str(e)}')
             
-            messages.success(request, f'Teacher account for {teacher.get_full_name()} created successfully! They will need to complete their ₱500 registration payment.')
+            messages.success(request, f'Teacher account for {teacher.get_full_name()} created successfully! They will need to complete their ₱{registration_fee} registration payment.')
             return redirect('accounts:admin_teacher_list')
     else:
         form = AdminCreateTeacherForm()
     
-    return render(request, 'accounts/admin/create_teacher.html', {'form': form})
+    # Get system configuration for registration fee to display in template
+    system_config = SystemConfiguration.get_config()
+    
+    return render(request, 'accounts/admin/create_teacher.html', {
+        'form': form,
+        'registration_fee': system_config.registration_fee,
+    })
 
 
 @admin_required
