@@ -557,19 +557,25 @@ def teacher_delete_student(request, student_id):
     
     if request.method == 'POST':
         try:
-            # Create audit log before deletion
-            from analytics.models import AuditLog
-            AuditLog.objects.create(
-                user=request.user,
-                action='delete',
-                model_name='User',
-                object_id=student.id,
-                changes=f'Teacher {request.user.get_full_name()} deleted student {student.get_full_name()}'
-            )
-            
-            # Delete the student (CASCADE will handle related records)
+            # Store student info before deletion
             student_name = student.get_full_name()
             student_email = student.email
+            student_id_for_log = student.id
+            
+            # Try to create audit log (but don't fail deletion if this fails)
+            try:
+                from analytics.models import AuditLog
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='delete',
+                    model_name='User',
+                    object_id=student_id_for_log,
+                    changes=f'Teacher {request.user.get_full_name()} deleted student {student_name}'
+                )
+            except Exception as audit_error:
+                logger.warning(f"Failed to create audit log for student deletion: {audit_error}")
+            
+            # Delete the student (CASCADE will handle related records)
             student.delete()
             
             messages.success(
@@ -582,7 +588,7 @@ def teacher_delete_student(request, student_id):
             import traceback
             error_detail = traceback.format_exc()
             logger.error(f"Error deleting student {student.id}: {error_detail}")
-            messages.error(request, f'Error deleting student: {str(e)}. Please try again or contact administrator.')
+            messages.error(request, f'Error deleting student: {str(e)}. Please check the error logs or contact administrator.')
             return redirect('accounts:teacher_student_detail', student_id=student.id)
     
     return render(request, 'accounts/teacher/student_delete_confirm.html', {

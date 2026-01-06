@@ -85,13 +85,13 @@
 
                     <!-- Confirmation Checkbox -->
                     <div class="form-check mb-4 p-3 bg-light rounded">
-                        <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                        <input class="form-check-input" type="checkbox" id="confirmDelete">
                         <label class="form-check-label fw-bold" for="confirmDelete">
                             I understand that this action is permanent and cannot be undone.
                         </label>
                     </div>
                     
-                    <form method="post" id="deleteForm">
+                    <form method="post" id="deleteForm" action="{% url 'accounts:teacher_delete_student' student.id %}">
                         {% csrf_token %}
                         <div class="d-flex justify-content-between gap-2">
                             <a href="{% url 'accounts:teacher_student_detail' student.id %}" class="btn btn-secondary">
@@ -116,9 +116,22 @@
     
     // Additional confirmation on form submit
     document.getElementById('deleteForm').addEventListener('submit', function(e) {
+        // Check if checkbox is checked
+        if (!document.getElementById('confirmDelete').checked) {
+            e.preventDefault();
+            alert('Please check the confirmation checkbox before proceeding.');
+            return false;
+        }
+        
+        // Final confirmation
         if (!confirm('Are you absolutely sure you want to delete {{ student.get_full_name }}? This action cannot be undone!')) {
             e.preventDefault();
+            return false;
         }
+        
+        // If we get here, allow the form to submit
+        console.log('Form is being submitted...');
+        return true;
     });
 </script>
 {% endblock %}
