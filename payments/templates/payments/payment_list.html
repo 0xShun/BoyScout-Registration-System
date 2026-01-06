@@ -167,13 +167,16 @@
                     <td>
                       {% if payment.type == 'registration' or payment.payment_type == 'registration' %}
                         <span class="badge bg-primary">Registration Fee</span>
+                      {% elif payment.type == 'event' %}
+                        <span class="badge bg-info">Event Payment</span>
+                        <br><small class="text-muted">{{ payment.event_title }}</small>
                       {% else %}
                         <span class="badge bg-secondary">Other</span>
                       {% endif %}
                     </td>
                     <td>₱{{ payment.amount }}</td>
                     <td>
-                      {% if payment.status == 'verified' or payment.status == 'payment_verified' %}
+                      {% if payment.status == 'verified' or payment.status == 'payment_verified' or payment.status == 'paid' %}
                         <span class="badge bg-success">Verified</span>
                       {% elif payment.status == 'pending' or payment.status == 'payment_submitted' %}
                         <span class="badge bg-warning text-dark">Pending</span>
@@ -181,6 +184,10 @@
                         <span class="badge bg-danger">Rejected</span>
                       {% elif payment.status == 'pending_payment' %}
                         <span class="badge bg-secondary">Payment Required</span>
+                      {% elif payment.status == 'partial' %}
+                        <span class="badge bg-warning">Partial Payment</span>
+                      {% elif payment.status == 'not_required' %}
+                        <span class="badge bg-secondary">Not Required</span>
                       {% else %}
                         <span class="badge bg-secondary">{{ payment.status|capfirst }}</span>
                       {% endif %}
@@ -205,7 +212,7 @@
                         </a>
                       {% elif not user.is_admin and payment.type == 'registration' and payment.status == 'payment_submitted' %}
                         <span class="text-muted">Awaiting verification</span>
-                      {% elif payment.status == 'verified' or payment.status == 'active' %}
+                      {% elif payment.status == 'verified' or payment.status == 'active' or payment.status == 'paid' %}
                         <span class="text-success">
                           <i class="fas fa-check"></i> Verified
                           {% if payment.verified_by %}

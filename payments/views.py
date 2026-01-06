@@ -87,8 +87,32 @@ def payment_list(request):
             'membership_expiry': membership_expiry,
             'registration_fee': registration_fee,
         }
-        payments_list = list(payments)
-        payments_list.insert(0, registration_payment)
+        
+        # Get event payments
+        from events.models import EventRegistration
+        event_registrations = EventRegistration.objects.filter(
+            user=request.user,
+            event__payment_amount__gt=0
+        ).select_related('event').order_by('-registered_at')
+        
+        # Convert event registrations to payment dict format
+        event_payments = []
+        for reg in event_registrations:
+            event_payments.append({
+                'id': f'event_{reg.id}',
+                'amount': reg.event.payment_amount,
+                'date': reg.registered_at,
+                'status': reg.payment_status,
+                'type': 'event',
+                'description': reg.event.title,
+                'receipt': reg.receipt_image,
+                'verified_by': reg.verified_by,
+                'verification_date': reg.verification_date,
+                'event_title': reg.event.title,
+            })
+        
+        # Combine all payments: registration, events, general payments
+        payments_list = [registration_payment] + event_payments + list(payments)
     paginator = Paginator(payments_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
