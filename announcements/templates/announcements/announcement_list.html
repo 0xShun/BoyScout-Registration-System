@@ -1,28 +1,163 @@
 {% extends 'base_sidebar.html' %}
 {% block content %}
   <div class="container-fluid py-4">
-    <h2 class="mb-4">Announcements</h2>
-    <div class="row g-4">
-      {% if announcements %}
-        {% for announcement in announcements %}
-          <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm h-100">
-              <div class="card-body">
-                <h5 class="card-title">{{ announcement.title }}</h5>
-                <p class="card-text">{{ announcement.message|truncatechars:120 }}</p>
-                <div class="mb-2 text-muted small">
-                  <i class="fas fa-calendar-alt me-1"></i> {{ announcement.date_posted|date:"M d, Y" }}
-                </div>
-                <a href="{% url 'announcements:announcement_detail' announcement.pk %}" class="btn btn-outline-primary btn-sm">Read More</a>
-              </div>
-            </div>
-          </div>
-        {% endfor %}
-      {% else %}
-        <div class="col-12">
-          <div class="alert alert-info">No announcements available.</div>
-        </div>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Announcements</h2>
+      {% if user.is_admin %}
+        <a href="{% url 'announcements:announcement_create' %}" class="btn btn-primary">
+          <i class="fas fa-plus me-2"></i>Create Announcement
+        </a>
       {% endif %}
     </div>
+
+    {% if user.is_admin %}
+      <!-- Admin View - Table Layout -->
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 30%;">Title</th>
+                  <th style="width: 20%;">Date Posted</th>
+                  <th style="width: 15%;" class="text-center">Recipients</th>
+                  <th style="width: 15%;" class="text-center">Status</th>
+                  <th style="width: 20%;" class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% if announcements %}
+                  {% for announcement in announcements %}
+                    <tr>
+                      <td>
+                        <div class="d-flex align-items-start">
+                          <div>
+                            <a href="{% url 'announcements:announcement_detail' announcement.pk %}" class="fw-bold text-decoration-none">
+                              {{ announcement.title }}
+                            </a>
+                            <br>
+                            <small class="text-muted">{{ announcement.message|truncatechars:60 }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <i class="fas fa-calendar-alt me-1 text-muted"></i>
+                        {{ announcement.date_posted|date:"M d, Y" }}
+                        <br>
+                        <small class="text-muted">{{ announcement.date_posted|date:"g:i A" }}</small>
+                      </td>
+                      <td class="text-center">
+                        <span class="badge bg-info">
+                          <i class="fas fa-users me-1"></i>
+                          {{ announcement.recipients.count }}
+                        </span>
+                        <br>
+                        <small class="text-muted">
+                          {{ announcement.read_by.count }} read
+                        </small>
+                      </td>
+                      <td class="text-center">
+                        {% if announcement.is_published %}
+                          <span class="badge bg-success">
+                            <i class="fas fa-eye me-1"></i>Published
+                          </span>
+                        {% else %}
+                          <span class="badge bg-secondary">
+                            <i class="fas fa-eye-slash me-1"></i>Hidden
+                          </span>
+                        {% endif %}
+                      </td>
+                      <td class="text-center">
+                        <div class="btn-group" role="group">
+                          <!-- Toggle Visibility Button -->
+                          <form method="post" action="{% url 'announcements:announcement_toggle_visibility' announcement.pk %}" class="d-inline" 
+                                onsubmit="return confirm('{% if announcement.is_published %}Hide{% else %}Publish{% endif %} this announcement?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if announcement.is_published %}btn-outline-secondary{% else %}btn-outline-success{% endif %}" 
+                                    title="{% if announcement.is_published %}Hide from users{% else %}Publish to users{% endif %}">
+                              <i class="fas fa-{% if announcement.is_published %}eye-slash{% else %}eye{% endif %}"></i>
+                              {% if announcement.is_published %}Hide{% else %}Publish{% endif %}
+                            </button>
+                          </form>
+                          
+                          <!-- Delete Button -->
+                          <a href="{% url 'announcements:announcement_delete' announcement.pk %}" 
+                             class="btn btn-sm btn-outline-danger"
+                             title="Delete announcement">
+                            <i class="fas fa-trash-alt"></i>
+                            Delete
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                {% else %}
+                  <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                      <i class="fas fa-inbox fa-3x mb-3 d-block"></i>
+                      No announcements yet. Create your first announcement!
+                    </td>
+                  </tr>
+                {% endif %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    {% else %}
+      <!-- Regular User View - Card Layout -->
+      <div class="row g-4">
+        {% if announcements %}
+          {% for announcement in announcements %}
+            <div class="col-md-6 col-lg-4">
+              <div class="card shadow-sm h-100">
+                <div class="card-body">
+                  <h5 class="card-title">{{ announcement.title }}</h5>
+                  <p class="card-text">{{ announcement.message|truncatechars:120 }}</p>
+                  <div class="mb-2 text-muted small">
+                    <i class="fas fa-calendar-alt me-1"></i> {{ announcement.date_posted|date:"M d, Y" }}
+                  </div>
+                  <a href="{% url 'announcements:announcement_detail' announcement.pk %}" class="btn btn-outline-primary btn-sm">Read More</a>
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="col-12">
+            <div class="alert alert-info">No announcements available.</div>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
-{% endblock %} 
+
+  <style>
+    .table td {
+      vertical-align: middle;
+    }
+    
+    .btn-group .btn {
+      margin: 0 2px;
+    }
+    
+    .table-hover tbody tr:hover {
+      background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    @media (max-width: 768px) {
+      .table-responsive {
+        font-size: 0.85rem;
+      }
+      
+      .btn-group {
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+      
+      .btn-group .btn {
+        width: 100%;
+      }
+    }
+  </style>
+{% endblock %}
+ 

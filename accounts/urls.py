@@ -15,6 +15,9 @@ urlpatterns = [
     path('scout-dashboard/', views.scout_dashboard, name='scout_dashboard'),
     path('quick-announcement/', views.quick_announcement, name='quick_announcement'),
     
+    # BSP History page (public access)
+    path('bsp-history/', views.bsp_history, name='bsp_history'),
+    
     # Teacher student management URLs
     path('teacher/students/', views.teacher_student_list, name='teacher_student_list'),
     path('teacher/students/create/', views.teacher_create_student, name='teacher_create_student'),

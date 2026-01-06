@@ -1801,3 +1801,11 @@ def admin_teacher_hierarchy(request):
         'total_students': total_students,
         'independent_students': independent_students,
     })
+
+
+def bsp_history(request):
+    """
+    View to display the comprehensive history of Boy Scouts of the Philippines.
+    Accessible to everyone (no login required).
+    """
+    return render(request, 'accounts/bsp_history.html')

@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Announcement - {{ announcement.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Warning Header -->
+            <div class="card border-danger shadow-lg mb-4">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Confirm Announcement Deletion
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger" role="alert">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-warning me-2"></i>
+                            Warning: This action cannot be undone!
+                        </h5>
+                        <p class="mb-0">You are about to permanently delete this announcement.</p>
+                    </div>
+
+                    <!-- Announcement Details -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>Announcement Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title">{{ announcement.title }}</h4>
+                            <p class="text-muted mb-3">
+                                <i class="fas fa-calendar me-2"></i>Posted: {{ announcement.date_posted|date:"F d, Y - g:i A" }}
+                            </p>
+                            <div class="mb-3">
+                                <strong>Message:</strong>
+                                <p class="mt-2">{{ announcement.message|truncatewords:50 }}</p>
+                            </div>
+                            <div class="mb-2">
+                                <span class="badge {% if announcement.is_published %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {% if announcement.is_published %}
+                                        <i class="fas fa-eye me-1"></i>Published
+                                    {% else %}
+                                        <i class="fas fa-eye-slash me-1"></i>Hidden
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Impact Summary -->
+                    <div class="card mb-4 border-warning">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Deletion Impact Summary
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-muted mb-3">This announcement has reached the following users:</p>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                                            <h3 class="mb-0">{{ stats.recipients }}</h3>
+                                            <p class="text-muted mb-0">Recipient{{ stats.recipients|pluralize }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card bg-light h-100">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-eye fa-2x text-success mb-2"></i>
+                                            <h3 class="mb-0">{{ stats.read_by }}</h3>
+                                            <p class="text-muted mb-0">User{{ stats.read_by|pluralize }} Read</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Form -->
+                    <div class="card border-danger">
+                        <div class="card-body">
+                            <form method="post" id="deleteForm">
+                                {% csrf_token %}
+                                
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" id="confirmDelete" required>
+                                    <label class="form-check-label fw-bold" for="confirmDelete">
+                                        I understand that this action is permanent and cannot be undone
+                                    </label>
+                                </div>
+
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-between">
+                                    <a href="{% url 'announcements:announcement_list' %}" class="btn btn-secondary btn-lg">
+                                        <i class="fas fa-arrow-left me-2"></i>Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-danger btn-lg" id="deleteButton" disabled>
+                                        <i class="fas fa-trash-alt me-2"></i>Delete Announcement Permanently
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Additional Info -->
+                    <div class="alert alert-info mt-4 mb-0">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle me-2"></i>What happens after deletion?
+                        </h6>
+                        <ul class="mb-0">
+                            <li>The announcement will be permanently removed from the system</li>
+                            <li>All recipient and read status records will be deleted</li>
+                            <li>This cannot be recovered once deleted</li>
+                            <li>You will be redirected to the announcements list</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const confirmCheckbox = document.getElementById('confirmDelete');
+        const deleteButton = document.getElementById('deleteButton');
+        const deleteForm = document.getElementById('deleteForm');
+
+        // Enable/disable delete button based on checkbox
+        confirmCheckbox.addEventListener('change', function() {
+            deleteButton.disabled = !this.checked;
+        });
+
+        // Add confirmation dialog on form submit
+        deleteForm.addEventListener('submit', function(e) {
+            if (!confirm('Are you absolutely sure you want to delete "{{ announcement.title }}"?\n\nThis action CANNOT be undone!')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    });
+</script>
+
+<style>
+    .card {
+        transition: transform 0.2s ease;
+    }
+    
+    #deleteButton:not(:disabled):hover {
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+    }
+    
+    .form-check-input:checked {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+</style>
+{% endblock %}

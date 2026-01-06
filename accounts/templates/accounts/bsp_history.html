@@ -1,0 +1,535 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Boy Scouts of the Philippines - History{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header Section -->
+    <div class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-primary mb-3">Boy Scouts of the Philippines</h1>
+        <p class="lead text-muted">A Legacy of Leadership, Service, and Character Development Since 1923</p>
+    </div>
+
+    <!-- Hero Image/Banner -->
+    <div class="card mb-5 border-0 shadow-lg">
+        <div class="card-body p-5 bg-gradient" style="background: linear-gradient(135deg, #321414 0%, #0000FF 100%);">
+            <div class="row align-items-center">
+                <div class="col-md-8 text-white">
+                    <h2 class="mb-3">Empowering Filipino Youth for Over a Century</h2>
+                    <p class="mb-0">The Boy Scouts of the Philippines (BSP) has been instrumental in shaping the character and values of millions of Filipino youth, fostering leadership, patriotism, and service to others.</p>
+                </div>
+                <div class="col-md-4 text-center">
+                    <i class="fas fa-certificate fa-7x text-white opacity-75"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accordion Sections -->
+    <div class="accordion" id="bspHistoryAccordion">
+        
+        <!-- 1. Historical Timeline -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingHistory">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHistory" aria-expanded="false" aria-controls="collapseHistory">
+                    <i class="fas fa-history me-3 text-primary"></i>
+                    <strong>Historical Timeline</strong>
+                </button>
+            </h2>
+            <div id="collapseHistory" class="accordion-collapse collapse" aria-labelledby="headingHistory" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <div class="timeline">
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-primary p-2 fs-6">October 5, 1923</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">Founding of BSP</h5>
+                                    <p>The Boy Scouts of the Philippines was formally established as a branch of the Boy Scouts of America. Founded in Manila by the Rotary Club of Manila, this marked the beginning of organized scouting in the Philippines.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-success p-2 fs-6">1936</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">Legal Establishment</h5>
+                                    <p>The Boy Scouts of the Philippines was legally established through <strong>Commonwealth Act No. 111</strong>, giving the organization official recognition and support from the Philippine government. This act provided the legal framework for BSP operations and its role in youth development.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-warning p-2 fs-6">1974</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">First Major Amendment</h5>
+                                    <p>Commonwealth Act 111 was amended through <strong>Presidential Decree No. 460</strong>, modernizing the organization's structure and expanding its mandate to better serve Filipino youth in the changing times.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-info p-2 fs-6">1992</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">Second Major Amendment</h5>
+                                    <p>The BSP charter was further amended through <strong>Republic Act No. 7278</strong>, strengthening the organization's capacity to address contemporary challenges and opportunities in youth development.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item mb-4">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-danger p-2 fs-6">2006</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">Inclusion of Girls</h5>
+                                    <p>BSP issued <strong>National Office Memorandum No. 47, Series of 2006</strong>, which formally allowed girls aged 13 to 17 years old to join the Boy Scouts of the Philippines, marking a significant step toward gender inclusivity in the organization.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="timeline-item">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="badge bg-secondary p-2 fs-6">Present Day</div>
+                                </div>
+                                <div class="col-md-9">
+                                    <h5 class="fw-bold">Continuing Excellence</h5>
+                                    <p>Today, BSP continues to thrive as one of the largest youth organizations in the Philippines, actively contributing to nation-building through character development, leadership training, and community service.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Vision -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingVision">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVision" aria-expanded="false" aria-controls="collapseVision">
+                    <i class="fas fa-eye me-3 text-primary"></i>
+                    <strong>Our Vision</strong>
+                </button>
+            </h2>
+            <div id="collapseVision" class="accordion-collapse collapse" aria-labelledby="headingVision" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <div class="p-4 bg-light rounded">
+                        <blockquote class="blockquote text-center">
+                            <p class="fs-4 fst-italic">"To be the premier voluntary organization in youth development and nation building."</p>
+                        </blockquote>
+                    </div>
+                    <div class="mt-4">
+                        <h5 class="fw-bold mb-3">What This Means:</h5>
+                        <p>The Boy Scouts of the Philippines envisions itself as the leading organization dedicated to developing young Filipinos into responsible citizens and leaders. Through its comprehensive programs, BSP aims to:</p>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Cultivate excellence in youth development</li>
+                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Lead by example in character formation</li>
+                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Contribute significantly to nation-building efforts</li>
+                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Maintain international standards of scouting excellence</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Mission -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingMission">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMission" aria-expanded="false" aria-controls="collapseMission">
+                    <i class="fas fa-bullseye me-3 text-primary"></i>
+                    <strong>Our Mission</strong>
+                </button>
+            </h2>
+            <div id="collapseMission" class="accordion-collapse collapse" aria-labelledby="headingMission" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <div class="p-4 bg-light rounded">
+                        <blockquote class="blockquote text-center">
+                            <p class="fs-4 fst-italic">"To imbue in the youth and adults the love of God, country, and fellowmen; to train them in character building, citizenship training, and physical, mental, social, moral, and spiritual development."</p>
+                        </blockquote>
+                    </div>
+                    <div class="mt-4">
+                        <h5 class="fw-bold mb-3">Core Components of Our Mission:</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="card h-100 border-primary">
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold"><i class="fas fa-praying-hands text-primary me-2"></i>Spiritual Development</h6>
+                                        <p class="card-text">Instilling love of God and fostering spiritual growth through faith-based activities and moral guidance.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold"><i class="fas fa-flag text-success me-2"></i>Patriotism</h6>
+                                        <p class="card-text">Cultivating love of country and commitment to national development and service.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-info">
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold"><i class="fas fa-users text-info me-2"></i>Fellowship</h6>
+                                        <p class="card-text">Promoting brotherhood, compassion, and service to others in the community.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100 border-warning">
+                                    <div class="card-body">
+                                        <h6 class="card-title fw-bold"><i class="fas fa-child text-warning me-2"></i>Holistic Development</h6>
+                                        <p class="card-text">Ensuring physical, mental, social, moral, and spiritual growth of every scout.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Goals and Objectives -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingGoals">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGoals" aria-expanded="false" aria-controls="collapseGoals">
+                    <i class="fas fa-trophy me-3 text-primary"></i>
+                    <strong>Goals and Objectives</strong>
+                </button>
+            </h2>
+            <div id="collapseGoals" class="accordion-collapse collapse" aria-labelledby="headingGoals" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <h5 class="fw-bold mb-4">Strategic Goals:</h5>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>1. Character Development</h6>
+                        <p>To develop young people with strong moral character, guided by the Scout Oath and Law, capable of making ethical decisions and contributing positively to society.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>2. Leadership Excellence</h6>
+                        <p>To cultivate leadership skills through practical experiences, empowering scouts to lead in their communities, schools, and future careers.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>3. Citizenship Training</h6>
+                        <p>To produce responsible and active citizens who understand their civic duties and are committed to democratic values and nation-building.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>4. Life Skills Acquisition</h6>
+                        <p>To equip youth with practical life skills including outdoor survival, first aid, environmental stewardship, and problem-solving abilities.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>5. Community Service</h6>
+                        <p>To foster a spirit of service through active participation in community development projects and humanitarian activities.</p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="text-primary fw-bold"><i class="fas fa-star me-2"></i>6. Global Citizenship</h6>
+                        <p>To promote international understanding and cooperation through participation in world scouting events and cross-cultural exchanges.</p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i>Vision 2025 and Beyond</h6>
+                        <p class="mb-0">BSP continues to evolve its programs to address contemporary challenges while maintaining its core values, aiming to reach more Filipino youth and strengthen its impact on nation-building.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Core Values -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingValues">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseValues" aria-expanded="false" aria-controls="collapseValues">
+                    <i class="fas fa-heart me-3 text-primary"></i>
+                    <strong>Core Values</strong>
+                </button>
+            </h2>
+            <div id="collapseValues" class="accordion-collapse collapse" aria-labelledby="headingValues" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <div class="row g-4">
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-hands-helping fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Service</h5>
+                                <p class="text-muted">Dedication to helping others and serving the community without expecting reward.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-shield-alt fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Integrity</h5>
+                                <p class="text-muted">Commitment to honesty, trustworthiness, and strong moral principles.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-balance-scale fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Respect</h5>
+                                <p class="text-muted">Showing consideration and regard for oneself, others, and the environment.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-lightbulb fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Excellence</h5>
+                                <p class="text-muted">Striving for the highest standards in all endeavors and continuous self-improvement.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-handshake fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Unity</h5>
+                                <p class="text-muted">Fostering brotherhood and cooperation among scouts and the broader community.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center p-3">
+                                <div class="bg-secondary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                    <i class="fas fa-seedling fa-2x"></i>
+                                </div>
+                                <h5 class="fw-bold">Stewardship</h5>
+                                <p class="text-muted">Responsible care and protection of our natural environment and resources.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. Memorandums and Legal Framework -->
+        <div class="accordion-item border-0 shadow-sm mb-3">
+            <h2 class="accordion-header" id="headingMemorandums">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMemorandums" aria-expanded="false" aria-controls="collapseMemorandums">
+                    <i class="fas fa-file-contract me-3 text-primary"></i>
+                    <strong>Memorandums and Legal Framework</strong>
+                </button>
+            </h2>
+            <div id="collapseMemorandums" class="accordion-collapse collapse" aria-labelledby="headingMemorandums" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <h5 class="fw-bold mb-4">Key Legal Documents:</h5>
+                    
+                    <div class="card mb-3 border-start border-primary border-4">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-primary">Commonwealth Act No. 111 (1936)</h6>
+                            <p class="card-text"><strong>Purpose:</strong> The foundational charter that legally established the Boy Scouts of the Philippines as a corporate entity.</p>
+                            <p class="card-text"><strong>Key Provisions:</strong></p>
+                            <ul>
+                                <li>Official recognition of BSP as the national scouting organization</li>
+                                <li>Definition of organizational structure and governance</li>
+                                <li>Mandate to promote character development and citizenship training</li>
+                                <li>Authority to award badges, ranks, and recognitions</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3 border-start border-success border-4">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-success">Presidential Decree No. 460 (1974)</h6>
+                            <p class="card-text"><strong>Purpose:</strong> First amendment to modernize BSP's charter during the Marcos administration.</p>
+                            <p class="card-text"><strong>Key Changes:</strong></p>
+                            <ul>
+                                <li>Updated organizational structure to reflect contemporary needs</li>
+                                <li>Expanded mandate to address evolving youth development challenges</li>
+                                <li>Strengthened ties with government agencies for youth programs</li>
+                                <li>Enhanced BSP's role in national development initiatives</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3 border-start border-info border-4">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-info">Republic Act No. 7278 (1992)</h6>
+                            <p class="card-text"><strong>Purpose:</strong> Second major amendment to further strengthen BSP's capacity and relevance.</p>
+                            <p class="card-text"><strong>Key Provisions:</strong></p>
+                            <ul>
+                                <li>Modernization of governance structures</li>
+                                <li>Enhanced accountability and transparency requirements</li>
+                                <li>Broader authority for program development and implementation</li>
+                                <li>Alignment with international scouting standards</li>
+                                <li>Provisions for sustainable funding and resource management</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3 border-start border-warning border-4">
+                        <div class="card-body">
+                            <h6 class="card-title fw-bold text-warning">National Office Memorandum No. 47, S. 2006</h6>
+                            <p class="card-text"><strong>Purpose:</strong> Landmark memorandum allowing female participation in BSP.</p>
+                            <p class="card-text"><strong>Key Provisions:</strong></p>
+                            <ul>
+                                <li>Formal permission for girls aged 13 to 17 to join BSP programs</li>
+                                <li>Guidelines for co-educational scouting activities</li>
+                                <li>Safety and supervision protocols for mixed-gender units</li>
+                                <li>Equal opportunities for advancement and recognition</li>
+                                <li>Commitment to gender equality in youth development</li>
+                            </ul>
+                            <div class="alert alert-warning mt-3">
+                                <strong>Historical Significance:</strong> This memorandum marked a transformative moment in BSP history, demonstrating the organization's commitment to inclusivity and equal opportunity while maintaining its core values and traditions.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="fw-bold"><i class="fas fa-info-circle me-2"></i>Ongoing Development</h6>
+                        <p class="mb-0">BSP continues to work with government agencies, including DepEd, to ensure compliance with current regulations and to develop new policies that address contemporary challenges in youth development and education.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. Organizational Mandate -->
+        <div class="accordion-item border-0 shadow-sm">
+            <h2 class="accordion-header" id="headingMandate">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMandate" aria-expanded="false" aria-controls="collapseMandate">
+                    <i class="fas fa-gavel me-3 text-primary"></i>
+                    <strong>Organizational Mandate</strong>
+                </button>
+            </h2>
+            <div id="collapseMandate" class="accordion-collapse collapse" aria-labelledby="headingMandate" data-bs-parent="#bspHistoryAccordion">
+                <div class="accordion-body">
+                    <p class="lead">The Boy Scouts of the Philippines operates under a clear mandate to serve the nation through youth development:</p>
+                    
+                    <div class="row g-3 mt-3">
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-graduation-cap me-2"></i>Educational Partnership</h6>
+                                    <p>Work closely with the Department of Education (DepEd) to complement formal education with character development and life skills training.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-landmark me-2"></i>Nation Building</h6>
+                                    <p>Contribute to national development by producing responsible citizens committed to service and excellence.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-globe-asia me-2"></i>International Cooperation</h6>
+                                    <p>Represent the Philippines in the World Organization of the Scout Movement (WOSM) and promote international understanding.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-leaf me-2"></i>Environmental Advocacy</h6>
+                                    <p>Promote environmental awareness and conservation through practical action and education.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-first-aid me-2"></i>Community Service</h6>
+                                    <p>Mobilize scouts for disaster response, community development, and humanitarian assistance.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card h-100 bg-light">
+                                <div class="card-body">
+                                    <h6 class="fw-bold text-primary"><i class="fas fa-users-cog me-2"></i>Volunteer Development</h6>
+                                    <p>Train and support adult volunteers to effectively mentor and guide young scouts.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 p-4 bg-primary text-white rounded">
+                        <h5 class="fw-bold mb-3">The Scout Oath and Law</h5>
+                        <p class="mb-2">Every scout in the Philippines pledges to uphold the Scout Oath and Law, which embody the organization's fundamental principles:</p>
+                        <ul class="mb-0">
+                            <li>Duty to God and country</li>
+                            <li>Service to others</li>
+                            <li>Personal development and self-discipline</li>
+                            <li>Respect for nature and the environment</li>
+                            <li>Brotherhood and international friendship</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Call to Action -->
+    <div class="card mt-5 border-0 shadow-lg bg-gradient" style="background: linear-gradient(135deg, #0000FF 0%, #321414 100%);">
+        <div class="card-body p-5 text-white text-center">
+            <h3 class="fw-bold mb-3">Join the Movement</h3>
+            <p class="lead mb-4">Be part of a legacy that has shaped generations of Filipino leaders. Join the Boy Scouts of the Philippines today and make a difference!</p>
+            {% if not user.is_authenticated %}
+            <a href="{% url 'accounts:register' %}" class="btn btn-light btn-lg me-2">
+                <i class="fas fa-user-plus me-2"></i>Register Now
+            </a>
+            {% endif %}
+            <a href="{% url 'home' %}" class="btn btn-outline-light btn-lg">
+                <i class="fas fa-home me-2"></i>Back to Home
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .timeline-item {
+        border-left: 3px solid #0d6efd;
+        padding-left: 20px;
+        position: relative;
+    }
+    
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 5px;
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        background-color: #0d6efd;
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: #321414;
+        color: white;
+    }
+    
+    .accordion-button:focus {
+        box-shadow: none;
+        border-color: rgba(0,0,0,.125);
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
+    }
+</style>
+{% endblock %}

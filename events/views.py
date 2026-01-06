@@ -16,6 +16,7 @@ from PIL import Image
 from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from accounts.models import User
+from analytics.models import AuditLog
 from django.utils import timezone
 from notifications.services import send_realtime_notification, NotificationService
 from decimal import Decimal
@@ -330,11 +331,38 @@ def event_edit(request, pk):
 @admin_required
 def event_delete(request, pk):
     event = get_object_or_404(Event, pk=pk)
+    
     if request.method == 'POST':
+        event_title = event.title
         event.delete()
-        messages.success(request, 'Event deleted successfully.')
+        messages.success(request, f'Event "{event_title}" has been permanently deleted.')
+        
+        # Log the deletion
+        AuditLog.objects.create(
+            user=request.user,
+            action='delete_event',
+            details=f'Deleted event: {event_title}',
+            ip_address=request.META.get('REMOTE_ADDR')
+        )
+        
         return redirect('events:event_list')
-    return render(request, 'events/event_confirm_delete.html', {'event': event})
+    
+    # Collect statistics about what will be deleted
+    stats = {
+        'registrations': event.registrations.count(),
+        'attendances': event.attendances.count(),
+        'photos': event.photos.count(),
+        'payments': EventPayment.objects.filter(registration__event=event).count(),
+        'total_paid': EventPayment.objects.filter(
+            registration__event=event,
+            status='verified'
+        ).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00'),
+    }
+    
+    return render(request, 'events/event_confirm_delete.html', {
+        'event': event,
+        'stats': stats,
+    })
 
 @admin_required
 def photo_upload(request, event_pk):

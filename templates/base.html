@@ -364,6 +364,18 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'accounts:bsp_history' %}">
+                            <i class="fas fa-book"></i> History
+                        </a>
+                    </li>
+                </ul>
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}
                         <li class="nav-item d-flex align-items-center">
@@ -430,6 +442,7 @@
                     <h5>Quick Links</h5>
                     <ul class="list-unstyled">
                         <li><a href="{% url 'home' %}">Home</a></li>
+                        <li><a href="{% url 'accounts:bsp_history' %}">BSP History</a></li>
                         <li><a href="{% url 'events:event_list' %}">Events</a></li>
                         <li><a href="{% url 'announcements:announcement_list' %}">Announcements</a></li>
                     </ul>
