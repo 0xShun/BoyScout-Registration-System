@@ -379,11 +379,10 @@ Boy Scout System Team
                     
                     messages.success(
                         request, 
-                        f'Student {student.get_full_name()} created successfully! Please complete the registration payment of ₱{registration_fee}. '
-                        f'<a href="{reg_payment.paymongo_checkout_url}" target="_blank" class="alert-link">Click here to pay now</a>',
-                        extra_tags='safe'
+                        f'Student {student.get_full_name()} created successfully! Please complete the registration payment.'
                     )
-                    return redirect('accounts:teacher_student_list')
+                    # Redirect teacher to student's payment page
+                    return redirect('accounts:teacher_student_payment', student_id=student.id)
                 else:
                     # PayMongo failed, delete student and show error
                     logger.error(f"PayMongo source creation failed for student {student.email}. Source data: {source_data}")
@@ -1373,9 +1372,15 @@ def registration_payment(request, user_id):
     user = get_object_or_404(User, id=user_id)
     
     # Allow users to access their own registration payment page, or admins to view any user
+    # Allow teachers to access their students' payment pages
     # Allow anonymous users who just registered (not logged in yet)
     if request.user.is_authenticated:
-        if request.user != user and not request.user.is_admin():
+        # Check if user is accessing their own page, is an admin, or is the teacher who manages this student
+        is_own_page = request.user == user
+        is_admin = request.user.is_admin()
+        is_students_teacher = request.user.is_teacher() and user.managed_by == request.user
+        
+        if not (is_own_page or is_admin or is_students_teacher):
             messages.error(request, 'You can only access your own registration payment page.')
             return redirect('accounts:login')
     # For anonymous users, we trust the URL parameter since they just registered
