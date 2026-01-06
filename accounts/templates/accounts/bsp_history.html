@@ -132,13 +132,13 @@
                         </blockquote>
                     </div>
                     <div class="mt-4">
-                        <h5 class="fw-bold mb-3">What This Means:</h5>
-                        <p>The Boy Scouts of the Philippines envisions itself as the leading organization dedicated to developing young Filipinos into responsible citizens and leaders. Through its comprehensive programs, BSP aims to:</p>
+                        <h5 class="fw-bold mb-3 text-dark">What This Means:</h5>
+                        <p class="text-dark">The Boy Scouts of the Philippines envisions itself as the leading organization dedicated to developing young Filipinos into responsible citizens and leaders. Through its comprehensive programs, BSP aims to:</p>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Cultivate excellence in youth development</li>
-                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Lead by example in character formation</li>
-                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Contribute significantly to nation-building efforts</li>
-                            <li class="list-group-item"><i class="fas fa-check-circle text-success me-2"></i>Maintain international standards of scouting excellence</li>
+                            <li class="list-group-item text-dark"><i class="fas fa-check-circle text-success me-2"></i>Cultivate excellence in youth development</li>
+                            <li class="list-group-item text-dark"><i class="fas fa-check-circle text-success me-2"></i>Lead by example in character formation</li>
+                            <li class="list-group-item text-dark"><i class="fas fa-check-circle text-success me-2"></i>Contribute significantly to nation-building efforts</li>
+                            <li class="list-group-item text-dark"><i class="fas fa-check-circle text-success me-2"></i>Maintain international standards of scouting excellence</li>
                         </ul>
                     </div>
                 </div>
@@ -525,6 +525,16 @@
     .accordion-button:focus {
         box-shadow: none;
         border-color: rgba(0,0,0,.125);
+    }
+    
+    /* Force all accordion body text to be dark */
+    .accordion-body,
+    .accordion-body p,
+    .accordion-body h5,
+    .accordion-body h6,
+    .accordion-body li,
+    .accordion-body .list-group-item {
+        color: #2c3e50 !important;
     }
     
     /* Glassmorphism Design for Cards */
