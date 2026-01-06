@@ -103,9 +103,9 @@
     {% if not user.is_admin %}
       {% for payment in page_obj %}
         {% if payment.type == 'registration' %}
-          <div class="alert {% if payment.status == 'active' %}alert-success{% elif payment.status == 'payment_submitted' %}alert-info{% elif payment.status == 'pending_payment' %}alert-warning{% else %}alert-secondary{% endif %} mb-4">
+          <div class="alert {% if payment.status == 'active' or payment.status == 'payment_verified' %}alert-success{% elif payment.status == 'payment_submitted' %}alert-info{% elif payment.status == 'pending_payment' %}alert-warning{% else %}alert-secondary{% endif %} mb-4">
             <h5 class="alert-heading">
-              {% if payment.status == 'active' %}
+              {% if payment.status == 'active' or payment.status == 'payment_verified' %}
                 <i class="fas fa-check-circle"></i> Registration Payment Verified
               {% elif payment.status == 'payment_submitted' %}
                 <i class="fas fa-clock"></i> Registration Payment Pending Verification
@@ -116,7 +116,7 @@
               {% endif %}
             </h5>
             <p class="mb-2">
-              {% if payment.status == 'active' %}
+              {% if payment.status == 'active' or payment.status == 'payment_verified' %}
                 Your registration payment has been verified and your account is fully active. Welcome to ScoutConnect!
               {% elif payment.status == 'payment_submitted' %}
                 Your registration payment receipt has been submitted and is being reviewed by an administrator. You will receive a notification once verified.
