@@ -305,6 +305,10 @@ def teacher_create_student(request):
             system_config = SystemConfiguration.get_config()
             registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
             
+            # Ensure student's registration_amount_required matches the system config
+            student.registration_amount_required = registration_fee
+            student.save()
+            
             # Create PayMongo payment for this student
             paymongo = PayMongoService()
             
@@ -1574,11 +1578,29 @@ def registration_payment(request, user_id):
                         pending_payment.verification_date = timezone.now()
                         pending_payment.save()
                         
+                        # Reload user from database to ensure fresh data
+                        user.refresh_from_db()
+                        
                         # Update user registration total paid
                         user.registration_total_paid += pending_payment.amount
+                        
+                        # Debug logging before status update
+                        print(f"🔍 BEFORE update_registration_status:")
+                        print(f"   User: {user.email}")
+                        print(f"   Total Paid: ₱{user.registration_total_paid}")
+                        print(f"   Required: ₱{user.registration_amount_required}")
+                        print(f"   Current Status: {user.registration_status}")
+                        
                         user.update_registration_status()  # This will calculate and set correct status
                         
-                        print(f"✅ User {user.email} - Total Paid: ₱{user.registration_total_paid}, Required: ₱{user.registration_amount_required}, Status: {user.registration_status}")
+                        # Reload to get the saved status
+                        user.refresh_from_db()
+                        
+                        print(f"✅ AFTER update_registration_status:")
+                        print(f"   Total Paid: ₱{user.registration_total_paid}")
+                        print(f"   Required: ₱{user.registration_amount_required}")
+                        print(f"   New Status: {user.registration_status}")
+                        print(f"   Is Active: {user.is_active}")
                         
                         # Check if a teacher paid for their student
                         if request.user.is_authenticated and request.user.is_teacher() and user.managed_by == request.user:
