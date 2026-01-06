@@ -1581,7 +1581,17 @@ def registration_payment(request, user_id):
                         user.update_registration_status()  # This will set to 'active'
                         user.save()
                         
-                        messages.success(request, 'Payment verified! Your account is now active. Please login to continue.')
+                        # Check if a teacher paid for their student
+                        if request.user.is_authenticated and request.user.is_teacher() and user.managed_by == request.user:
+                            messages.success(
+                                request, 
+                                f'Payment verified! Student {user.get_full_name()} account is now active.'
+                            )
+                            # Redirect teacher to their student list
+                            return redirect('accounts:teacher_student_list')
+                        else:
+                            # Student paid for themselves or anonymous user
+                            messages.success(request, 'Payment verified! Your account is now active. Please login to continue.')
                         
                         # Refresh payments to show updated status
                         payments = user.registration_payments.all().order_by('-created_at')

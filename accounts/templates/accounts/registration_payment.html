@@ -4,9 +4,25 @@
 <div class="container py-4">
   <div class="row justify-content-center">
     <div class="col-lg-8">
+      {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+        <!-- Teacher viewing student's payment -->
+        <div class="mb-3">
+          <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Back to My Students
+          </a>
+        </div>
+      {% endif %}
+      
       <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-          <h3 class="mb-0"><i class="fas fa-user-plus me-2"></i>Complete Your Registration</h3>
+          <h3 class="mb-0">
+            <i class="fas fa-user-plus me-2"></i>
+            {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+              Registration Payment for {{ user.get_full_name }}
+            {% else %}
+              Complete Your Registration
+            {% endif %}
+          </h3>
         </div>
         <div class="card-body">
           
@@ -27,11 +43,23 @@
             </h5>
             <p class="mb-0">
               {% if user.registration_status == 'payment_verified' or user.registration_status == 'active' %}
-                Your registration payment has been verified. You are now an active member!
+                {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+                  The registration payment has been verified. {{ user.get_full_name }} is now an active member!
+                {% else %}
+                  Your registration payment has been verified. You are now an active member!
+                {% endif %}
               {% elif user.registration_status == 'pending_payment' %}
-                Please complete your registration payment to activate your account and access all features.
+                {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+                  Please complete the registration payment to activate {{ user.get_full_name }}'s account.
+                {% else %}
+                  Please complete your registration payment to activate your account and access all features.
+                {% endif %}
               {% else %}
-                Your payment is being processed. This usually takes 5-30 seconds.
+                {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+                  The payment is being processed. This usually takes 5-30 seconds.
+                {% else %}
+                  Your payment is being processed. This usually takes 5-30 seconds.
+                {% endif %}
               {% endif %}
             </p>
           </div>
@@ -199,10 +227,17 @@
             <div class="alert alert-success text-center">
               <i class="fas fa-check-circle fa-3x mb-3"></i>
               <h4>Registration Complete!</h4>
-              <p class="mb-0">Your payment has been verified. Welcome to Boy Scout System!</p>
-              <a href="{% url 'home' %}" class="btn btn-primary mt-3">
-                <i class="fas fa-home me-2"></i>Go to Dashboard
-              </a>
+              {% if request.user.is_authenticated and request.user.is_teacher and user.managed_by == request.user %}
+                <p class="mb-0">The payment has been verified. {{ user.get_full_name }} is now an active member!</p>
+                <a href="{% url 'accounts:teacher_student_list' %}" class="btn btn-primary mt-3">
+                  <i class="bi bi-people me-2"></i>Back to My Students
+                </a>
+              {% else %}
+                <p class="mb-0">Your payment has been verified. Welcome to Boy Scout System!</p>
+                <a href="{% url 'home' %}" class="btn btn-primary mt-3">
+                  <i class="fas fa-home me-2"></i>Go to Dashboard
+                </a>
+              {% endif %}
             </div>
           {% endif %}
 
