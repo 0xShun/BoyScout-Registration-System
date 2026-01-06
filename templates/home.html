@@ -3,73 +3,316 @@
 
 {% block content %}
   <style>
-    .cover-photo-bg {
+    /* Hero Section Styles */
+    .hero-section {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+      min-height: 500px;
+      border-radius: 24px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 3rem;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+    
+    .hero-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       background: url('{% static 'img/cover.jpg' %}') center center/cover no-repeat;
-      min-height: 350px;
-      border-radius: 0.5rem;
-      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+      opacity: 0.15;
+      z-index: 1;
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      padding: 4rem 0;
+    }
+    
+    .hero-title {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      margin-bottom: 1.5rem;
+      line-height: 1.2;
+    }
+    
+    .hero-subtitle {
+      font-size: 1.25rem;
+      color: rgba(255, 255, 255, 0.95);
+      font-weight: 400;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    .hero-buttons .btn {
+      padding: 0.875rem 2.5rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 50px;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .hero-buttons .btn-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+    }
+    
+    .hero-buttons .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    .hero-buttons .btn-outline-light {
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    
+    .hero-buttons .btn-outline-light:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #ffffff;
+      transform: translateY(-2px);
+    }
+    
+    .hero-logo {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .hero-logo img {
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    }
+    
+    /* Section Headers */
+    .section-header {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 2rem;
+      position: relative;
+      padding-bottom: 0.75rem;
+    }
+    
+    .section-header::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+      border-radius: 2px;
+    }
+    
+    /* Modern Card Styles */
+    .modern-card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 1.75rem;
+      margin-bottom: 1.25rem;
+      border: 1px solid #e2e8f0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .modern-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+      transform: scaleY(0);
+      transition: transform 0.3s ease;
+    }
+    
+    .modern-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      border-color: #cbd5e1;
+    }
+    
+    .modern-card:hover::before {
+      transform: scaleY(1);
+    }
+    
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+      line-height: 1.4;
+    }
+    
+    .card-date {
+      font-size: 0.875rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    .card-text {
+      color: #475569;
+      line-height: 1.6;
+      margin: 0.75rem 0;
+    }
+    
+    .card-meta {
+      font-size: 0.875rem;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    .card-meta i {
+      color: #3b82f6;
+    }
+    
+    .card-link {
+      color: #3b82f6;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 0.9rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s ease;
+    }
+    
+    .card-link:hover {
+      color: #2563eb;
+      gap: 0.75rem;
+    }
+    
+    .card-link::after {
+      content: '→';
+      transition: transform 0.2s ease;
+    }
+    
+    .card-link:hover::after {
+      transform: translateX(3px);
+    }
+    
+    /* Empty State */
+    .empty-state {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 2px dashed #93c5fd;
+      border-radius: 16px;
+      padding: 2.5rem;
+      text-align: center;
+      color: #1e40af;
+    }
+    
+    .empty-state i {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2.5rem;
+      }
+      
+      .hero-subtitle {
+        font-size: 1.1rem;
+      }
+      
+      .hero-section {
+        min-height: 400px;
+      }
+      
+      .section-header {
+        font-size: 1.75rem;
+      }
     }
   </style>
-  <div class="cover-photo cover-photo-bg position-relative mb-4">
-    <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0,0,0,0.3); border-radius: 0.5rem;"></div>
-    <div class="container h-100 position-relative" style="z-index:2;">
-      <div class="row align-items-center justify-content-center h-100">
-        <div class="col-md-8 text-white py-5">
-          <h1 class="display-5 fw-bold">Welcome to ScoutConnect!</h1>
-          <p class="fs-4">Your comprehensive platform for the Boy Scouts of the Philippines. Stay updated with announcements, activities, and manage your membership.</p>
+
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-overlay"></div>
+    <div class="container hero-content">
+      <div class="row align-items-center justify-content-center">
+        <div class="col-lg-7 col-md-8 text-white">
+          <h1 class="hero-title">Welcome to ScoutConnect!</h1>
+          <p class="hero-subtitle">Your comprehensive platform for the Boy Scouts of the Philippines. Stay updated with announcements, activities, and manage your membership.</p>
           {% if not user.is_authenticated %}
-            <p class="mt-3">
-              <a class="btn btn-primary btn-lg" href="{% url 'accounts:login' %}" role="button">Login</a>
-              <a class="btn btn-outline-light btn-lg ms-2" href="{% url 'accounts:register' %}" role="button">Register</a>
-            </p>
+            <div class="hero-buttons mt-4">
+              <a class="btn btn-primary" href="{% url 'accounts:login' %}" role="button">Login</a>
+              <a class="btn btn-outline-light ms-2" href="{% url 'accounts:register' %}" role="button">Register</a>
+            </div>
           {% endif %}
         </div>
-        <div class="col-md-4 text-center py-5">
-          <img src="{% static 'img/logo2.png' %}" alt="ScoutConnect Logo 2" style="height: 200px; max-width: 100%; border-radius: 1rem; padding: 1rem;">
+        <div class="col-lg-4 col-md-4 text-center mt-4 mt-md-0">
+          <div class="hero-logo">
+            <img src="{% static 'img/logo2.png' %}" alt="ScoutConnect Logo" style="height: 180px; max-width: 100%;">
+          </div>
         </div>
       </div>
     </div>
   </div>
-  <div class="container py-4">
-    <div class="row mb-4">
-      <div class="col-md-6">
-        <h3 class="mb-3">Latest Announcements</h3>
+
+  <!-- Main Content -->
+  <div class="container pb-5">
+    <div class="row g-4">
+      <!-- Latest Announcements -->
+      <div class="col-lg-6">
+        <h3 class="section-header">Latest Announcements</h3>
         {% if latest_announcements %}
-          <div class="list-group">
-            {% for announcement in latest_announcements %}
-              <div class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm rounded">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1">{{ announcement.title }}</h5>
-                  <small class="text-muted">{{ announcement.date_posted|date:"M d, Y" }}</small>
-                </div>
-                <p class="mb-1">{{ announcement.message|truncatechars:100 }}</p>
-                <small><a href="{% url 'announcements:announcement_list' %}" class="text-decoration-none">Read more</a></small>
+          {% for announcement in latest_announcements %}
+            <div class="modern-card">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title mb-0">{{ announcement.title }}</h5>
+                <span class="card-date">{{ announcement.date_posted|date:"M d, Y" }}</span>
               </div>
-            {% endfor %}
-          </div>
+              <p class="card-text">{{ announcement.message|truncatechars:100 }}</p>
+              <a href="{% url 'announcements:announcement_list' %}" class="card-link">Read more</a>
+            </div>
+          {% endfor %}
         {% else %}
-          <div class="alert alert-info" role="alert">No recent announcements.</div>
+          <div class="empty-state">
+            <i class="fas fa-bullhorn"></i>
+            <p class="mb-0 fw-semibold">No recent announcements.</p>
+          </div>
         {% endif %}
       </div>
 
-      <div class="col-md-6">
-        <h3 class="mb-3">Upcoming Activities</h3>
+      <!-- Upcoming Activities -->
+      <div class="col-lg-6">
+        <h3 class="section-header">Upcoming Activities</h3>
         {% if upcoming_events %}
-          <div class="list-group">
-            {% for event in upcoming_events %}
-              <div class="list-group-item list-group-item-action flex-column align-items-start mb-2 shadow-sm rounded">
-                <div class="d-flex w-100 justify-content-between">
-                  <h5 class="mb-1">{{ event.title }}</h5>
-                  <small class="text-muted">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"P" }}{% endif %}</small>
-                </div>
-                <p class="mb-1">{{ event.description|truncatechars:100 }}</p>
-                <small class="text-muted">Location: {{ event.location }}</small><br/>
-                <small><a href="{% url 'events:event_list' %}" class="text-decoration-none">View details</a></small>
+          {% for event in upcoming_events %}
+            <div class="modern-card">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title mb-0">{{ event.title }}</h5>
+                <span class="card-date">{{ event.date|date:"M d, Y" }}{% if event.time %} at {{ event.time|time:"g:i a" }}{% endif %}</span>
               </div>
-            {% endfor %}
-          </div>
+              <p class="card-text">{{ event.description|truncatechars:100 }}</p>
+              <p class="card-meta mb-2">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>{{ event.location }}</span>
+              </p>
+              <a href="{% url 'events:event_list' %}" class="card-link">View details</a>
+            </div>
+          {% endfor %}
         {% else %}
-          <div class="alert alert-info" role="alert">No upcoming activities.</div>
+          <div class="empty-state">
+            <i class="fas fa-calendar-alt"></i>
+            <p class="mb-0 fw-semibold">No upcoming activities.</p>
+          </div>
         {% endif %}
       </div>
     </div>
