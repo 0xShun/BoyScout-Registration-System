@@ -7,46 +7,51 @@
           <h4 class="mb-0"><i class="fas fa-trash-alt"></i> Delete Member</h4>
         </div>
         <div class="card-body">
-          <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle"></i> 
-            <strong>Warning!</strong> This action cannot be undone.
-          </div>
-          
-          <p class="lead">Are you sure you want to delete <strong>{{ member.get_full_name }}</strong> ({{ member.email }})?</p>
+          <p class="lead mb-4">
+            Are you sure you want to delete <strong>{{ member.get_full_name }}</strong> ({{ member.email }})?
+          </p>
           
           {% if blocking_dependencies %}
-            <div class="alert alert-danger mt-3">
-              <h5><i class="fas fa-ban"></i> Cannot Delete This User</h5>
-              <p class="mb-2">This user has created the following content that prevents deletion:</p>
-              <ul class="mb-2">
-                {% for dep_type, count in dependencies.items %}
-                  {% if dep_type == 'Events Created' or dep_type == 'Event Photos Uploaded' or dep_type == 'Payment QR Codes Created' %}
-                    <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
-                  {% endif %}
-                {% endfor %}
-              </ul>
-              <hr>
-              <p class="mb-0">
-                <i class="fas fa-lightbulb"></i> 
-                <strong>What to do:</strong> Please delete or reassign those items first, then try deleting this user again.
-              </p>
+            <div class="card border-danger mb-4">
+              <div class="card-header bg-danger text-white">
+                <h6 class="mb-0"><i class="fas fa-ban"></i> Cannot Delete This User</h6>
+              </div>
+              <div class="card-body">
+                <p class="mb-2">This user has created the following content that prevents deletion:</p>
+                <ul class="mb-2">
+                  {% for dep_type, count in dependencies.items %}
+                    {% if dep_type == 'Events Created' or dep_type == 'Event Photos Uploaded' or dep_type == 'Payment QR Codes Created' %}
+                      <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
+                    {% endif %}
+                  {% endfor %}
+                </ul>
+                <hr>
+                <p class="mb-0">
+                  <i class="fas fa-lightbulb"></i> 
+                  <strong>What to do:</strong> Please delete or reassign those items first, then try deleting this user again.
+                </p>
+              </div>
             </div>
           {% endif %}
           
           {% if dependencies and not blocking_dependencies %}
-            <div class="alert alert-info mt-3">
-              <h5><i class="fas fa-info-circle"></i> Associated Records</h5>
-              <p class="mb-2">This user has the following associated records that will be affected:</p>
-              <ul class="mb-0">
-                {% for dep_type, count in dependencies.items %}
-                  <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
-                {% endfor %}
-              </ul>
-              <hr>
-              <p class="mb-0 small">
-                <i class="fas fa-lightbulb"></i> 
-                Most associated records will be deleted. Students managed by this teacher will be unassigned.
-              </p>
+            <div class="card border-warning mb-4">
+              <div class="card-header bg-warning">
+                <h6 class="mb-0"><i class="fas fa-info-circle"></i> Associated Records</h6>
+              </div>
+              <div class="card-body">
+                <p class="mb-2">This user has the following associated records that will be affected:</p>
+                <ul class="mb-2">
+                  {% for dep_type, count in dependencies.items %}
+                    <li><strong>{{ dep_type }}:</strong> {{ count }}</li>
+                  {% endfor %}
+                </ul>
+                <hr>
+                <p class="mb-0 small">
+                  <i class="fas fa-lightbulb"></i> 
+                  Most associated records will be deleted. Students managed by this teacher will be unassigned.
+                </p>
+              </div>
             </div>
           {% endif %}
           
