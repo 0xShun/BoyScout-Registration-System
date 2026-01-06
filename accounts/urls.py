@@ -27,6 +27,8 @@ urlpatterns = [
     path('teacher/students/<int:student_id>/payment/', views.teacher_student_payment, name='teacher_student_payment'),
     path('teacher/bulk-payment/', views.teacher_bulk_payment, name='teacher_bulk_payment'),
     path('teacher/bulk-payment-status/', views.teacher_bulk_payment_status, name='teacher_bulk_payment_status'),
+    path('teacher/bulk-student-payment/', views.teacher_bulk_student_payment, name='teacher_bulk_student_payment'),
+    path('teacher/bulk-student-payment-status/', views.teacher_bulk_student_payment_status, name='teacher_bulk_student_payment_status'),
     
     path('members/', views.member_list, name='member_list'),
     path('members/<int:pk>/', views.member_detail, name='member_detail'),

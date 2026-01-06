@@ -785,6 +785,190 @@ def teacher_bulk_payment_status(request):
     
     return render(request, 'accounts/teacher/bulk_payment_status.html', context)
 
+@login_required
+def teacher_bulk_student_payment(request):
+    """Create bulk registration payment for SELECTED students only"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access this page.')
+        return redirect('home')
+    
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('accounts:teacher_student_list')
+    
+    # Get selected student IDs from form
+    student_ids = request.POST.getlist('student_ids')
+    
+    if not student_ids:
+        messages.warning(request, 'Please select at least one student.')
+        return redirect('accounts:teacher_student_list')
+    
+    # Get selected students managed by this teacher with pending payment (skip partial payments)
+    students = User.objects.filter(
+        id__in=student_ids,
+        managed_by=request.user,
+        registration_status='pending_payment',  # Only pending, not partial
+        registration_total_paid=0  # Skip students who made any payment
+    )
+    
+    if not students.exists():
+        messages.warning(request, 'No eligible students selected. Only students with pending registration payments (no partial payments) can be included.')
+        return redirect('accounts:teacher_student_list')
+    
+    from .models import RegistrationPayment
+    from events.paymongo_service import PayMongoService
+    from decimal import Decimal
+    
+    # Calculate total amount (sum of each student's registration_amount_required)
+    total_amount = sum(student.registration_amount_required for student in students)
+    
+    if total_amount <= 0:
+        messages.error(request, 'Invalid payment amount.')
+        return redirect('accounts:teacher_student_list')
+    
+    # Create PayMongo source for combined payment
+    paymongo = PayMongoService()
+    
+    student_names = ', '.join([student.get_full_name() for student in students])
+    description = f"Bulk Registration - {students.count()} students by {request.user.get_full_name()}"
+    
+    # Build redirect URLs
+    from django.urls import reverse
+    success_url = request.build_absolute_uri(reverse('accounts:teacher_bulk_student_payment_status'))
+    failed_url = request.build_absolute_uri(reverse('accounts:teacher_student_list'))
+    
+    source_response = paymongo.create_source(
+        amount=total_amount,
+        type='gcash',
+        redirect_success=success_url,
+        redirect_failed=failed_url,
+        metadata={
+            'description': description,
+            'student_count': students.count(),
+            'teacher_id': request.user.id,
+            'teacher_name': request.user.get_full_name()
+        }
+    )
+    
+    if not source_response:
+        messages.error(request, 'Failed to create payment. Please try again.')
+        return redirect('accounts:teacher_student_list')
+    
+    source_id = source_response['id']
+    checkout_url = source_response['attributes']['redirect']['checkout_url']
+    
+    # Create individual payment records for each student, storing student IDs
+    payment_ids = []
+    student_id_list = [str(student.id) for student in students]
+    
+    for student in students:
+        payment = RegistrationPayment.objects.create(
+            user=student,
+            amount=student.registration_amount_required,
+            payment_method='paymongo_gcash',
+            status='pending',
+            submitted_by=request.user,
+            paymongo_source_id=source_id,
+            notes=f"Bulk payment - Selected students by {request.user.get_full_name()}. Student IDs: {','.join(student_id_list)}"
+        )
+        payment_ids.append(payment.id)
+    
+    # Store payment IDs in session for verification
+    request.session['bulk_selected_payment_ids'] = payment_ids
+    request.session['bulk_selected_student_ids'] = student_id_list
+    
+    # Redirect to PayMongo checkout
+    return redirect(checkout_url)
+
+@login_required
+def teacher_bulk_student_payment_status(request):
+    """Handle PayMongo redirect after bulk SELECTED student payment"""
+    if not request.user.is_teacher():
+        messages.error(request, 'Only teachers can access this page.')
+        return redirect('home')
+    
+    # Get payment IDs from session
+    payment_ids = request.session.get('bulk_selected_payment_ids', [])
+    
+    if not payment_ids:
+        messages.warning(request, 'No bulk payment session found.')
+        return redirect('accounts:teacher_student_list')
+    
+    from .models import RegistrationPayment
+    from events.paymongo_service import PayMongoService
+    
+    # Get all payments
+    payments = RegistrationPayment.objects.filter(id__in=payment_ids)
+    
+    if not payments.exists():
+        messages.error(request, 'Payment records not found.')
+        return redirect('accounts:teacher_student_list')
+    
+    # Get the first payment to check PayMongo source status
+    first_payment = payments.first()
+    
+    if first_payment.paymongo_source_id:
+        paymongo = PayMongoService()
+        source_data = paymongo.get_source(first_payment.paymongo_source_id)
+        
+        if source_data and 'data' in source_data:
+            source_status = source_data['data']['attributes']['status']
+            
+            # If source is chargeable, create payment
+            if source_status == 'chargeable':
+                description = f"Bulk Registration Payment - {len(payments)} selected students by {request.user.get_full_name()}"
+                payment_response = paymongo.create_payment(
+                    source_id=first_payment.paymongo_source_id,
+                    amount=sum(p.amount for p in payments),
+                    description=description
+                )
+                
+                if payment_response and payment_response.get('data'):
+                    payment_id = payment_response['data']['id']
+                    payment_status = payment_response['data']['attributes']['status']
+                    
+                    # If paid, verify all payments
+                    if payment_status == 'paid':
+                        for payment in payments:
+                            payment.paymongo_payment_id = payment_id
+                            payment.status = 'verified'
+                            payment.verification_date = timezone.now()
+                            payment.save()
+                            
+                            # Update student status
+                            student = payment.user
+                            student.registration_total_paid = payment.amount  # Set to full amount
+                            student.registration_status = 'active'  # Set to active
+                            student.save()
+                            
+                            # Send notification
+                            from notifications.services import send_realtime_notification
+                            send_realtime_notification(
+                                user_id=student.id,
+                                message=f"Your registration payment has been verified! Your account is now active.",
+                                type='payment'
+                            )
+                        
+                        # Clear session
+                        del request.session['bulk_selected_payment_ids']
+                        if 'bulk_selected_student_ids' in request.session:
+                            del request.session['bulk_selected_student_ids']
+                        
+                        messages.success(
+                            request,
+                            f'Bulk payment verified! {len(payments)} students have been activated.'
+                        )
+                        return redirect('accounts:teacher_student_list')
+    
+    # If not verified yet, show status page
+    context = {
+        'payments': payments,
+        'total_amount': sum(p.amount for p in payments),
+        'student_count': len(payments),
+    }
+    
+    return render(request, 'accounts/teacher/bulk_payment_status.html', context)
+
 def register(request):
     from django.db import models
     from payments.models import Payment, SystemConfiguration

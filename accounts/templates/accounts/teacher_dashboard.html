@@ -201,9 +201,11 @@
             <a href="{% url 'events:teacher_mark_attendance' %}" class="btn btn-outline-info quick-action-btn">
               <i class="bi bi-clipboard-check me-2"></i>Mark Attendance
             </a>
+            {% comment %}
             <a href="{% url 'payments:teacher_submit_payment' %}" class="btn btn-outline-warning quick-action-btn">
               <i class="bi bi-currency-dollar me-2"></i>Submit Payment
             </a>
+            {% endcomment %}
             {% comment %}
             <!-- Export Data feature - Phase 9 (Not yet implemented) -->
             <a href="{% url 'accounts:teacher_export_data' %}" class="btn btn-outline-secondary quick-action-btn">

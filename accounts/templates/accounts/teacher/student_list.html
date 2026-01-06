@@ -56,24 +56,43 @@
     </ul>
 
     {% if students %}
-        <div class="card shadow-sm">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Phone</th>
-                                <th>Status</th>
-                                <th>Joined</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for student in students %}
-                            <tr>
-                                <td>
+        <form method="POST" action="{% url 'accounts:teacher_bulk_student_payment' %}" id="bulkPaymentForm">
+            {% csrf_token %}
+            <div class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="p-3 border-bottom bg-light">
+                        <button type="submit" class="btn btn-success" id="bulkPayBtn">
+                            <i class="bi bi-credit-card-fill me-2"></i>Bulk Pay Selected
+                        </button>
+                        <small class="text-muted ms-3">
+                            <span id="selectedCount">0</span> student(s) selected
+                        </small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="40">
+                                        <input type="checkbox" id="selectAll" class="form-check-input">
+                                    </th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Status</th>
+                                    <th>Joined</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in students %}
+                                <tr>
+                                    <td>
+                                        {% if student.registration_status != 'active' and student.registration_status != 'payment_verified' %}
+                                        <input type="checkbox" name="student_ids" value="{{ student.id }}" 
+                                               class="form-check-input student-checkbox">
+                                        {% endif %}
+                                    </td>
+                                    <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle me-2">
                                             {{ student.first_name|first|upper }}{{ student.last_name|first|upper }}
@@ -133,6 +152,43 @@
                 </div>
             </div>
         </div>
+        </form>
+        
+        <script>
+        // Select All functionality
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.student-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateSelectedCount();
+        });
+        
+        // Update selected count
+        function updateSelectedCount() {
+            const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+            document.getElementById('selectedCount').textContent = checkedBoxes.length;
+            document.getElementById('bulkPayBtn').disabled = checkedBoxes.length === 0;
+        }
+        
+        // Add event listeners to all student checkboxes
+        document.querySelectorAll('.student-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectedCount);
+        });
+        
+        // Initialize button state
+        updateSelectedCount();
+        
+        // Form validation
+        document.getElementById('bulkPaymentForm').addEventListener('submit', function(e) {
+            const checkedBoxes = document.querySelectorAll('.student-checkbox:checked');
+            if (checkedBoxes.length === 0) {
+                e.preventDefault();
+                alert('Please select at least one student to pay for.');
+                return false;
+            }
+        });
+        </script>
     {% else %}
         <div class="text-center py-5">
             <i class="bi bi-people display-1 text-muted"></i>
