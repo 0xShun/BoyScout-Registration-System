@@ -56,10 +56,14 @@
     </ul>
 
     {% if students %}
+        {% comment %}
+        <!-- Bulk Payment Feature - Commented out since students are auto-paid on creation -->
         <form method="POST" action="{% url 'accounts:teacher_bulk_student_payment' %}" id="bulkPaymentForm">
             {% csrf_token %}
+        {% endcomment %}
             <div class="card shadow-sm">
                 <div class="card-body p-0">
+                    {% comment %}
                     <div class="p-3 border-bottom bg-light">
                         <button type="submit" class="btn btn-success" id="bulkPayBtn">
                             <i class="bi bi-credit-card-fill me-2"></i>Bulk Pay Selected
@@ -68,13 +72,16 @@
                             <span id="selectedCount">0</span> student(s) selected
                         </small>
                     </div>
+                    {% endcomment %}
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
+                                    {% comment %}
                                     <th width="40">
                                         <input type="checkbox" id="selectAll" class="form-check-input">
                                     </th>
+                                    {% endcomment %}
                                     <th>Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
@@ -86,12 +93,14 @@
                             <tbody>
                                 {% for student in students %}
                                 <tr>
+                                    {% comment %}
                                     <td>
                                         {% if student.registration_status != 'active' and student.registration_status != 'payment_verified' %}
                                         <input type="checkbox" name="student_ids" value="{{ student.id }}" 
                                                class="form-check-input student-checkbox">
                                         {% endif %}
                                     </td>
+                                    {% endcomment %}
                                     <td>
                                     <div class="d-flex align-items-center">
                                         <div class="avatar-circle me-2">
@@ -151,9 +160,12 @@
                     </table>
                 </div>
             </div>
-        </div>
+        {% comment %}
         </form>
+        {% endcomment %}
         
+        {% comment %}
+        <!-- Bulk Payment JavaScript - Commented out -->
         <script>
         // Select All functionality
         document.getElementById('selectAll').addEventListener('change', function() {
@@ -189,6 +201,7 @@
             }
         });
         </script>
+        {% endcomment %}
     {% else %}
         <div class="text-center py-5">
             <i class="bi bi-people display-1 text-muted"></i>
