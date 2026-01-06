@@ -33,7 +33,7 @@ from django.core.paginator import Paginator
 from django.db.models import Sum, Q
 from django.http import HttpResponseForbidden
 from django.contrib.auth.decorators import user_passes_test
-from .models import Payment, PaymentQRCode
+from .models import Payment, PaymentQRCode, SystemConfiguration
 from .forms import PaymentForm, PaymentQRCodeForm, TeacherPaymentForm
 from accounts.models import User
 from notifications.services import NotificationService, send_realtime_notification
@@ -57,6 +57,10 @@ def payment_list(request):
     else:
         # For scouts, show their general payments only (registration handled separately)
         payments = Payment.objects.filter(user=request.user).order_by('-date')
+        
+        # Get system configuration for registration fee
+        system_config = SystemConfiguration.get_config()
+        registration_fee = system_config.registration_fee
         
         # Get registration payment info from RegistrationPayment model
         from accounts.models import RegistrationPayment
