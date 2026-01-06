@@ -10,7 +10,7 @@ from django.http import HttpResponseForbidden
 from django.core.paginator import Paginator
 from django.db import models
 from django.db.models.functions import TruncMonth
-from payments.models import Payment
+from payments.models import Payment, SystemConfiguration
 from announcements.models import Announcement
 from events.models import Event
 from django.utils import timezone
@@ -1173,6 +1173,8 @@ def member_list(request):
     page_obj = paginator.get_page(page_number)
     
     # Get system configuration for registration fee
+    # Ensure local import so this view doesn't fail if module-level imports differ in some deployments
+    from payments.models import SystemConfiguration
     system_config = SystemConfiguration.get_config()
     
     return render(request, 'accounts/member_list.html', {
