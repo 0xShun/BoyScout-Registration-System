@@ -61,6 +61,13 @@ class UserRegisterForm(UserCreationForm):
         help_text='Choose whether you are registering as a Scout or Teacher'
     )
     
+    # Override phone_number to use simple text input instead of phonenumber widget
+    phone_number = forms.CharField(
+        max_length=15,
+        required=False,
+        help_text='Enter your phone number (e.g., 09619381867)'
+    )
+    
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address', 'rank']
@@ -84,7 +91,7 @@ class UserRegisterForm(UserCreationForm):
         
         self.fields['date_of_birth'].label = "Date of Birth"
         self.fields['phone_number'].label = "Phone Number"
-        self.fields['phone_number'].widget.attrs.update({'placeholder': 'Enter your phone number'})
+        self.fields['phone_number'].widget.attrs.update({'placeholder': 'e.g., 09619381867'})
 
         self.fields['address'].label = "Address"
         self.fields['address'].widget.attrs.update({'placeholder': 'Enter your address'})
@@ -103,10 +110,39 @@ class UserRegisterForm(UserCreationForm):
         if username and User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
             raise forms.ValidationError('A user with this username already exists.')
         return username
+    
+    def clean_phone_number(self):
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            # Remove any spaces or dashes
+            phone = phone.replace(' ', '').replace('-', '')
+            
+            # Check if it starts with 0 and has 11 digits
+            if not phone.startswith('0'):
+                raise forms.ValidationError('Phone number must start with 0 (e.g., 09619381867)')
+            
+            if len(phone) != 11:
+                raise forms.ValidationError('Phone number must be 11 digits (e.g., 09619381867)')
+            
+            if not phone.isdigit():
+                raise forms.ValidationError('Phone number must contain only digits')
+            
+            # Format as +63 for storage (remove leading 0, add +63)
+            phone = '+63' + phone[1:]
+        
+        return phone
 
 
 class AdminCreateTeacherForm(UserCreationForm):
     """Form for admins to create teacher accounts directly"""
+    
+    # Override phone_number to use simple text input
+    phone_number = forms.CharField(
+        max_length=15,
+        required=False,
+        help_text='Enter phone number (e.g., 09619381867)'
+    )
+    
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'date_of_birth', 'address']
@@ -151,6 +187,27 @@ class AdminCreateTeacherForm(UserCreationForm):
         if User.objects.filter(username=username).exists():
             raise forms.ValidationError('A user with this username already exists.')
         return username
+    
+    def clean_phone_number(self):
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            # Remove any spaces or dashes
+            phone = phone.replace(' ', '').replace('-', '')
+            
+            # Check if it starts with 0 and has 11 digits
+            if not phone.startswith('0'):
+                raise forms.ValidationError('Phone number must start with 0 (e.g., 09619381867)')
+            
+            if len(phone) != 11:
+                raise forms.ValidationError('Phone number must be 11 digits (e.g., 09619381867)')
+            
+            if not phone.isdigit():
+                raise forms.ValidationError('Phone number must contain only digits')
+            
+            # Format as +63 for storage (remove leading 0, add +63)
+            phone = '+63' + phone[1:]
+        
+        return phone
 
     def save(self, commit=True):
         from payments.models import SystemConfiguration
