@@ -381,6 +381,8 @@ def teacher_create_student(request):
                 # Check if PayMongo returned an error
                 if not source_data or (isinstance(source_data, dict) and source_data.get('error')):
                     error_msg = source_data.get('message', 'Unknown error') if source_data else 'PayMongo API unavailable'
+                    # Delete the student since payment creation failed
+                    student.delete()
                     messages.error(request, f'Failed to create PayMongo payment: {error_msg}')
                     return redirect('accounts:teacher_create_student')
                 
@@ -437,6 +439,12 @@ Boy Scout System Team
                     )
                     # Redirect teacher to student's payment page
                     return redirect('accounts:teacher_student_payment', student_id=student.id)
+                else:
+                    # PayMongo response was invalid - delete student and show error
+                    logger.error(f"Invalid PayMongo response for student {student.email}. Response: {source_data}")
+                    student.delete()
+                    messages.error(request, 'PayMongo returned an invalid response. Please check your API keys and try again.')
+                    return redirect('accounts:teacher_create_student')
                 
             except Exception as e:
                 # Error creating payment, delete student
