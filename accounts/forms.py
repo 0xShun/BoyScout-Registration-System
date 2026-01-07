@@ -65,6 +65,7 @@ class UserRegisterForm(UserCreationForm):
     phone_number = forms.CharField(
         max_length=15,
         required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 09619381867'}),
         help_text='Enter your phone number (e.g., 09619381867)'
     )
     
@@ -91,7 +92,6 @@ class UserRegisterForm(UserCreationForm):
         
         self.fields['date_of_birth'].label = "Date of Birth"
         self.fields['phone_number'].label = "Phone Number"
-        self.fields['phone_number'].widget.attrs.update({'placeholder': 'e.g., 09619381867'})
 
         self.fields['address'].label = "Address"
         self.fields['address'].widget.attrs.update({'placeholder': 'Enter your address'})
@@ -140,6 +140,7 @@ class AdminCreateTeacherForm(UserCreationForm):
     phone_number = forms.CharField(
         max_length=15,
         required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 09619381867'}),
         help_text='Enter phone number (e.g., 09619381867)'
     )
     
@@ -239,6 +240,24 @@ class AdminCreateTeacherForm(UserCreationForm):
 
 class UserEditForm(forms.ModelForm):
     profile_image = forms.ImageField(required=False, label="Profile Picture")
+    
+    # Override phone_number fields to use simple text input
+    phone_number = forms.CharField(
+        max_length=15,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 09619381867'}),
+        label="Phone Number",
+        help_text='Enter your phone number (e.g., 09619381867)'
+    )
+    
+    emergency_phone = forms.CharField(
+        max_length=15,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g., 09619381867'}),
+        label="Emergency Phone",
+        help_text='Enter emergency contact phone number (e.g., 09619381867)'
+    )
+    
     class Meta:
         model = User
         fields = [
@@ -272,6 +291,48 @@ class UserEditForm(forms.ModelForm):
             if qs.exists():
                 raise forms.ValidationError('Another member with the same name and date of birth already exists. Please check your information or contact admin.')
         return cleaned_data
+    
+    def clean_phone_number(self):
+        phone = self.cleaned_data.get('phone_number')
+        if phone:
+            # Remove any spaces or dashes
+            phone = phone.replace(' ', '').replace('-', '')
+            
+            # Check if it starts with 0 and has 11 digits
+            if not phone.startswith('0'):
+                raise forms.ValidationError('Phone number must start with 0 (e.g., 09619381867)')
+            
+            if len(phone) != 11:
+                raise forms.ValidationError('Phone number must be 11 digits (e.g., 09619381867)')
+            
+            if not phone.isdigit():
+                raise forms.ValidationError('Phone number must contain only digits')
+            
+            # Format as +63 for storage (remove leading 0, add +63)
+            phone = '+63' + phone[1:]
+        
+        return phone
+    
+    def clean_emergency_phone(self):
+        phone = self.cleaned_data.get('emergency_phone')
+        if phone:
+            # Remove any spaces or dashes
+            phone = phone.replace(' ', '').replace('-', '')
+            
+            # Check if it starts with 0 and has 11 digits
+            if not phone.startswith('0'):
+                raise forms.ValidationError('Phone number must start with 0 (e.g., 09619381867)')
+            
+            if len(phone) != 11:
+                raise forms.ValidationError('Phone number must be 11 digits (e.g., 09619381867)')
+            
+            if not phone.isdigit():
+                raise forms.ValidationError('Phone number must contain only digits')
+            
+            # Format as +63 for storage (remove leading 0, add +63)
+            phone = '+63' + phone[1:]
+        
+        return phone
 
 class RoleManagementForm(forms.Form):
     user = forms.ModelChoiceField(queryset=User.objects.all(), label="Select User")
