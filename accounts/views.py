@@ -351,7 +351,7 @@ def teacher_create_student(request):
             
             system_config = SystemConfiguration.get_config()
             registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
-            payment_method = system_config.default_payment_method if system_config else 'paymaya'
+            payment_method = system_config.default_payment_method if system_config else 'gcash'
             
             # Ensure student's registration_amount_required matches the system config
             student.registration_amount_required = registration_fee
@@ -693,8 +693,10 @@ def teacher_bulk_payment(request):
         from events.paymongo_service import PayMongoService
         from decimal import Decimal
         
-        # Create single PayMongo source for all students
-        paymongo = PayMongoService()
+    # Create single PayMongo source for all students
+    paymongo = PayMongoService()
+    system_config = SystemConfiguration.get_config()
+    bulk_payment_method = system_config.default_payment_method if system_config else 'gcash'
         
         try:
             # Build redirect URL
@@ -707,7 +709,7 @@ def teacher_bulk_payment(request):
             
             source_data = paymongo.create_source(
                 amount=total_amount,
-                type='paymaya',
+                type=bulk_payment_method,
                 redirect_success=redirect_url,
                 redirect_failed=redirect_url,
                 metadata={

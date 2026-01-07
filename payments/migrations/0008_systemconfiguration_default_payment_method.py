@@ -14,8 +14,8 @@ class Migration(migrations.Migration):
             model_name='systemconfiguration',
             name='default_payment_method',
             field=models.CharField(
-                choices=[('gcash', 'GCash'), ('paymaya', 'PayMaya'), ('grab_pay', 'GrabPay')],
-                default='paymaya',
+                choices=[('gcash', 'GCash'), ('grab_pay', 'GrabPay')],
+                default='gcash',
                 help_text='Payment method to use for PayMongo (ensure this is enabled in your PayMongo dashboard)',
                 max_length=20,
                 verbose_name='Default Payment Method'
