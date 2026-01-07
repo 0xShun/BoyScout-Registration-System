@@ -60,14 +60,42 @@ def admin_dashboard(request):
         .order_by('month')
         .annotate(count=models.Count('id'))
     )
-    # Payment trends by month
-    payment_trends = (
+    # Payment trends by month - combine all payment types
+    from django.db.models import Q, Value, CharField
+    from django.db.models.functions import Coalesce
+    
+    # Get registration payments by month
+    reg_payment_trends = (
+        RegistrationPayment.objects.filter(status='verified')
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total=models.Sum('amount'))
+    )
+    
+    # Get event payments by month
+    event_payment_trends = (
+        EventPayment.objects.filter(status='verified')
+        .annotate(month=TruncMonth('created_at'))
+        .values('month')
+        .annotate(total=models.Sum('amount'))
+    )
+    
+    # Get general payments by month
+    general_payment_trends = (
         Payment.objects.filter(status='verified')
         .annotate(month=TruncMonth('date'))
         .values('month')
-        .order_by('month')
         .annotate(total=models.Sum('amount'))
     )
+    
+    # Combine all payment trends
+    payment_trends_dict = {}
+    for pt in list(reg_payment_trends) + list(event_payment_trends) + list(general_payment_trends):
+        month = pt['month']
+        if month:
+            payment_trends_dict[month] = payment_trends_dict.get(month, 0) + (pt['total'] or 0)
+    
+    payment_trends = [{'month': k, 'total': v} for k, v in sorted(payment_trends_dict.items())]
     # Announcement engagement
     announcement_engagement = [
         {
@@ -77,12 +105,31 @@ def admin_dashboard(request):
         }
         for a in Announcement.objects.all()
     ]
-    # Most active scouts (by payment count)
-    active_scouts = (
-        User.objects.filter(rank='scout')
-        .annotate(payment_count=models.Count('payments'))
-        .order_by('-payment_count')[:5]
-    )
+    # Most active scouts (by payment count - all payment types)
+    scouts = User.objects.filter(rank='scout')
+    scout_payment_data = []
+    
+    for scout in scouts:
+        # Count all payment types
+        reg_payments = RegistrationPayment.objects.filter(user=scout, status='verified').count()
+        event_payments = EventPayment.objects.filter(registration__user=scout, status='verified').count()
+        general_payments = Payment.objects.filter(user=scout, status='verified').count()
+        
+        total_payments = reg_payments + event_payments + general_payments
+        
+        if total_payments > 0:
+            scout_payment_data.append({
+                'scout': scout,
+                'payment_count': total_payments
+            })
+    
+    # Sort by payment count and get top 5
+    scout_payment_data.sort(key=lambda x: x['payment_count'], reverse=True)
+    active_scouts = [item['scout'] for item in scout_payment_data[:5]]
+    
+    # Add payment_count as attribute for template
+    for i, scout in enumerate(active_scouts):
+        scout.payment_count = scout_payment_data[i]['payment_count']
     # Attendance analytics
     # Attendance rate per event
     attendance_rates = []
