@@ -693,10 +693,10 @@ def teacher_bulk_payment(request):
         from events.paymongo_service import PayMongoService
         from decimal import Decimal
         
-    # Create single PayMongo source for all students
-    paymongo = PayMongoService()
-    system_config = SystemConfiguration.get_config()
-    bulk_payment_method = system_config.default_payment_method if system_config else 'gcash'
+        # Create single PayMongo source for all students
+        paymongo = PayMongoService()
+        system_config = SystemConfiguration.get_config()
+        bulk_payment_method = system_config.default_payment_method if system_config else 'gcash'
         
         try:
             # Build redirect URL
