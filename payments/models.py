@@ -30,7 +30,20 @@ class PaymentQRCode(models.Model):
 
 class SystemConfiguration(models.Model):
     """Model to store system-wide configuration including registration fee"""
+    PAYMENT_METHOD_CHOICES = [
+        ('gcash', 'GCash'),
+        ('paymaya', 'PayMaya'),
+        ('grab_pay', 'GrabPay'),
+    ]
+    
     registration_fee = models.DecimalField(max_digits=10, decimal_places=2, default=500.00, verbose_name="Registration Fee")
+    default_payment_method = models.CharField(
+        max_length=20, 
+        choices=PAYMENT_METHOD_CHOICES, 
+        default='paymaya',  # Changed from gcash to paymaya as fallback
+        verbose_name="Default Payment Method",
+        help_text="Payment method to use for PayMongo (ensure this is enabled in your PayMongo dashboard)"
+    )
     # Legacy field - will be removed after PayMongo migration
     registration_qr_code = models.ImageField(upload_to='system_qr_codes/', null=True, blank=True, verbose_name="Registration QR Code (Legacy)")
     updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='system_config_updates')

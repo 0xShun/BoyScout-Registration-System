@@ -304,6 +304,7 @@ def teacher_create_student(request):
             
             system_config = SystemConfiguration.get_config()
             registration_fee = system_config.registration_fee if system_config else Decimal('500.00')
+            payment_method = system_config.default_payment_method if system_config else 'paymaya'
             
             # Ensure student's registration_amount_required matches the system config
             student.registration_amount_required = registration_fee
@@ -319,7 +320,7 @@ def teacher_create_student(request):
                 
                 source_data = paymongo.create_source(
                     amount=registration_fee,
-                    type='gcash',
+                    type=payment_method,  # Use configured payment method
                     redirect_success=redirect_url,
                     redirect_failed=redirect_url,
                     metadata={
@@ -651,7 +652,7 @@ def teacher_bulk_payment(request):
             
             source_data = paymongo.create_source(
                 amount=total_amount,
-                type='gcash',
+                type='paymaya',
                 redirect_success=redirect_url,
                 redirect_failed=redirect_url,
                 metadata={

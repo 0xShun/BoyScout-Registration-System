@@ -104,24 +104,4 @@
         border-radius: 0.375rem;
     }
   </style>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const input = document.querySelector("#id_phone_number");
-        if (input) {
-            window.intlTelInput(input, {
-                initialCountry: "auto",
-                geoIpLookup: function(callback) {
-                    fetch("https://ipapi.co/json")
-                        .then(res => res.json())
-                        .then(data => callback(data.country_code))
-                        .catch(() => callback("us"));
-                },
-                utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/utils.js"
-            });
-        }
-    });
-</script>
 {% endblock %} 
