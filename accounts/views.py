@@ -1107,8 +1107,8 @@ def admin_required(view_func):
 def member_list(request):
     query = request.GET.get('q', '')
     filter_rank = request.GET.get('rank', '')
-    # Exclude admin users from the member list
-    members = User.objects.exclude(role='admin')
+    # Exclude admin users and Super Admin account from the member list
+    members = User.objects.exclude(role='admin').exclude(email='admin@test.com')
     if query:
         members = members.filter(models.Q(username__icontains=query) | models.Q(email__icontains=query) | models.Q(first_name__icontains=query) | models.Q(last_name__icontains=query))
     if filter_rank:
