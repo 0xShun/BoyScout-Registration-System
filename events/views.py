@@ -210,6 +210,13 @@ def event_detail(request, pk):
                             }
                         )
                         
+                        # Check if PayMongo returned an error
+                        if source_response and isinstance(source_response, dict) and source_response.get('error'):
+                            error_msg = source_response.get('message', 'Unknown error')
+                            print(f"PayMongo source creation failed. Error: {error_msg}")
+                            messages.error(request, f'Failed to create payment link: {error_msg}')
+                            return redirect('events:event_detail', pk=event.pk)
+                        
                         if source_response and 'id' in source_response and 'attributes' in source_response:
                             source_id = source_response['id']
                             checkout_url = source_response['attributes']['redirect']['checkout_url']

@@ -86,10 +86,19 @@ class PayMongoService:
             
         except requests.exceptions.RequestException as e:
             print(f"PayMongo create_source error: {e}")
+            error_detail = "Unknown error"
             if hasattr(e, 'response') and e.response is not None:
                 print(f"Response status: {e.response.status_code}")
                 print(f"Response body: {e.response.text}")
-            return None
+                try:
+                    error_json = e.response.json()
+                    if 'errors' in error_json and len(error_json['errors']) > 0:
+                        error_detail = error_json['errors'][0].get('detail', str(e))
+                    print(f"PayMongo error detail: {error_detail}")
+                except:
+                    error_detail = e.response.text if e.response.text else str(e)
+            # Return error dict instead of None for better error handling
+            return {'error': True, 'message': error_detail, 'status_code': e.response.status_code if hasattr(e, 'response') else 500}
     
     def create_payment(self, source_id, amount=None, description="Payment"):
         """
